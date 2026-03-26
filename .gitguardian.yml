@@ -1,2 +1,6 @@
+# CoworkGuard — GitGuardian config
+# Test credential strings in these files are intentional fake values
+# used to verify detection patterns. None are real credentials.
 ignored-paths:
   - tests/
+  - scanner.py
