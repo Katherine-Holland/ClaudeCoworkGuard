@@ -20,7 +20,7 @@ CoworkGuard adds that layer, running entirely on your own machine with no cloud 
 
 | Feature | Description |
 |---|---|
-| **Payload scanner** | 25+ regex patterns detecting PII, secrets, and internal data in every outbound request |
+| **Payload scanner** | 36 regex patterns detecting PII, secrets, and internal data in every outbound request |
 | **Active blocking** | Configurable by severity — CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
 | **Domain guard** | In-page warning banner + Chrome notification when Cowork is active and you navigate to a sensitive domain |
 | **Live audit log** | Real-time JSONL log of every intercepted request, with filterable dashboard view |
@@ -79,7 +79,7 @@ Browser / Cowork Desktop App
          ▼
  ┌──────────────┐      ┌─────────────────────────────────┐
  │  mitmproxy   │─────▶│  scanner.py  (Detection engine) │
- │  proxy.py    │      │  • 25+ severity-scored patterns  │
+ │  proxy.py    │      │  • 36 severity-scored patterns   │
  └──────────────┘      │  • Payload hash (never raw)      │
          │              │  • Redacted finding previews     │
          │              └─────────────────────────────────┘
@@ -119,8 +119,13 @@ coworkguard/
 ├── README.md
 └── chrome-extension/
     ├── manifest.json   # Manifest V3
+    ├── popup.html      # Toolbar icon popup — live stats + recent events
     ├── background.js   # Service worker — detection + monitoring
-    └── content.js      # In-page warning banner injection
+    ├── content.js      # In-page warning banner injection
+    └── icons/
+        ├── icon16.png
+        ├── icon48.png
+        └── icon128.png
 ```
 
 ---

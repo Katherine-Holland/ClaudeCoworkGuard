@@ -16,7 +16,7 @@ from datetime import datetime
 # ─────────────────────────────────────────────
 
 PATTERNS = {
-    # PII
+    # ── PII ──────────────────────────────────────────────────────────────
     "SSN":              r"\b\d{3}-\d{2}-\d{4}\b",
     "EMAIL":            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
     "PHONE_US":         r"\b(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b",
@@ -25,38 +25,98 @@ PATTERNS = {
     "IP_ADDRESS":       r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b",
     "PASSPORT":         r"\b[A-Z]{1,2}[0-9]{6,9}\b",
 
-    # Auth / Secrets
+    # ── Cloud provider credentials ────────────────────────────────────────
     "AWS_KEY":          r"AKIA[0-9A-Z]{16}",
     "AWS_SECRET":       r"(?i)aws.{0,20}secret.{0,20}['\"][0-9a-zA-Z/+]{40}['\"]",
-    "GH_TOKEN":         r"ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{82}",
-    "GOOGLE_API":       r"AIza[0-9A-Za-z\-_]{35}",
-    "STRIPE_KEY":       r"sk_live_[0-9a-zA-Z]{24,}|pk_live_[0-9a-zA-Z]{24,}",
-    "SLACK_TOKEN":      r"xox[baprs]-[0-9a-zA-Z\-]{10,48}",
+    "GCP_SERVICE_ACCT": r'"type":\s*"service_account"',
+    "AZURE_CONN_STR":   r"DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}",
+
+    # ── Keys / Certs ──────────────────────────────────────────────────────
+    "PRIVATE_KEY":      r"-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----",
+    "CERTIFICATE":      r"-----BEGIN CERTIFICATE-----",
+
+    # ── Auth tokens ───────────────────────────────────────────────────────
     "JWT":              r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}",
-    "PRIVATE_KEY":      r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----",
     "BEARER_TOKEN":     r"(?i)bearer\s+[a-zA-Z0-9\-._~+/]{20,}",
     "BASIC_AUTH":       r"(?i)authorization:\s*basic\s+[a-zA-Z0-9+/=]{10,}",
-    "ANTHROPIC_KEY":    r"sk-ant-[a-zA-Z0-9\-_]{40,}",
-    "OPENAI_KEY":       r"sk-[a-zA-Z0-9]{48}",
+    "OAUTH_TOKEN":      r"(?i)(access_token|refresh_token|oauth_token)\s*[=:]\s*['\"]?[a-zA-Z0-9\-._~+/]{20,}['\"]?",
 
-    # Internal / Corporate
+    # ── AI / LLM provider keys ────────────────────────────────────────────
+    # Anthropic
+    "ANTHROPIC_KEY":    r"sk-ant-[a-zA-Z0-9\-_]{40,}",
+    # OpenAI — legacy (sk-), project (sk-proj-), user (sk-None-), service account (sk-svcacct-)
+    "OPENAI_KEY":       r"sk-(?:proj|None|svcacct)-[A-Za-z0-9\-_]{20,}|sk-[A-Za-z0-9]{48}",
+    # Google AI / Gemini
+    "GOOGLE_API":       r"AIza[0-9A-Za-z\-_]{35}",
+    # Hugging Face — user tokens (hf_) and fine-grained org tokens (api_org_)
+    "HUGGINGFACE_KEY":  r"hf_[a-zA-Z0-9]{34,}|api_org_[a-zA-Z0-9]{34,}",
+    # Cohere
+    "COHERE_KEY":       r"[a-zA-Z0-9]{40}(?=.*cohere)|co-[a-zA-Z0-9\-]{30,}",
+    # Mistral
+    "MISTRAL_KEY":      r"(?i)mistral.{0,10}['\"][a-zA-Z0-9]{32,}['\"]",
+    # Groq
+    "GROQ_KEY":         r"gsk_[a-zA-Z0-9]{52}",
+    # xAI / Grok
+    "XAI_KEY":          r"xai-[a-zA-Z0-9]{40,}",
+    # Replicate
+    "REPLICATE_KEY":    r"r8_[a-zA-Z0-9]{40}",
+    # Perplexity
+    "PERPLEXITY_KEY":   r"pplx-[a-zA-Z0-9]{48}",
+
+    # ── SaaS / Developer platform keys ───────────────────────────────────
+    "STRIPE_KEY":       r"sk_live_[0-9a-zA-Z]{24,}|pk_live_[0-9a-zA-Z]{24,}|rk_live_[0-9a-zA-Z]{24,}",
+    "STRIPE_WEBHOOK":   r"whsec_[a-zA-Z0-9]{32,}",
+    "SLACK_TOKEN":      r"xox[baprs]-[0-9a-zA-Z\-]{10,48}",
+    "SLACK_WEBHOOK":    r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]{8}/B[a-zA-Z0-9_]{8}/[a-zA-Z0-9_]{24}",
+    "GH_TOKEN":         r"ghp_[a-zA-Z0-9]{36,}|gho_[a-zA-Z0-9]{36,}|ghs_[a-zA-Z0-9]{36,}|github_pat_[a-zA-Z0-9_]{82,}",
+    "GITLAB_TOKEN":     r"glpat-[a-zA-Z0-9\-_]{20}",
+    "TWILIO_KEY":       r"SK[a-zA-Z0-9]{32}",
+    "TWILIO_TOKEN":     r"(?i)twilio.{0,20}['\"][a-zA-Z0-9]{32}['\"]",
+    "SENDGRID_KEY":     r"SG\.[a-zA-Z0-9]{22}\.[a-zA-Z0-9]{43}",
+    "MAILGUN_KEY":      r"key-[a-zA-Z0-9]{32}",
+    "NPM_TOKEN":        r"npm_[a-zA-Z0-9]{36}",
+    "VERCEL_TOKEN":     r"(?i)vercel.{0,10}['\"][a-zA-Z0-9]{24}['\"]",
+    "NETLIFY_TOKEN":    r"(?i)netlify.{0,10}['\"][a-zA-Z0-9\-_]{40,}['\"]",
+    "FIREBASE_KEY":     r"AAAA[a-zA-Z0-9_\-]{7}:[a-zA-Z0-9_\-]{140}",
+    "SUPABASE_KEY":     r"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+",
+    "DATADOG_KEY":      r"(?i)dd.{0,10}(api|app).{0,5}key.{0,5}['\"][a-zA-Z0-9]{40}['\"]",
+
+    # ── Internal / Corporate ──────────────────────────────────────────────
     "INTERNAL_URL":     r"https?://(?:localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)[^\s]*",
     "VPN_HOSTNAME":     r"https?://[a-zA-Z0-9\-]+\.(?:internal|corp|intranet|local|lan)[^\s]*",
-    "ENV_FILE":         r"(?i)(DB_PASSWORD|DATABASE_URL|SECRET_KEY|API_KEY|PRIVATE_KEY)\s*=\s*\S+",
-    "CONNECTION_STR":   r"(?i)(mongodb|postgresql|mysql|redis|amqp)://[^\s\"']+",
+    "ENV_FILE":         r"(?i)(DB_PASSWORD|DATABASE_URL|SECRET_KEY|API_KEY|PRIVATE_KEY|ACCESS_TOKEN|AUTH_TOKEN)\s*=\s*\S+",
+    "CONNECTION_STR":   r"(?i)(mongodb(\+srv)?|postgresql|mysql|redis|amqp|mssql|sqlite)://[^\s\"']+",
+    # MCP config credential exposure (supply chain attack vector)
+    "MCP_CREDENTIAL":   r'"env"\s*:\s*\{[^}]*"[A-Z_]*(KEY|SECRET|TOKEN|PASSWORD)[A-Z_]*"\s*:\s*"[^"]{8,}"',
 }
 
-# Severity levels per category
+# ── Severity levels ───────────────────────────────────────────────────────────
 SEVERITY = {
+    # CRITICAL — block by default
     "SSN": "CRITICAL", "CREDIT_CARD": "CRITICAL", "PRIVATE_KEY": "CRITICAL",
     "AWS_KEY": "CRITICAL", "AWS_SECRET": "CRITICAL", "ANTHROPIC_KEY": "CRITICAL",
-    "JWT": "HIGH", "BEARER_TOKEN": "HIGH", "GH_TOKEN": "HIGH",
-    "STRIPE_KEY": "HIGH", "SLACK_TOKEN": "HIGH", "OPENAI_KEY": "HIGH",
+    "GCP_SERVICE_ACCT": "CRITICAL", "AZURE_CONN_STR": "CRITICAL",
+    "CERTIFICATE": "CRITICAL", "MCP_CREDENTIAL": "CRITICAL",
+
+    # HIGH — flagged, optionally blocked
+    "OPENAI_KEY": "HIGH", "HUGGINGFACE_KEY": "HIGH", "GROQ_KEY": "HIGH",
+    "XAI_KEY": "HIGH", "REPLICATE_KEY": "HIGH", "PERPLEXITY_KEY": "HIGH",
+    "MISTRAL_KEY": "HIGH", "COHERE_KEY": "HIGH",
+    "JWT": "HIGH", "BEARER_TOKEN": "HIGH", "OAUTH_TOKEN": "HIGH",
+    "GH_TOKEN": "HIGH", "GITLAB_TOKEN": "HIGH",
+    "STRIPE_KEY": "HIGH", "STRIPE_WEBHOOK": "HIGH",
+    "SLACK_TOKEN": "HIGH", "SLACK_WEBHOOK": "HIGH",
+    "SENDGRID_KEY": "HIGH", "TWILIO_KEY": "HIGH", "TWILIO_TOKEN": "HIGH",
+    "NPM_TOKEN": "HIGH", "FIREBASE_KEY": "HIGH", "SUPABASE_KEY": "HIGH",
+    "DATADOG_KEY": "HIGH", "MAILGUN_KEY": "HIGH",
     "CONNECTION_STR": "HIGH", "ENV_FILE": "HIGH",
+    "BASIC_AUTH": "HIGH", "GOOGLE_API": "HIGH",
+    "VERCEL_TOKEN": "HIGH", "NETLIFY_TOKEN": "HIGH",
+
+    # MEDIUM — flagged only
     "EMAIL": "MEDIUM", "PHONE_US": "MEDIUM", "IP_ADDRESS": "MEDIUM",
     "INTERNAL_URL": "MEDIUM", "VPN_HOSTNAME": "MEDIUM",
     "DOB": "MEDIUM", "PASSPORT": "MEDIUM",
-    "BASIC_AUTH": "HIGH", "GOOGLE_API": "HIGH",
 }
 
 # Domains considered sensitive — navigating here while Cowork is active triggers a warning
@@ -144,6 +204,7 @@ class CoworkScanner:
             payload_hash=payload_hash,
             payload_size_bytes=len(text.encode("utf-8")),
             findings=findings,
+            action="CLEAN",
         )
 
         should_block = (
@@ -215,7 +276,7 @@ if __name__ == "__main__":
     User SSN: 123-45-6789
     Their email is john.smith@company-internal.corp
     AWS Key: AKIAIOSFODNN7EXAMPLE
-    JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+    JWT: eyJURVNUX09OTFlfTk9UX1JFQUw.eyJURVNUX09OTFlfTk9UX1JFQUwifQ.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     Internal DB: postgresql://admin:supersecret@192.168.1.50:5432/proddb
     """
 
@@ -230,7 +291,7 @@ if __name__ == "__main__":
     print(f"\nFindings:")
     for f in result.findings:
         print(f"  [{f.severity:8}] {f.pattern_name:20} → {f.match_preview}")
-        
+
 #Copyright (c) 2026 [Katherine Weston]. All rights reserved.
 #Licensed under MIT with Commons Clause — see LICENSE for details.
 #Commercial use prohibited without a separate commercial license.
