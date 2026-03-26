@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CoworkGuard — Privacy Protection for Claude Cowork</title>
+<meta name="description" content="Real-time privacy protection for Claude Cowork and Claude in Chrome. Blocks PII, secrets and sensitive data before it reaches Anthropic's API."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #07090d;
+  --card: #0f1419;
+  --border: #1a2535;
+  --orange: #e84a1a;
+  --orange2: #ff6b35;
+  --orange3: #ff9f60;
+  --red: #c8320a;
+  --accent: #00d4f0;
+  --success: #00e676;
+  --warn: #ff9800;
+  --muted: #4a6175;
+  --text: #c4d0dc;
+  --heading: #edf2f7;
+  --mono: 'Space Mono', monospace;
+  --ui: 'Syne', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Grid texture ── */
+.grid-bg {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 16px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(7,9,13,.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(26,37,53,.7);
+}
+.nav-logo { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+.nav-logo img { width: 36px; height: 36px; filter: drop-shadow(0 0 10px rgba(232,74,26,.5)); }
+.nav-name { font-size: 19px; font-weight: 900; letter-spacing: -.5px; color: var(--heading); }
+.nav-name span { background: linear-gradient(135deg, var(--orange2), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.nav-links { display: flex; align-items: center; gap: 8px; }
+.nav-link { color: var(--muted); text-decoration: none; font-size: 13px; padding: 6px 14px; border-radius: 6px; transition: color .2s; }
+.nav-link:hover { color: var(--heading); }
+.nav-cta {
+  background: linear-gradient(135deg, var(--orange), var(--red));
+  color: white; text-decoration: none; font-size: 13px; font-weight: 700;
+  padding: 8px 20px; border-radius: 7px;
+  box-shadow: 0 4px 16px rgba(232,74,26,.35);
+  transition: all .2s;
+}
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(232,74,26,.45); }
+
+/* ── Sections ── */
+section { position: relative; z-index: 1; }
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 48px 80px;
+  position: relative;
+}
+.hero-glow {
+  position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 500px;
+  background: radial-gradient(ellipse, rgba(232,74,26,.14) 0%, rgba(200,50,10,.06) 45%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(232,74,26,.1); border: 1px solid rgba(232,74,26,.3);
+  color: var(--orange2); padding: 6px 16px; border-radius: 100px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  margin-bottom: 32px;
+  animation: fadeUp .6s ease both;
+}
+.hero-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--orange2); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.hero-logo {
+  width: 100px; height: 100px; margin: 0 auto 28px;
+  filter: drop-shadow(0 8px 32px rgba(232,74,26,.6));
+  animation: fadeUp .6s .1s ease both;
+}
+.hero h1 {
+  font-size: clamp(52px, 7vw, 88px);
+  font-weight: 900;
+  line-height: .95;
+  letter-spacing: -3px;
+  margin-bottom: 24px;
+  animation: fadeUp .6s .2s ease both;
+}
+.hero h1 .white { color: var(--heading); }
+.hero h1 .grad {
+  background: linear-gradient(135deg, var(--orange2) 0%, var(--orange) 50%, var(--red) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero-sub {
+  font-size: 19px; color: var(--muted); max-width: 580px; margin: 0 auto 40px;
+  line-height: 1.6; animation: fadeUp .6s .3s ease both;
+}
+.hero-sub strong { color: var(--text); font-weight: 600; }
+.hero-actions { display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; animation: fadeUp .6s .4s ease both; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, var(--orange2), var(--red));
+  color: white; text-decoration: none; font-size: 15px; font-weight: 700;
+  padding: 14px 28px; border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(232,74,26,.4);
+  transition: all .25s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(232,74,26,.5); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); text-decoration: none; font-size: 15px; font-weight: 600;
+  padding: 14px 28px; border-radius: 10px; transition: all .25s;
+}
+.btn-secondary:hover { border-color: var(--orange2); color: var(--orange2); }
+.hero-note { margin-top: 18px; font-family: var(--mono); font-size: 11px; color: var(--muted); animation: fadeUp .6s .5s ease both; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── CVE Banner ── */
+.cve-banner {
+  margin: 0 48px;
+  background: rgba(200,50,10,.08); border: 1px solid rgba(200,50,10,.3);
+  border-radius: 12px; padding: 20px 28px;
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.cve-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+.cve-text { font-size: 13px; line-height: 1.6; }
+.cve-text strong { color: #ff6b6b; }
+.cve-text a { color: var(--orange2); text-decoration: none; }
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: flex; justify-content: center; gap: 0;
+  padding: 60px 48px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-top: 60px;
+}
+.stat-item {
+  flex: 1; max-width: 200px; text-align: center;
+  padding: 0 32px; border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-size: 52px; font-weight: 900; line-height: 1; margin-bottom: 6px;
+  background: linear-gradient(135deg, var(--orange2), var(--orange));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.stat-lbl { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+
+/* ── Features ── */
+.features { padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+.section-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--orange2); margin-bottom: 16px;
+}
+.section-tag::before { content: ""; width: 20px; height: 1px; background: var(--orange2); }
+h2.section-title { font-size: clamp(32px, 4vw, 48px); font-weight: 900; letter-spacing: -1.5px; color: var(--heading); margin-bottom: 16px; line-height: 1.1; }
+.section-sub { font-size: 17px; color: var(--muted); max-width: 540px; margin-bottom: 64px; }
+
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px;
+  transition: border-color .2s, transform .2s;
+  position: relative; overflow: hidden;
+}
+.feat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--orange), transparent);
+  opacity: 0; transition: opacity .2s;
+}
+.feat-card:hover { border-color: rgba(232,74,26,.4); transform: translateY(-3px); }
+.feat-card:hover::before { opacity: 1; }
+.feat-icon { font-size: 28px; margin-bottom: 16px; }
+.feat-title { font-size: 17px; font-weight: 700; color: var(--heading); margin-bottom: 8px; }
+.feat-desc { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+/* ── Pattern table ── */
+.patterns { padding: 0 48px 100px; max-width: 1200px; margin: 0 auto; }
+.pattern-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.pattern-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+.pattern-card-title {
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .1em; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ptag {
+  display: inline-block; font-family: var(--mono); font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 3px; margin: 3px 4px 3px 0;
+}
+.ptag.crit { background: rgba(255,61,61,.12); color: #ff6b6b; border: 1px solid rgba(255,61,61,.25); }
+.ptag.high { background: rgba(255,152,0,.1); color: #ffb74d; border: 1px solid rgba(255,152,0,.25); }
+.ptag.med  { background: rgba(255,235,59,.06); color: #fff176; border: 1px solid rgba(255,235,59,.2); }
+
+/* ── How it works ── */
+.how { padding: 0 48px 100px; max-width: 1200px; margin: 0 auto; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; margin-top: 48px; }
+.steps::before {
+  content: ''; position: absolute; top: 28px; left: 12.5%; right: 12.5%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), var(--border), transparent);
+}
+.step { text-align: center; padding: 0 20px; }
+.step-num {
+  width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 20px;
+  background: var(--card); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; color: var(--orange2);
+  font-family: var(--mono); position: relative; z-index: 1;
+}
+.step-title { font-size: 15px; font-weight: 700; color: var(--heading); margin-bottom: 8px; }
+.step-desc { font-size: 12px; color: var(--muted); line-height: 1.6; font-family: var(--mono); }
+
+/* ── Privacy section ── */
+.privacy { padding: 0 48px 100px; max-width: 1200px; margin: 0 auto; }
+.privacy-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+}
+.privacy-checks { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+.check-item { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; }
+.check-icon { color: var(--success); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.check-text { color: var(--text); line-height: 1.5; }
+.check-text span { color: var(--heading); font-weight: 600; }
+.privacy-diagram {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+  padding: 28px; font-family: var(--mono); font-size: 12px;
+}
+.diag-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--muted); }
+.diag-row:last-child { margin-bottom: 0; }
+.diag-box {
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px; color: var(--text); white-space: nowrap; font-size: 11px;
+}
+.diag-box.blocked { border-color: rgba(255,61,61,.4); color: #ff6b6b; background: rgba(255,61,61,.08); }
+.diag-box.clean { border-color: rgba(0,230,118,.3); color: var(--success); background: rgba(0,230,118,.06); }
+.diag-box.scanner { border-color: rgba(232,74,26,.4); color: var(--orange2); background: rgba(232,74,26,.08); }
+.diag-arrow { color: var(--border); font-size: 16px; }
+
+/* ── CTA section ── */
+.cta-section {
+  padding: 100px 48px;
+  text-align: center;
+  position: relative;
+  border-top: 1px solid var(--border);
+}
+.cta-glow {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse, rgba(232,74,26,.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+.cta-section h2 { font-size: clamp(36px, 5vw, 60px); font-weight: 900; letter-spacing: -2px; color: var(--heading); margin-bottom: 16px; line-height: 1.1; }
+.cta-section p { font-size: 17px; color: var(--muted); max-width: 480px; margin: 0 auto 40px; }
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-logo { display: flex; align-items: center; gap: 10px; }
+.footer-logo img { width: 28px; height: 28px; opacity: .8; }
+.footer-name { font-size: 15px; font-weight: 800; color: var(--muted); }
+.footer-name span { color: var(--orange2); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { color: var(--muted); text-decoration: none; font-size: 13px; transition: color .2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- Nav -->
+<nav>
+  <a class="nav-logo" href="#">
+    <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACAAIADASIAAhEBAxEB/8QAGwABAQEBAQEBAQAAAAAAAAAAAAYHCAUEAQP/xAA9EAABAwMBBAcFBgQHAQAAAAABAAIDBAURBgcSITETIkFRYXGBFCNCkaEIFTJiscFyguHwFiU0Q1KiwtH/xAAbAQEAAwADAQAAAAAAAAAAAAAABAUGAQMHAv/EADQRAAEDAgMFBgQGAwAAAAAAAAEAAgMEEQUhMQZBUXGBEhNhkaHwFCLR4TIzQrHB8QdSgv/aAAwDAQACEQMRAD8A7LRERERERERERERERERERERERERERERERERERERERERRutdpmkdKNfHXXFtRWNH+kpcSSZ7jjg31IWDa/wBuOqL62SlsoFkonAjMTt6dw8X/AA/ygeagT4lTwnsl1zwC0OGbMYhiADmM7LP9jkOm89FvO0HaXpTRMLhdK8S1u7llFT4fM7uyOTR4uwuZNpe2vVGr3S0MDzZ7S7h7NTvO/IPzv5nyGB4FQVV0k0j5ZXukkccuc45JPeSvYs+hb7dLLVX403sdmpIy+WuqBuxnHws7XuJwAB2njhcQ1venJbGDZmiw5namPadxPHwH9lU+zPbNqjR/RUc8hu9pbw9mqHnejH5H8x5HI8F0xs+2maT1tE1tsrxDXbuX0VRhkze/A5OHi3K4WaXNcG8TnkqC00bqZ7KpznMnad5m6cFh7/NWjJGSNudVBqdk3VctosvHcu/EWQbBbntEuVOyS8Fk9jDcR1FYCJ3924ebh4u9CtPF8s5ubrb95UvtjecXSDe8vPw5rqeQzUrFVmHy0s7ofxFuts/PgvQREXKgIiIiIiIiLJ9W7aaC2yyUtqtFTVTtyN+o90zPeBxJ+iyLWG0nWOoWvhqbm6lpXc6ek90zHcSOsR5kqz2g2SKLUVwppIgWdMXt4cg7rDHzU9pTZ9/iW/m3x3JlGwRmQl7C5xAIBAHDJ4+CwdVVV9RMYS7fawy99V65hVJg9FTiq7AyF7n5j9ugWYSxnJJ4ql0ds21Xqx7H223OipHHjV1Hu4gPAni7+UFdJaS2UaQsDmTuovvKrbx6asw8A94Z+EfInxV00BrQ1oAA4ADsVjSbOuydO7oPqoeJf5ADQWUTL+Lv4H1PRZToLYbpiwmOrvP+d1zSCBK3EDD4M+L+bPkFD/aw1UHS0eire5rIIA2oq2s4Dex1GYHcOOPELoW710FstdVcap27BTQulkPg0ZK4a1Nc6i+6hrrxWEmarndK4d2TwHkBgeisK+aKiY2Jgtf9lD2VhqcarXVlU4uDNL6XPAaCwzy8F4bKZww8fi7Aui9h+yKSWmg1BrKm4HD6ageOY7HSD/z8+5Ps+bLmvbBq/UVNkcH0FLIOHhK4foPXuW91VRDSwOnnkbHG0cSVYUZd3Qc7JS9qNqe7Bw6g/wCnDW/AfyegWd7WL1qa3w+xWu3TUlt3Q11ZEAcjHIY/APPBWQseS7eJJJOSV1KwiSMFzCA4cWuH6qW1DoDTt3LpRTexVDuPS03VyfFvIqBXYbLO7ttdfwP8KjwTaKmo4+5litxcM789/ryCyzT+tdQWgNjhrXTwt/2p+u3Hh2j0K0PTW0aC5Tspaq2VEczvig943zPIgfNSVVoAW67GCouTZ4Q0Owxm68g9hzwHLxVdpmgpaepgpaSBsbN4E4HE448T2qNSGqif2C6w4HNS8WOFzxmRjLki9xl58fJXSIi0awKIiIizjavbc11PXNbwlj3HHxb/AEP0ULaK42DVlouJduxCpEUx7Nx4LTnyzn0W06xoBX2KZoGXxe8b6c/plYprKhL7NMQOLCHj0P8A8WTxeF0E/fM5+S32z9S2pphTyaZtPI/2ug0U1syvYv2jaGqc/enjZ0E+ee+3hn1GD6qlWnhlbNG2RuhF1h6iB1PK6J+rSQsv+0neXW/QP3bC/E1znEPDnuN6zv0aPVZTsO2dDVF9+8bnCTaKFwLwRwnk5hnl2n5dqsttlPV6n2lWzT1GN808DWgdjXyHJJ8mgFa5Y7dbdJaYiooi2KlpI8veeG8e1x8SVnzT/HYg97/wR5dfeq27MSdhGCx08H5s1z4gHK/O1gPsvuuFZSWyhdUVDmxQxjAAHyACj9M1tTrDUMtxmBbarc/dgj7JJu89+7+pHcofaDqitvdfFR0YcH1EgipYQeIycbx8Ste0pZ4bDp+ktcAGIYwHuHxvPFzvU5VlHOauYhv4G+p3KjnpBhlKHP8AzX6eA39d3nZeoiKe2i3kWPSVZVNdieRvQwY5l7uAx5cT6KwkeI2F50CpKeF08rYmauNlKG4feVxrq4OzHJUubF/AzqD57pPqqTR0RkqZagjgxu6PMqIs8Xstup6ftZGAfPt+q0vS9Maa0Rbww+X3jvXl9MKoogZJO0ea0eLlsMRYzTQch9l6iIiullkREREIBBBGQVmWq7O2OeppC33cgIb/AAlaavH1RQCppRO1uXxc/FqhV1OJo+SssLqzTzeB9hZNsVvLrNqeexVb9yGsdutB5Nmby+YyPktxXO+u7dLb72yvpy6PpSHtc3huvH9graNAahj1Hp6KryBVR+7qWdzx2+R5qpwKoMZdRv1bpy95q+2npBKGV8Yydk7n7y6eK8rRVnE2q77qipbmSaqfBTE9jGdQkee7j5qb2l6pbXVT6CmlxQ0pJkcDwkcOZ8gqXaNe49PWBltonbtVUtLW45sb8TvM5+qwnU1YY6RtM13WlPW8guK6cU8fcM11dzOamYNRmqk+NlGQsGDwGV/e+6sNidA6/a5mvNQwmCgZvMB5B5yGj5ZPmt6WebAbX7DoVtY5uJK6Z0ue3dHVb+hPqtDVnhcPd0zSdTn5/ZZ3H6r4itdbRuQ6a+t0WPbTLsL3remssD96ktnvJscjJ3enAepV9tE1LDpfTc1aSDVSe7pmH4nnt8hzKxrSkMjKaSuqXF9RVu6RzncyP68So+KVGkDeZ5Kx2coiO1VuGmTeZ1PQK407SOuF1hpgMszvP8GjmtQAAAAGAOQUvs+thprca6ZuJaj8OexnZ8+fyVQplBF2I7nUqqxioEs/Zbo3LrvRERTVUoiIiIhAIIIyDzRERQGvtPCro5adreJ95A7uI7P29V8Gxi0vttFcb5WvfBE4GMNccDDOLnEeB4fNaPXUzKunMT+B5tPcVC7Ybq2z6UitFM4MlrDuHHA9GOLj6nA9SqWppI6eU1h/SPXctLQ1s1ZCMOb+si54AZn9lm2q75Jfb/UXB5PRuduwtPwsHIfv6qBvFSai4yHOWtO430XtyzdFBJJ/xaSpil95VRtdx3ngH1Kyr5nSm51K9DfGynY2NgsAP2XX2jqMUGlLVRgY6KkjaR47oz9V99xrKa30M1bWTNhp4WF8j3HgAF/OtraK1Wt1XXVEdNTQMBfI84AAC542oa/qtX1wt1uEkVqjf7uPk6d3Y537BbSrrI6KIDfuC8uw/DZcSnJ0be5PvevzVN+qNdau6dwdHbqfhDGfhZnmfzO/vkrPRdndeLoyLdIpYcOlI5Y7G+qktIWaeR8Nuo4+kqZj1iOWe8+AW9aas8FktbKOHrO/FK/te7tKqaCmfUyGSTr9FqsZrY8PpxBDkbWA4Dj73r0mNaxgY0BrWjAA7Av1EWmXnyIiIiIiIiIiIiKa15pKk1Rbw1xENbED0E2OX5T3g/RUqLrliZMwseLgrvp6iSmlEsRs4LlPWNtr7J7TRXCB0MzcDB5OBPMHtCkYZDHKyQc2kELsHV2mLRqm2OoLrT77fglYcSRnvaf25LnvXWyrUOnXyVFHE66W8cRLC3L2D8zOfqMjyWPrcIlpiXR/M31HNb+j2ihrrNl+V/oeX0Xja01rfNWVLX3Gfdp2H3VNHwjZ447T4lehofT1ZXVkbKendNVSfhbjgxvee5ers42W3q8vjr7jC630Z6zXTN6zh3hvP54C33Tlgttgo/ZrfBu5/HI7i957yf25Luo8Onqn97NcDidSvisxmlw2PuoAC7cBoOf014r49F6YptPUWMiWskHvpsf9R3D9VQIi1ccbY2hrRksFPPJUSGSQ3JRERfa6URERERERERERERERERERERERERERERERERERF//Z" alt="CoworkGuard"/>
+    <span class="nav-name">Cowork<span>Guard</span></span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#features">Features</a>
+    <a class="nav-link" href="#patterns">Detection</a>
+    <a class="nav-link" href="#how">How it works</a>
+    <a class="nav-link" href="#privacy">Privacy</a>
+    <a class="nav-link" href="https://github.com/YOURUSERNAME/coworkguard">GitHub</a>
+    <a class="nav-cta" href="https://chrome.google.com/webstore/detail/coworkguard">Add to Chrome</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">Now available on Chrome Web Store</div>
+  <img class="hero-logo" src="data:image/png;base64,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" alt="CoworkGuard"/>
+  <h1>
+    <span class="white">Claude Cowork<br/>just got a</span><br/>
+    <span class="grad">privacy layer.</span>
+  </h1>
+  <p class="hero-sub">
+    Claude Cowork inherits access to your <strong>entire browser session</strong>.
+    CoworkGuard blocks PII, secrets, and sensitive data before it ever reaches Anthropic's API.
+  </p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://chrome.google.com/webstore/detail/coworkguard">
+      🛡️ Add to Chrome — Free
+    </a>
+    <a class="btn-secondary" href="https://github.com/YOURUSERNAME/coworkguard">
+      View on GitHub →
+    </a>
+  </div>
+  <p class="hero-note">Free forever · No account required · All data stays on your machine</p>
+</section>
+
+<!-- CVE Banner -->
+<div class="cve-banner">
+  <span class="cve-icon">⚠️</span>
+  <div class="cve-text">
+    <strong>Documented vulnerability:</strong> Within 48 hours of Cowork launching, security researchers demonstrated that a Word document containing hidden white text could trick Cowork into uploading files containing partial Social Security numbers to an attacker's account. Anthropic acknowledge that Cowork activity is <strong>excluded from Audit Logs, the Compliance API, and Data Exports</strong>. CoworkGuard fills that gap.
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-strip">
+  <div class="stat-item"><div class="stat-num">36</div><div class="stat-lbl">Detection Patterns</div></div>
+  <div class="stat-item"><div class="stat-num">3</div><div class="stat-lbl">Severity Levels</div></div>
+  <div class="stat-item"><div class="stat-num">100%</div><div class="stat-lbl">Local — No Cloud</div></div>
+  <div class="stat-item"><div class="stat-num">0</div><div class="stat-lbl">Data Sent Externally</div></div>
+</div>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="section-tag">Features</div>
+  <h2 class="section-title">Everything Cowork<br/>should have built in.</h2>
+  <p class="section-sub">The audit trail, scanner, and domain guard that Anthropic haven't shipped yet.</p>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🔍</div>
+      <div class="feat-title">Payload Scanner</div>
+      <div class="feat-desc">Every outbound request to api.anthropic.com is scanned against 36 patterns before leaving your machine. SSNs, API keys, private keys, DB credentials — caught and blocked.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚠️</div>
+      <div class="feat-title">Domain Guard</div>
+      <div class="feat-desc">Detects when Cowork is active and fires an in-page warning banner the moment you navigate to AWS Console, Gmail, Stripe, GitHub, Salesforce, or 15+ other sensitive domains.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📋</div>
+      <div class="feat-title">Live Audit Log</div>
+      <div class="feat-desc">Every intercepted request is logged locally — timestamped, categorised, and filterable. The compliance trail Cowork doesn't provide. Export to JSON any time.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <div class="feat-title">Payload Trend Chart</div>
+      <div class="feat-desc">24-hour bar chart of data volume sent to Claude, colour-coded by risk level. Spot unusual spikes at a glance. See exactly when your sensitive data exposure is highest.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚙️</div>
+      <div class="feat-title">Settings Panel</div>
+      <div class="feat-desc">Toggle block levels for Critical, High, and Medium severity independently. Add custom regex patterns for your organisation's internal formats. No config file editing required.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">Zero Cloud Dependency</div>
+      <div class="feat-desc">Everything runs on your machine. No accounts. No telemetry. No analytics. Raw payload content is never stored — only SHA-256 hashes and redacted previews.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Patterns -->
+<section class="patterns" id="patterns">
+  <div class="section-tag">Detection</div>
+  <h2 class="section-title">36 patterns.<br/>Every vector covered.</h2>
+  <p class="section-sub">From PII to supply chain attack vectors — CoworkGuard catches what matters.</p>
+
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <div class="pattern-card-title" style="color:#ff6b6b">🔴 Critical — Blocked by default</div>
+      <span class="ptag crit">SSN</span><span class="ptag crit">Credit Card</span>
+      <span class="ptag crit">Private Key</span><span class="ptag crit">AWS Key</span>
+      <span class="ptag crit">Anthropic Key</span><span class="ptag crit">GCP Service Account</span>
+      <span class="ptag crit">Azure Conn String</span><span class="ptag crit">Certificate</span>
+      <span class="ptag crit">MCP Credential</span>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-card-title" style="color:#ffb74d">🟠 High — Flagged, optionally blocked</div>
+      <span class="ptag high">OpenAI Key</span><span class="ptag high">Hugging Face</span>
+      <span class="ptag high">Groq</span><span class="ptag high">xAI</span><span class="ptag high">Replicate</span>
+      <span class="ptag high">Perplexity</span><span class="ptag high">JWT</span>
+      <span class="ptag high">Bearer Token</span><span class="ptag high">GitHub Token</span>
+      <span class="ptag high">Stripe Key</span><span class="ptag high">Slack Token</span>
+      <span class="ptag high">SendGrid</span><span class="ptag high">npm Token</span>
+      <span class="ptag high">Firebase</span><span class="ptag high">DB Connection</span>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-card-title" style="color:#fff176">🟡 Medium — Flagged</div>
+      <span class="ptag med">Email</span><span class="ptag med">Phone</span>
+      <span class="ptag med">Date of Birth</span><span class="ptag med">Passport</span>
+      <span class="ptag med">IP Address</span><span class="ptag med">Internal URL</span>
+      <span class="ptag med">VPN Hostname</span><span class="ptag med">.env Values</span>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how" id="how">
+  <div class="section-tag">How it works</div>
+  <h2 class="section-title">Set up in 4 steps.</h2>
+  <p class="section-sub">A local proxy + Chrome extension. Everything stays on your machine.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">Start Proxy</div>
+      <div class="step-desc">Run mitmproxy on localhost:8080. Trust the certificate in Keychain.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">Set System Proxy</div>
+      <div class="step-desc">Point macOS HTTP/HTTPS proxy to 127.0.0.1:8080 in Network settings.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">Load Extension</div>
+      <div class="step-desc">Install from Chrome Web Store or load unpacked from the GitHub repo.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-title">Open Dashboard</div>
+      <div class="step-desc">Visit localhost:7070. Your audit trail starts the moment Cowork does.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy -->
+<section class="privacy" id="privacy">
+  <div class="section-tag">Privacy</div>
+  <h2 class="section-title">We guard your data<br/>from everyone. Including us.</h2>
+
+  <div class="privacy-card">
+    <div>
+      <p style="color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:8px">CoworkGuard was built on one principle: a privacy tool that phones home is not a privacy tool.</p>
+      <div class="privacy-checks">
+        <div class="check-item"><span class="check-icon">✓</span><div class="check-text"><span>No cloud dependency</span> — everything runs on localhost</div></div>
+        <div class="check-item"><span class="check-icon">✓</span><div class="check-text"><span>No raw content stored</span> — only SHA-256 hashes and redacted previews</div></div>
+        <div class="check-item"><span class="check-icon">✓</span><div class="check-text"><span>No telemetry</span> — zero analytics, zero crash reporting</div></div>
+        <div class="check-item"><span class="check-icon">✓</span><div class="check-text"><span>No account required</span> — install and it works</div></div>
+        <div class="check-item"><span class="check-icon">✓</span><div class="check-text"><span>Open source</span> — audit every line on GitHub</div></div>
+      </div>
+    </div>
+    <div class="privacy-diagram">
+      <div class="diag-row"><div class="diag-box">Claude Cowork</div><div class="diag-arrow">→</div><div class="diag-box scanner">CoworkGuard Scanner</div></div>
+      <div class="diag-row" style="margin-left:20px;margin-top:4px;gap:4px">
+        <div style="color:var(--border)">├──</div>
+        <div class="diag-box blocked">SSN detected → BLOCKED</div>
+      </div>
+      <div class="diag-row" style="margin-left:20px;gap:4px">
+        <div style="color:var(--border)">├──</div>
+        <div class="diag-box" style="color:#ffb74d;border-color:rgba(255,152,0,.3);background:rgba(255,152,0,.06)">JWT found → FLAGGED</div>
+      </div>
+      <div class="diag-row" style="margin-left:20px;gap:4px;margin-bottom:16px">
+        <div style="color:var(--border)">└──</div>
+        <div class="diag-box clean">Clean → ALLOWED</div>
+      </div>
+      <div class="diag-row"><div class="diag-box clean">Allowed requests only</div><div class="diag-arrow">→</div><div class="diag-box">api.anthropic.com</div></div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);color:var(--muted);font-size:10px">
+        All logs → ~/.coworkguard/logs/ (your machine only)
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <h2>Start protecting<br/>your data today.</h2>
+  <p>Free, open source, and takes 5 minutes to set up. Your Claude sessions should be yours.</p>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a class="btn-primary" href="https://chrome.google.com/webstore/detail/coworkguard">🛡️ Add to Chrome — Free</a>
+    <a class="btn-secondary" href="https://github.com/YOURUSERNAME/coworkguard">View Source on GitHub →</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">
+    <img src="data:image/png;base64,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" alt="CoworkGuard"/>
+    <span class="footer-name">Cowork<span>Guard</span></span>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/YOURUSERNAME/coworkguard">GitHub</a>
+    <a href="https://github.com/YOURUSERNAME/coworkguard/issues">Support</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="https://github.com/YOURUSERNAME/coworkguard/blob/main/LICENSE">License</a>
+  </div>
+  <span class="footer-copy">© 2026 CoworkGuard · MIT + Commons Clause</span>
+</footer>
+
+</body>
+</html>
