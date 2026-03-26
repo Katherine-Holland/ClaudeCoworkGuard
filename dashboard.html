@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CoworkGuard — Audit Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#080c10;--surface:#0d1117;--card:#111820;--border:#1e2d3d;
+    --accent:#00e5ff;--warn:#ff9800;--danger:#ff3d3d;--success:#00e676;
+    --muted:#4a6072;--text:#cdd9e5;--heading:#e6edf3;
+    --font-mono:'Space Mono',monospace;--font-ui:'Syne',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.015) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .container{max-width:1400px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+  /* Header */
+  header{border-bottom:1px solid var(--border);padding:20px 0;position:sticky;top:0;background:rgba(8,12,16,.94);backdrop-filter:blur(12px);z-index:100}
+  .header-inner{display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#0077ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px rgba(0,229,255,.3)}
+  .logo-text{font-size:20px;font-weight:800;color:var(--heading);letter-spacing:-.5px}
+  .logo-text span{color:var(--accent)}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .last-update{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+  .status-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;font-size:12px;font-family:var(--font-mono);font-weight:700;letter-spacing:.05em;border:1px solid;transition:all .3s}
+  .status-pill.active{background:rgba(255,61,61,.1);border-color:var(--danger);color:var(--danger)}
+  .status-pill.inactive{background:rgba(0,230,118,.08);border-color:var(--success);color:var(--success)}
+  .status-pill.unknown{background:rgba(74,96,114,.1);border-color:var(--muted);color:var(--muted)}
+  .pulse{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+  .nav-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;font-family:var(--font-mono);font-size:11px;cursor:pointer;transition:all .2s}
+  .nav-btn:hover,.nav-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.05)}
+
+  /* Views */
+  .view{display:none}.view.active{display:block}
+
+  /* Stats */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:28px 0 20px}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+  .stat-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .stat-card.blocked::after{background:var(--danger)}.stat-card.flagged::after{background:var(--warn)}
+  .stat-card.clean::after{background:var(--success)}.stat-card.warnings::after{background:var(--accent)}
+  .stat-label{font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+  .stat-value{font-size:40px;font-weight:800;line-height:1;margin-bottom:4px}
+  .stat-card.blocked .stat-value{color:var(--danger)}.stat-card.flagged .stat-value{color:var(--warn)}
+  .stat-card.clean .stat-value{color:var(--success)}.stat-card.warnings .stat-value{color:var(--accent)}
+  .stat-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+
+  /* Layout */
+  .main-grid{display:grid;grid-template-columns:1fr 340px;gap:20px;padding-bottom:40px}
+
+  /* Panel */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:0}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+  .panel-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--heading)}
+  .panel-actions{display:flex;gap:8px}
+  .btn{padding:5px 12px;border-radius:6px;font-size:11px;font-family:var(--font-mono);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+  .btn.primary{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.06)}
+  .btn.primary:hover{background:rgba(0,229,255,.12)}
+
+  /* Chart */
+  .chart-wrap{padding:20px}
+  canvas{width:100%!important}
+
+  /* Log */
+  .event-log{max-height:460px;overflow-y:auto}
+  .event-log::-webkit-scrollbar{width:4px}
+  .event-log::-webkit-scrollbar-track{background:var(--card)}
+  .event-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .log-col-header{display:grid;grid-template-columns:140px 80px 90px 1fr;gap:12px;padding:8px 20px;font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+  .event-row{display:grid;grid-template-columns:140px 80px 90px 1fr;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid rgba(30,45,61,.5);font-size:12px;font-family:var(--font-mono);transition:background .15s;cursor:pointer;animation:fadeIn .3s ease}
+  .event-row:hover{background:rgba(0,229,255,.05)}
+  @keyframes fadeIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+  .event-time{color:var(--muted);font-size:11px}
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.06em;white-space:nowrap}
+  .badge.BLOCKED{background:rgba(255,61,61,.15);color:var(--danger);border:1px solid rgba(255,61,61,.3)}
+  .badge.FLAGGED{background:rgba(255,152,0,.12);color:var(--warn);border:1px solid rgba(255,152,0,.3)}
+  .badge.CLEAN{background:rgba(0,230,118,.08);color:var(--success);border:1px solid rgba(0,230,118,.2)}
+  .badge.WARNING{background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)}
+  .badge.CRITICAL{background:rgba(255,61,61,.2);color:#ff6b6b;border:1px solid rgba(255,61,61,.4)}
+  .badge.HIGH{background:rgba(255,152,0,.15);color:#ffb74d;border:1px solid rgba(255,152,0,.4)}
+  .badge.MEDIUM{background:rgba(255,235,59,.08);color:#fff176;border:1px solid rgba(255,235,59,.3)}
+  .event-type{color:var(--muted);font-size:11px}
+  .event-detail{color:var(--text);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .finding-tag{display:inline-block;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.15);color:var(--accent);padding:1px 6px;border-radius:3px;font-size:10px;margin-right:4px}
+  .filter-bar{display:flex;gap:8px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .filter-btn{padding:4px 10px;border-radius:6px;font-size:11px;font-family:var(--font-mono);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
+  .filter-btn.active,.filter-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.06)}
+  .empty-state{padding:60px 20px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:13px}
+  .empty-icon{font-size:32px;margin-bottom:12px}
+
+  /* Sidebar */
+  .sidebar{display:flex;flex-direction:column;gap:20px}
+  .proxy-status{padding:16px 20px}
+  .proxy-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(30,45,61,.5);font-size:12px;font-family:var(--font-mono)}
+  .proxy-row:last-child{border-bottom:none}
+  .proxy-key{color:var(--muted)}.proxy-val{color:var(--text)}
+  .proxy-val.ok{color:var(--success)}.proxy-val.err{color:var(--danger)}.proxy-val.warn{color:var(--warn)}
+  .pattern-list{padding:12px 20px}
+  .pattern-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(30,45,61,.4);font-size:12px;font-family:var(--font-mono)}
+  .pattern-item:last-child{border-bottom:none}
+  .pattern-name{color:var(--text)}
+  .pattern-count{background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.15);color:var(--accent);padding:1px 8px;border-radius:100px;font-size:11px}
+
+  /* Settings */
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:28px 0 40px}
+  .settings-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .settings-body{padding:20px}
+  .setting-row{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(30,45,61,.5);gap:20px}
+  .setting-row:last-child{border-bottom:none}
+  .setting-info{flex:1}
+  .setting-label{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:3px}
+  .setting-desc{font-size:11px;color:var(--muted);font-family:var(--font-mono);line-height:1.5}
+  .toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:24px;cursor:pointer;transition:.3s}
+  .toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.3s}
+  .toggle input:checked+.toggle-slider{background:rgba(0,229,255,.2);border:1px solid var(--accent)}
+  .toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:var(--accent);box-shadow:0 0 8px rgba(0,229,255,.5)}
+  .save-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:16px 20px;border-top:1px solid var(--border);background:rgba(0,0,0,.2)}
+  .save-msg{font-family:var(--font-mono);font-size:11px;color:var(--success);opacity:0;transition:opacity .3s}
+  .save-msg.show{opacity:1}
+  .textarea-field{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-mono);font-size:11px;padding:10px 12px;resize:vertical;min-height:80px;margin-top:8px;transition:border-color .2s}
+  .textarea-field:focus{outline:none;border-color:var(--accent)}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex;animation:fadeOverlay .2s ease}
+  @keyframes fadeOverlay{from{opacity:0}to{opacity:1}}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:640px;max-width:95vw;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;animation:slideModal .25s ease;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  @keyframes slideModal{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)}
+  .modal-title{font-size:15px;font-weight:700;color:var(--heading);display:flex;align-items:center;gap:10px}
+  .modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .modal-close:hover{border-color:var(--danger);color:var(--danger)}
+  .modal-body{padding:24px;overflow-y:auto;flex:1}
+  .modal-section{margin-bottom:20px}
+  .modal-section-title{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px}
+  .modal-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .meta-item{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+  .meta-key{font-size:10px;font-family:var(--font-mono);color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+  .meta-val{font-size:13px;font-family:var(--font-mono);color:var(--text);word-break:break-all}
+  .finding-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+  .finding-row:last-child{margin-bottom:0}
+  .finding-preview{font-family:var(--font-mono);font-size:11px;color:var(--muted);flex:1;word-break:break-all}
+  .finding-blocked-tag{font-size:10px;font-family:var(--font-mono);color:var(--danger);border:1px solid rgba(255,61,61,.3);padding:1px 6px;border-radius:3px;white-space:nowrap}
+  .no-findings{color:var(--muted);font-family:var(--font-mono);font-size:12px;padding:16px;background:var(--bg);border-radius:8px;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <div class="logo-text">Cowork<span>Guard</span></div>
+      </div>
+      <div class="header-right">
+        <span class="last-update" id="last-update">connecting…</span>
+        <button class="nav-btn active" onclick="showView('dashboard',this)">Dashboard</button>
+        <button class="nav-btn" onclick="showView('settings',this)">Settings</button>
+        <div class="status-pill unknown" id="cowork-status">
+          <div class="pulse"></div>
+          <span id="status-text">CHECKING…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- DASHBOARD VIEW -->
+<div class="view active" id="view-dashboard">
+<div class="container">
+  <div class="stats-grid">
+    <div class="stat-card blocked"><div class="stat-label">Requests Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">CRITICAL / HIGH severity</div></div>
+    <div class="stat-card flagged"><div class="stat-label">Requests Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">Allowed with warning</div></div>
+    <div class="stat-card clean"><div class="stat-label">Clean Requests</div><div class="stat-value" id="stat-clean">–</div><div class="stat-sub">No issues detected</div></div>
+    <div class="stat-card warnings"><div class="stat-label">Domain Warnings</div><div class="stat-value" id="stat-warnings">–</div><div class="stat-sub">Sensitive pages visited</div></div>
+  </div>
+
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-header">
+      <span class="panel-title">Payload Size Trend — Last 24h</span>
+      <span id="chart-total" style="font-family:var(--font-mono);font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="chart-wrap"><canvas id="trendChart" height="110"></canvas></div>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Audit Log</span>
+        <div class="panel-actions">
+          <button class="btn" onclick="exportLog()">Export JSON</button>
+          <button class="btn danger" onclick="clearLog()">Clear</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('ALL',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('BLOCKED',this)">Blocked</button>
+        <button class="filter-btn" onclick="setFilter('FLAGGED',this)">Flagged</button>
+        <button class="filter-btn" onclick="setFilter('DOMAIN_WARNING',this)">Domain Warnings</button>
+        <button class="filter-btn" onclick="setFilter('CLEAN',this)">Clean</button>
+      </div>
+      <div class="log-col-header"><span>Timestamp</span><span>Action</span><span>Type</span><span>Detail</span></div>
+      <div class="event-log" id="event-log">
+        <div class="empty-state"><div class="empty-icon">⏳</div><div>Connecting to local server…<br><span style="font-size:11px;color:var(--muted)">Run: python3 server.py</span></div></div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Proxy Status</span></div>
+        <div class="proxy-status">
+          <div class="proxy-row"><span class="proxy-key">Proxy</span><span class="proxy-val" id="ps-proxy">checking…</span></div>
+          <div class="proxy-row"><span class="proxy-key">Port</span><span class="proxy-val" id="ps-port">:8080</span></div>
+          <div class="proxy-row"><span class="proxy-key">Target</span><span class="proxy-val">api.anthropic.com</span></div>
+          <div class="proxy-row"><span class="proxy-key">Block Critical</span><span class="proxy-val" id="ps-critical">–</span></div>
+          <div class="proxy-row"><span class="proxy-key">Block High</span><span class="proxy-val" id="ps-high">–</span></div>
+          <div class="proxy-row"><span class="proxy-key">Extension</span><span class="proxy-val ok">CONNECTED</span></div>
+          <div class="proxy-row"><span class="proxy-key">Log File</span><span class="proxy-val" style="font-size:10px">~/.coworkguard/logs/</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Top Patterns</span></div>
+        <div class="pattern-list" id="pattern-list"><div style="color:var(--muted);font-size:12px;font-family:var(--font-mono);padding:8px 0">No patterns triggered yet</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Setup Guide</span></div>
+        <div style="padding:16px 20px;font-size:12px;font-family:var(--font-mono);color:var(--muted);line-height:1.8">
+          <div style="color:var(--accent);margin-bottom:2px">1. Start proxy</div>
+          <div style="margin-bottom:10px;color:var(--text);font-size:10px">mitmproxy -s proxy.py --port 8080</div>
+          <div style="color:var(--accent);margin-bottom:2px">2. Set system proxy</div>
+          <div style="margin-bottom:10px;color:var(--text);font-size:10px">127.0.0.1:8080 (HTTP + HTTPS)</div>
+          <div style="color:var(--accent);margin-bottom:2px">3. Start this server</div>
+          <div style="margin-bottom:10px;color:var(--text);font-size:10px">python3 server.py</div>
+          <div style="color:var(--accent);margin-bottom:2px">4. Load Chrome extension</div>
+          <div style="color:var(--text);font-size:10px">chrome://extensions → Load unpacked</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- SETTINGS VIEW -->
+<div class="view" id="view-settings">
+<div class="container">
+  <div class="settings-grid">
+    <div class="settings-card">
+      <div class="panel-header"><span class="panel-title">Blocking Rules</span></div>
+      <div class="settings-body">
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Block Critical Severity</div><div class="setting-desc">SSNs, credit cards, private keys, raw API keys.<br>Recommended: always on.</div></div>
+          <label class="toggle"><input type="checkbox" id="s-block-critical" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Block High Severity</div><div class="setting-desc">JWTs, bearer tokens, GitHub tokens, Stripe keys.<br>May cause false positives.</div></div>
+          <label class="toggle"><input type="checkbox" id="s-block-high"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Block Medium Severity</div><div class="setting-desc">Emails, phone numbers, IP addresses.<br>High false positive rate — use with caution.</div></div>
+          <label class="toggle"><input type="checkbox" id="s-block-medium"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Domain Navigation Alerts</div><div class="setting-desc">Warn when Cowork is active and you navigate to a sensitive domain.</div></div>
+          <label class="toggle"><input type="checkbox" id="s-domain-alert" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="save-bar"><span class="save-msg" id="save-msg-1">✓ Saved</span><button class="btn primary" onclick="saveSettings('save-msg-1')">Save Changes</button></div>
+    </div>
+
+    <div class="settings-card">
+      <div class="panel-header"><span class="panel-title">Custom Patterns</span></div>
+      <div class="settings-body">
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start">
+          <div class="setting-label" style="margin-bottom:4px">Custom Regex Patterns</div>
+          <div class="setting-desc">One pattern per line. Applied at MEDIUM severity.<br>Example: <code style="color:var(--accent)">ACME-[0-9]{6}</code></div>
+          <textarea class="textarea-field" id="s-custom-patterns" placeholder="# One regex per line&#10;ACME-[0-9]{6}"></textarea>
+        </div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start">
+          <div class="setting-label" style="margin-bottom:4px">Custom Blocked Domains</div>
+          <div class="setting-desc">Domains that trigger a warning when visited while Cowork is active.</div>
+          <textarea class="textarea-field" id="s-custom-domains" placeholder="app.mycompany.com&#10;internal.tools.io"></textarea>
+        </div>
+      </div>
+      <div class="save-bar"><span class="save-msg" id="save-msg-2">✓ Saved</span><button class="btn primary" onclick="saveSettings('save-msg-2')">Save Changes</button></div>
+    </div>
+
+    <div class="settings-card">
+      <div class="panel-header"><span class="panel-title">Proxy Configuration</span></div>
+      <div class="settings-body">
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Proxy Port</div><div class="setting-desc">Port mitmproxy listens on. Default: 8080.<br>Restart proxy after changing.</div></div>
+          <input id="s-proxy-port" type="number" value="8080" style="width:80px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:12px;text-align:center"/>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Max Log Entries</div><div class="setting-desc">Maximum audit log entries to keep. Older entries rotate out.</div></div>
+          <input id="s-max-logs" type="number" value="1000" style="width:80px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:12px;text-align:center"/>
+        </div>
+      </div>
+      <div class="save-bar"><span class="save-msg" id="save-msg-3">✓ Saved</span><button class="btn primary" onclick="saveSettings('save-msg-3')">Save Changes</button></div>
+    </div>
+
+    <div class="settings-card">
+      <div class="panel-header"><span class="panel-title">About CoworkGuard</span></div>
+      <div class="settings-body">
+        <div class="setting-row"><div class="setting-info"><div class="setting-label">Version</div></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">1.0.0</span></div>
+        <div class="setting-row"><div class="setting-info"><div class="setting-label">License</div></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">Proprietary</span></div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Data Retention</div><div class="setting-desc">All data stays on your machine. No telemetry. No cloud. Raw payload content is never stored — only hashes and redacted previews.</div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-label">Reset All Settings</div><div class="setting-desc">Restore factory defaults. Does not delete audit logs.</div></div>
+          <button class="btn danger" onclick="resetSettings()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Threat Detail Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Event Detail</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:7070';
+let allEvents = [], currentFilter = 'ALL', currentSettings = {}, serverAvailable = false;
+
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'settings') loadSettingsIntoForm();
+}
+
+// ── Chart ──
+function drawChart(data) {
+  const canvas = document.getElementById('trendChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 40, H = 110;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  if (!data || !data.length) {
+    ctx.fillStyle = '#4a6072'; ctx.font = "11px 'Space Mono',monospace"; ctx.textAlign = 'center';
+    ctx.fillText('No data yet — start the proxy to see payload trends', W/2, H/2); return;
+  }
+  const maxB = Math.max(...data.map(d => d.bytes), 1);
+  const pad = {l:50,r:16,t:12,b:28}, cW = W-pad.l-pad.r, cH = H-pad.t-pad.b;
+  const bW = Math.max(2, (cW/data.length) - 3);
+  ctx.strokeStyle = 'rgba(30,45,61,0.8)'; ctx.lineWidth = 1;
+  [.25,.5,.75,1].forEach(f => { const y=pad.t+cH*(1-f); ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke(); });
+  data.forEach((d,i) => {
+    const x = pad.l + (i/data.length)*cW + 1.5;
+    const bH = (d.bytes/maxB)*cH, y = pad.t+cH-bH;
+    ctx.fillStyle = d.blocked > 0 ? 'rgba(255,61,61,.7)' : d.flagged > 0 ? 'rgba(255,152,0,.65)' : 'rgba(0,230,118,.6)';
+    ctx.beginPath(); ctx.roundRect(x, y, bW, bH, [3,3,0,0]); ctx.fill();
+  });
+  const fmt = n => n>=1024*1024?(n/1024/1024).toFixed(1)+'MB':n>=1024?(n/1024).toFixed(0)+'KB':n+'B';
+  ctx.fillStyle='#4a6072'; ctx.font="9px 'Space Mono',monospace"; ctx.textAlign='right';
+  [0,.5,1].forEach(f => ctx.fillText(fmt(maxB*f), pad.l-4, pad.t+cH*(1-f)+3));
+  ctx.textAlign='center';
+  const step = Math.max(1, Math.floor(data.length/6));
+  data.forEach((d,i) => { if(i%step!==0) return; ctx.fillText(d.hour.split('T')[1], pad.l+(i/data.length)*cW+bW/2+1.5, H-6); });
+  const total = data.reduce((s,d)=>s+d.bytes,0);
+  document.getElementById('chart-total').textContent = fmt(total) + ' total intercepted';
+}
+
+// ── Log ──
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); renderLog();
+}
+
+function renderLog() {
+  const log = document.getElementById('event-log');
+  const filtered = currentFilter === 'ALL' ? allEvents : allEvents.filter(e => e.action===currentFilter||e.type===currentFilter);
+  if (!filtered.length) {
+    const msg = !serverAvailable
+      ? '<div class="empty-icon">🔌</div><div>Server offline — run <code style="color:var(--accent)">python3 server.py</code></div>'
+      : '<div class="empty-icon">🔍</div><div>No events match this filter</div>';
+    log.innerHTML = `<div class="empty-state">${msg}</div>`; return;
+  }
+  log.innerHTML = filtered.map((e,i) => {
+    const ts = new Date(e.timestamp);
+    const time = ts.toLocaleTimeString('en-US',{hour12:false});
+    const date = ts.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const action = e.action||'UNKNOWN', type = e.type==='DOMAIN_WARNING'?'DOMAIN':'API';
+    let detail = e.type==='DOMAIN_WARNING'
+      ? `⚠️ Navigated to <strong style="color:var(--warn)">${e.domain||e.url}</strong> while Cowork active`
+      : e.findings?.length
+        ? e.findings.map(f=>`<span class="finding-tag">${f.type}</span>`).join('')
+        : `<span style="color:var(--muted)">No sensitive data detected</span>`;
+    return `<div class="event-row" onclick="openModal(${i},event)"><span class="event-time">${date} ${time}</span><span class="badge ${action}">${action}</span><span class="event-type">${type}</span><span class="event-detail">${detail}</span></div>`;
+  }).join('');
+}
+
+function renderPatterns(counts) {
+  const el = document.getElementById('pattern-list');
+  const sorted = Object.entries(counts||{}).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  el.innerHTML = sorted.length
+    ? sorted.map(([n,c])=>`<div class="pattern-item"><span class="pattern-name">${n}</span><span class="pattern-count">${c}</span></div>`).join('')
+    : `<div style="color:var(--muted);font-size:12px;font-family:var(--font-mono);padding:8px 0">No patterns triggered yet</div>`;
+}
+
+function updateStats(s) {
+  document.getElementById('stat-blocked').textContent  = s?.blocked??'–';
+  document.getElementById('stat-flagged').textContent  = s?.flagged??'–';
+  document.getElementById('stat-clean').textContent    = s?.clean??'–';
+  document.getElementById('stat-warnings').textContent = s?.domainWarnings??'–';
+}
+
+function updateProxyPanel(status, settings) {
+  const p = status?.proxy;
+  if (p) {
+    const el = document.getElementById('ps-proxy');
+    el.className='proxy-val '+(p.running?'ok':'err');
+    el.textContent=p.running?'RUNNING':'STOPPED';
+    document.getElementById('ps-port').textContent=':'+(p.port||8080);
+  }
+  if (settings) {
+    const cr=document.getElementById('ps-critical'), hi=document.getElementById('ps-high');
+    cr.className='proxy-val '+(settings.block_on_critical?'ok':'warn');
+    cr.textContent=settings.block_on_critical?'ENABLED':'DISABLED';
+    hi.className='proxy-val '+(settings.block_on_high?'ok':'warn');
+    hi.textContent=settings.block_on_high?'ENABLED':'DISABLED';
+  }
+}
+
+function updateCoworkStatus(cowork) {
+  const pill=document.getElementById('cowork-status'), text=document.getElementById('status-text');
+  if (cowork?.active) { pill.className='status-pill active'; text.textContent='COWORK ACTIVE'; }
+  else { pill.className='status-pill inactive'; text.textContent='COWORK INACTIVE'; }
+}
+
+// ── Modal ──
+function openModal(idx, evt) {
+  if (evt) evt.stopPropagation();
+  const filtered = currentFilter==='ALL'?allEvents:allEvents.filter(e=>e.action===currentFilter||e.type===currentFilter);
+  const e = filtered[idx]; if (!e) return;
+  const action = e.action||'UNKNOWN';
+  document.getElementById('modal-title').innerHTML = `Event Detail <span class="badge ${action}" style="font-size:11px">${action}</span>`;
+  const ts = new Date(e.timestamp).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'long'});
+  const findings = e.findings||[];
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-section">
+      <div class="modal-section-title">Event Info</div>
+      <div class="modal-meta-grid">
+        <div class="meta-item"><div class="meta-key">Timestamp</div><div class="meta-val">${ts}</div></div>
+        <div class="meta-item"><div class="meta-key">Type</div><div class="meta-val">${e.type||'API_REQUEST'}</div></div>
+        <div class="meta-item"><div class="meta-key">Payload Size</div><div class="meta-val">${e.payload_size_bytes?(e.payload_size_bytes/1024).toFixed(1)+' KB':'–'}</div></div>
+        <div class="meta-item"><div class="meta-key">Payload Hash</div><div class="meta-val" style="font-size:10px">${e.payload_hash||'–'}</div></div>
+        ${e.url?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">URL</div><div class="meta-val" style="font-size:10px">${e.url}</div></div>`:''}
+        ${e.domain?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Domain</div><div class="meta-val">${e.domain}</div></div>`:''}
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Findings (${findings.length})</div>
+      ${!findings.length
+        ? `<div class="no-findings">✓ No sensitive data detected in this request</div>`
+        : findings.map(f=>`<div class="finding-row"><span class="badge ${f.severity}">${f.severity}</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--text);min-width:140px">${f.type}</span><span class="finding-preview">${f.preview||f.match_preview||'–'}</span>${f.blocked?'<span class="finding-blocked-tag">BLOCKED</span>':''}</div>`).join('')
+      }
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+// ── Settings ──
+function loadSettingsIntoForm() {
+  const s = currentSettings; if (!Object.keys(s).length) return;
+  document.getElementById('s-block-critical').checked = !!s.block_on_critical;
+  document.getElementById('s-block-high').checked     = !!s.block_on_high;
+  document.getElementById('s-block-medium').checked   = !!s.block_on_medium;
+  document.getElementById('s-domain-alert').checked   = s.alert_on_domain !== false;
+  document.getElementById('s-proxy-port').value       = s.proxy_port||8080;
+  document.getElementById('s-max-logs').value         = s.max_log_entries||1000;
+  document.getElementById('s-custom-patterns').value  = (s.custom_patterns||[]).join('\n');
+  document.getElementById('s-custom-domains').value   = (s.custom_blocked_domains||[]).join('\n');
+}
+
+async function saveSettings(msgId) {
+  const payload = {
+    block_on_critical: document.getElementById('s-block-critical').checked,
+    block_on_high:     document.getElementById('s-block-high').checked,
+    block_on_medium:   document.getElementById('s-block-medium').checked,
+    alert_on_domain:   document.getElementById('s-domain-alert').checked,
+    proxy_port:        parseInt(document.getElementById('s-proxy-port').value)||8080,
+    max_log_entries:   parseInt(document.getElementById('s-max-logs').value)||1000,
+    custom_patterns:       document.getElementById('s-custom-patterns').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    custom_blocked_domains:document.getElementById('s-custom-domains').value.split('\n').map(s=>s.trim()).filter(Boolean),
+  };
+  try {
+    const r = await fetch(API+'/api/settings',{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}});
+    const d = await r.json(); currentSettings = d.settings;
+    const msg = document.getElementById(msgId);
+    msg.classList.add('show'); setTimeout(()=>msg.classList.remove('show'),2500);
+  } catch(e) { alert('Could not save — is server.py running?'); }
+}
+
+async function resetSettings() {
+  if (!confirm('Reset all settings to defaults?')) return;
+  try { await fetch(API+'/api/settings',{method:'POST',body:'{}',headers:{'Content-Type':'application/json'}}); await fetchAll(); loadSettingsIntoForm(); } catch(e){}
+}
+
+// ── Data fetching ──
+async function fetchAll() {
+  try {
+    const [sr, lr] = await Promise.all([fetch(API+'/api/status'), fetch(API+'/api/logs?limit=200')]);
+    const status=await sr.json(), logs=await lr.json();
+    serverAvailable=true; currentSettings=status.settings||{};
+    updateCoworkStatus(status.cowork); updateProxyPanel(status,status.settings);
+    updateStats(logs.stats||{}); renderPatterns(logs.patternCounts||{}); drawChart(logs.chartData||[]);
+    if (JSON.stringify(logs.entries)!==JSON.stringify(allEvents)) { allEvents=logs.entries||[]; renderLog(); }
+    document.getElementById('last-update').textContent='Updated '+new Date().toLocaleTimeString('en-US',{hour12:false});
+  } catch(err) {
+    serverAvailable=false;
+    document.getElementById('last-update').textContent='Server offline';
+    document.getElementById('cowork-status').className='status-pill unknown';
+    document.getElementById('status-text').textContent='SERVER OFFLINE';
+    renderLog();
+  }
+}
+
+function exportLog() {
+  const b=new Blob([JSON.stringify(allEvents,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`coworkguard-audit-${new Date().toISOString().split('T')[0]}.json`; a.click();
+}
+
+async function clearLog() {
+  if (!confirm('Clear all audit log entries?')) return;
+  try { await fetch(API+'/api/clear',{method:'POST'}); } catch(e){}
+  allEvents=[]; renderLog(); updateStats({blocked:0,flagged:0,clean:0,domainWarnings:0}); drawChart([]);
+}
+
+fetchAll();
+setInterval(fetchAll, 5000);
+window.addEventListener('resize', ()=>drawChart([]));
+</script>
+</body>
+</html>
