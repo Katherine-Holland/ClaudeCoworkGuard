@@ -12,6 +12,11 @@ YELLOW='\033[1;33m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+INSTALL_DIR="$HOME/CoworkGuard"
+CERT_DIR="$HOME/.coworkguard"
+CERT_KEY="$CERT_DIR/coworkguard-ca-key.pem"
+CERT_PEM="$CERT_DIR/coworkguard-ca-cert.pem"
+
 echo ""
 echo -e "${BOLD}🛡️  CoworkGuard Installer${NC}"
 echo "─────────────────────────────────────"
@@ -34,19 +39,23 @@ if ! command -v python3 &>/dev/null; then
   echo "  Or via Homebrew: brew install python"
   exit 1
 fi
-
 PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 echo -e "${GREEN}✓ Python ${PY_VERSION} found${NC}"
 
 # ── Check pip ────────────────────────────────────────────────────────
 if ! command -v pip3 &>/dev/null; then
-  echo -e "${YELLOW}⚠ pip3 not found — installing...${NC}"
   python3 -m ensurepip --upgrade
 fi
 
-# ── Clone or update repo ─────────────────────────────────────────────
-INSTALL_DIR="$HOME/CoworkGuard"
+# ── Check OpenSSL ────────────────────────────────────────────────────
+if ! command -v openssl &>/dev/null; then
+  echo -e "${RED}✗ OpenSSL not found.${NC}"
+  echo "  Install via: brew install openssl"
+  exit 1
+fi
+echo -e "${GREEN}✓ OpenSSL found${NC}"
 
+# ── Clone or update repo ─────────────────────────────────────────────
 if [ -d "$INSTALL_DIR/.git" ]; then
   echo -e "${CYAN}→ Updating existing installation...${NC}"
   cd "$INSTALL_DIR"
@@ -64,34 +73,60 @@ echo -e "${CYAN}→ Installing dependencies (this may take a minute)...${NC}"
 pip3 install mitmproxy flask flask-cors psutil --quiet --disable-pip-version-check
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
-# ── Trust mitmproxy certificate ───────────────────────────────────────
-echo -e "${CYAN}→ Setting up security certificate...${NC}"
+# ── Generate CoworkGuard certificate ─────────────────────────────────
+mkdir -p "$CERT_DIR/logs"
 
-# Run mitmproxy briefly to generate the certificate
-python3 -c "
-import subprocess, time, os, signal
-
-# Start mitmproxy briefly to generate cert
-p = subprocess.Popen(['mitmdump', '--listen-port', '18765', '--quiet'],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-time.sleep(2)
-p.terminate()
-p.wait()
-" 2>/dev/null || true
-
-CERT="$HOME/.mitmproxy/mitmproxy-ca-cert.pem"
-if [ -f "$CERT" ]; then
-  # Add to macOS keychain
-  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT" 2>/dev/null && \
-    echo -e "${GREEN}✓ Certificate trusted automatically${NC}" || \
-    echo -e "${YELLOW}⚠ Could not auto-trust certificate. Run start.sh and follow the manual step.${NC}"
+if [ -f "$CERT_PEM" ]; then
+  echo -e "${GREEN}✓ CoworkGuard certificate already exists${NC}"
 else
-  echo -e "${YELLOW}⚠ Certificate will be generated on first run.${NC}"
+  echo -e "${CYAN}→ Generating CoworkGuard Security Certificate...${NC}"
+
+  # Generate private key
+  openssl genrsa -out "$CERT_KEY" 2048 2>/dev/null
+
+  # Generate CA certificate with friendly CoworkGuard name
+  openssl req -new -x509 \
+    -days 3650 \
+    -key "$CERT_KEY" \
+    -out "$CERT_PEM" \
+    -subj "/CN=CoworkGuard Security Certificate/O=CoworkGuard/OU=AI Privacy Protection" \
+    2>/dev/null
+
+  echo -e "${GREEN}✓ Certificate generated${NC}"
 fi
 
-# ── Create logs directory ─────────────────────────────────────────────
-mkdir -p "$HOME/.coworkguard/logs"
-echo -e "${GREEN}✓ Log directory created at ~/.coworkguard/logs${NC}"
+# ── Trust the certificate ─────────────────────────────────────────────
+echo ""
+echo -e "${BOLD}One password prompt required:${NC}"
+echo -e "  CoworkGuard needs your Mac password to trust its security"
+echo -e "  certificate. This happens once only — never again."
+echo ""
+
+if sudo security add-trusted-cert \
+    -d -r trustRoot \
+    -k /Library/Keychains/System.keychain \
+    "$CERT_PEM"; then
+  echo -e "${GREEN}✓ CoworkGuard Security Certificate trusted${NC}"
+else
+  echo -e "${YELLOW}⚠ Could not trust certificate automatically.${NC}"
+  echo "  Open Keychain Access, search for 'CoworkGuard Security Certificate'"
+  echo "  double-click it and set Trust to 'Always Trust'."
+fi
+
+# ── Configure mitmproxy to use our certificate ────────────────────────
+MITMPROXY_DIR="$HOME/.mitmproxy"
+mkdir -p "$MITMPROXY_DIR"
+
+# Write mitmproxy options file pointing to our cert
+cat > "$MITMPROXY_DIR/config.yaml" << CONF
+# CoworkGuard mitmproxy configuration — do not edit manually
+certs:
+  - "*=$CERT_PEM"
+certs_key:
+  - "*=$CERT_KEY"
+CONF
+
+echo -e "${GREEN}✓ Proxy configured to use CoworkGuard certificate${NC}"
 
 # ── Make scripts executable ───────────────────────────────────────────
 chmod +x "$INSTALL_DIR/start.sh"
@@ -102,11 +137,9 @@ echo ""
 echo "─────────────────────────────────────"
 echo -e "${GREEN}${BOLD}✓ CoworkGuard installed successfully!${NC}"
 echo ""
-echo -e "  Installed to: ${CYAN}$INSTALL_DIR${NC}"
-echo ""
 echo -e "  ${BOLD}To start CoworkGuard:${NC}"
-echo -e "  ${CYAN}$INSTALL_DIR/start.sh${NC}"
+echo -e "  ${CYAN}~/CoworkGuard/start.sh${NC}"
 echo ""
-echo -e "  ${BOLD}Next step — install the Chrome extension:${NC}"
+echo -e "  ${BOLD}Install the Chrome extension:${NC}"
 echo -e "  https://chrome.google.com/webstore/detail/coworkguard"
 echo ""
