@@ -131,6 +131,40 @@ echo -e "${GREEN}✓ Proxy configured to use CoworkGuard certificate${NC}"
 # ── Make scripts executable ───────────────────────────────────────────
 chmod +x "$INSTALL_DIR/start.sh"
 chmod +x "$INSTALL_DIR/stop.sh"
+chmod +x "$INSTALL_DIR/checker.sh"
+
+# ── Register startup checker as Login Item ────────────────────────────
+echo -e "${CYAN}→ Registering startup checker...${NC}"
+
+# Create a LaunchAgent plist so checker.sh runs on every login
+LAUNCH_AGENTS="$HOME/Library/LaunchAgents"
+mkdir -p "$LAUNCH_AGENTS"
+
+cat > "$LAUNCH_AGENTS/com.coworkguard.checker.plist" << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.coworkguard.checker</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$INSTALL_DIR/checker.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>$HOME/.coworkguard/checker.log</string>
+  <key>StandardErrorPath</key>
+  <string>$HOME/.coworkguard/checker.log</string>
+</dict>
+</plist>
+PLIST
+
+# Load it immediately
+launchctl load "$LAUNCH_AGENTS/com.coworkguard.checker.plist" 2>/dev/null || true
+echo -e "${GREEN}✓ Startup checker registered${NC}"
 
 # ── Done ─────────────────────────────────────────────────────────────
 echo ""

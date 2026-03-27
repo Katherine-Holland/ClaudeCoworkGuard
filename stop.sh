@@ -22,6 +22,9 @@ fi
 networksetup -setwebproxystate "$NETWORK_SERVICE" off
 networksetup -setsecurewebproxystate "$NETWORK_SERVICE" off
 
+# Write clean stop flag so startup checker knows this was intentional
+touch "$HOME/.coworkguard/.clean_stop"
+
 echo -e "${GREEN}✓ Normal internet restored${NC}"
 
 # ── Stop mitmproxy ────────────────────────────────────────────────────
