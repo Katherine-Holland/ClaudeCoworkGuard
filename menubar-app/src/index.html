@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CoworkGuard</title>
+<style>
+  /* Minimal — the real UI is the system tray menu.
+     This window is hidden by default (skipTaskbar: true, visible: false)
+     and only shown for the first-run setup wizard. */
+  :root {
+    --bg:#07090d;--card:#0e1318;--border:#1c2a38;
+    --orange:#e05a20;--orange2:#f07040;
+    --success:#3dd68c;--muted:#4e6278;--muted2:#687d90;
+    --text:#b8c8d8;--heading:#e8f0f8;
+    --mono:"DM Mono",monospace;--ui:"DM Sans",system-ui,sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--ui); padding: 32px;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .logo-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, #f07040, #e05a20);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; box-shadow: 0 4px 16px rgba(224,90,32,.4);
+  }
+  .logo-name { font-size: 20px; font-weight: 600; color: var(--heading); }
+  .logo-name em { font-style: normal; color: var(--orange2); }
+  h1 { font-size: 22px; font-weight: 300; color: var(--heading); margin-bottom: 8px; letter-spacing: -0.5px; }
+  h1 strong { font-weight: 700; }
+  .sub { font-size: 13px; color: var(--muted2); margin-bottom: 32px; line-height: 1.6; }
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: flex; gap: 16px; padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-n {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: var(--card); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11px; color: var(--orange2);
+    transition: all 0.3s;
+  }
+  .step-n.done { background: rgba(61,214,140,.1); border-color: rgba(61,214,140,.3); color: var(--success); }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--heading); margin-bottom: 4px; }
+  .step-desc { font-size: 12px; color: var(--muted2); line-height: 1.6; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 7px; font-size: 13px;
+    font-weight: 500; cursor: pointer; border: none;
+    font-family: var(--ui); margin-top: 10px; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--orange); color: white; box-shadow: 0 2px 12px rgba(224,90,32,.3); }
+  .btn-primary:hover { background: var(--orange2); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { font-family: var(--mono); font-size: 11px; margin-top: 8px; min-height: 18px; }
+  .status.ok { color: var(--success); }
+  .status.err { color: #f05060; }
+  .status.loading { color: var(--muted2); }
+  .done-state { display: none; text-align: center; padding: 20px 0; }
+  .done-state.show { display: block; }
+  .done-icon { font-size: 48px; margin-bottom: 12px; }
+  .done-title { font-size: 18px; font-weight: 600; color: var(--success); margin-bottom: 8px; }
+  .done-desc { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="logo">
+  <div class="logo-icon">🛡️</div>
+  <div class="logo-name">Cowork<em>Guard</em></div>
+</div>
+
+<h1>One-time <strong>setup.</strong></h1>
+<p class="sub">This takes about 30 seconds and never needs to be done again.</p>
+
+<div id="setup-steps" class="steps">
+  <div class="step" id="step1">
+    <div class="step-n" id="n1">01</div>
+    <div>
+      <div class="step-title">Generate security certificate</div>
+      <div class="step-desc">Creates the CoworkGuard Security Certificate that allows traffic scanning.</div>
+      <button class="btn btn-primary" id="btn1" onclick="runStep1()">Generate Certificate</button>
+      <div class="status" id="s1"></div>
+    </div>
+  </div>
+
+  <div class="step" id="step2">
+    <div class="step-n" id="n2">02</div>
+    <div>
+      <div class="step-title">Trust the certificate</div>
+      <div class="step-desc">Tells your Mac the CoworkGuard certificate is safe. You'll be asked for your password once.</div>
+      <button class="btn btn-primary" id="btn2" onclick="runStep2()" disabled>Trust Certificate</button>
+      <div class="status" id="s2"></div>
+    </div>
+  </div>
+
+  <div class="step" id="step3">
+    <div class="step-n" id="n3">03</div>
+    <div>
+      <div class="step-title">Verify setup</div>
+      <div class="step-desc">Confirms everything is working correctly.</div>
+      <button class="btn btn-primary" id="btn3" onclick="runStep3()" disabled>Test Connection</button>
+      <div class="status" id="s3"></div>
+    </div>
+  </div>
+</div>
+
+<div class="done-state" id="done">
+  <div class="done-icon">✅</div>
+  <div class="done-title">CoworkGuard is ready</div>
+  <div class="done-desc">
+    Use the shield icon in your menubar to start and stop protection.<br/>
+    You'll never need to open this window again.
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:7070';
+
+function setStatus(id, msg, type) {
+  const el = document.getElementById('s' + id);
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+
+function markDone(step) {
+  document.getElementById('n' + step).textContent = '✓';
+  document.getElementById('n' + step).classList.add('done');
+  document.getElementById('btn' + step).disabled = true;
+}
+
+async function runStep1() {
+  const btn = document.getElementById('btn1');
+  btn.disabled = true;
+  setStatus(1, '⟳ Generating...', 'loading');
+  try {
+    const r = await fetch(API + '/api/setup/generate-cert', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      setStatus(1, '✓ Certificate generated', 'ok');
+      markDone(1);
+      document.getElementById('btn2').disabled = false;
+    } else {
+      setStatus(1, '✗ ' + (d.error || 'Failed'), 'err');
+      btn.disabled = false;
+    }
+  } catch {
+    setStatus(1, '✗ Server not reachable — make sure CoworkGuard is running', 'err');
+    btn.disabled = false;
+  }
+}
+
+async function runStep2() {
+  const btn = document.getElementById('btn2');
+  btn.disabled = true;
+  setStatus(2, '⟳ Trusting certificate — enter your Mac password if prompted...', 'loading');
+  try {
+    const r = await fetch(API + '/api/setup/trust-cert', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      setStatus(2, '✓ Certificate trusted', 'ok');
+      markDone(2);
+      document.getElementById('btn3').disabled = false;
+    } else {
+      setStatus(2, '✗ ' + (d.error || 'Please use manual steps in Keychain Access'), 'err');
+      // Still let them proceed — they may have done it manually
+      document.getElementById('btn3').disabled = false;
+      btn.disabled = false;
+    }
+  } catch {
+    setStatus(2, '✗ Server not reachable', 'err');
+    btn.disabled = false;
+  }
+}
+
+async function runStep3() {
+  const btn = document.getElementById('btn3');
+  btn.disabled = true;
+  setStatus(3, '⟳ Testing...', 'loading');
+  try {
+    const r = await fetch(API + '/api/status');
+    const d = await r.json();
+    if (d.server === 'ok') {
+      setStatus(3, '✓ Everything working', 'ok');
+      markDone(3);
+      setTimeout(() => {
+        document.getElementById('setup-steps').style.display = 'none';
+        document.getElementById('done').classList.add('show');
+        // Mark setup complete
+        localStorage.setItem('coworkguard_setup_complete', '1');
+      }, 800);
+    } else {
+      setStatus(3, '✗ Server check failed', 'err');
+      btn.disabled = false;
+    }
+  } catch {
+    setStatus(3, '✗ Cannot reach server — is server.py running?', 'err');
+    btn.disabled = false;
+  }
+}
+
+// Skip setup if already done
+if (localStorage.getItem('coworkguard_setup_complete')) {
+  document.getElementById('setup-steps').style.display = 'none';
+  document.getElementById('done').classList.add('show');
+}
+</script>
+</body>
+</html>
