@@ -210,7 +210,7 @@ def index():
 
 if __name__ == "__main__":
     print("\n🛡️  CoworkGuard Server running at http://localhost:7070\n")
-    app.run(host="127.0.0.1", port=7070, debug=False)
+    app.run(host="0.0.0.0", port=7070, debug=False)
 
 #Copyright (c) 2026 [Katherine Weston]. All rights reserved.
 #Licensed under MIT with Commons Clause — see LICENSE for details.

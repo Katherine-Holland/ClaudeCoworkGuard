@@ -9,7 +9,7 @@ import json
 import hashlib
 from dataclasses import dataclass, field
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 # ─────────────────────────────────────────────
 # Detection Patterns
@@ -200,7 +200,7 @@ class CoworkScanner:
 
         payload_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
         result = ScanResult(
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             payload_hash=payload_hash,
             payload_size_bytes=len(text.encode("utf-8")),
             findings=findings,

@@ -4,108 +4,106 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>CoworkGuard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --bg: #0d1117; --card: #161b22; --border: #21262d;
-    --accent: #00e5ff; --danger: #ff3d3d; --warn: #ff9800;
-    --success: #00e676; --muted: #6e7681; --text: #c9d1d9;
-    --heading: #e6edf3; --font-mono: 'Courier New', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    width: 300px; min-height: 200px;
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-  }
-
-  /* Header */
-  .header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; border-bottom: 1px solid var(--border);
-    background: var(--card);
-  }
-  .logo { display: flex; align-items: center; gap: 8px; }
-  .logo-icon {
-    width: 28px; height: 28px;
-    background: linear-gradient(135deg, var(--accent), #0077ff);
-    border-radius: 6px; display: flex; align-items: center;
-    justify-content: center; font-size: 14px;
-  }
-  .logo-name { font-weight: 700; font-size: 14px; color: var(--heading); }
-  .logo-name span { color: var(--accent); }
-
-  /* Status pill */
-  .pill {
-    display: flex; align-items: center; gap: 5px;
-    padding: 3px 9px; border-radius: 100px;
-    font-size: 10px; font-family: var(--font-mono);
-    font-weight: 700; letter-spacing: .05em; border: 1px solid;
-  }
-  .pill.active   { background: rgba(255,61,61,.1);  border-color: var(--danger);  color: var(--danger); }
-  .pill.inactive { background: rgba(0,230,118,.08); border-color: var(--success); color: var(--success); }
-  .pill.unknown  { background: rgba(110,118,129,.1); border-color: var(--muted);  color: var(--muted); }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
-
-  /* Stats row */
-  .stats {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 1px; background: var(--border); border-bottom: 1px solid var(--border);
-  }
-  .stat {
-    background: var(--bg); padding: 10px 8px; text-align: center;
-  }
-  .stat-val { font-size: 22px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
-  .stat-val.blocked { color: var(--danger); }
-  .stat-val.flagged { color: var(--warn); }
-  .stat-val.clean   { color: var(--success); }
-  .stat-lbl { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-
-  /* Recent events */
-  .section-title {
-    padding: 8px 14px 4px; font-size: 10px; font-family: var(--font-mono);
-    text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
-  }
-  .event-list { max-height: 140px; overflow-y: auto; }
-  .event-list::-webkit-scrollbar { width: 3px; }
-  .event-list::-webkit-scrollbar-thumb { background: var(--border); }
-  .event-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 14px; border-bottom: 1px solid rgba(33,38,45,.6);
-    font-size: 11px; font-family: var(--font-mono);
-  }
-  .badge {
-    padding: 1px 6px; border-radius: 3px; font-size: 9px;
-    font-weight: 700; letter-spacing: .05em; white-space: nowrap;
-  }
-  .badge.BLOCKED { background: rgba(255,61,61,.15); color: var(--danger); border: 1px solid rgba(255,61,61,.3); }
-  .badge.FLAGGED { background: rgba(255,152,0,.12); color: var(--warn);   border: 1px solid rgba(255,152,0,.3); }
-  .badge.CLEAN   { background: rgba(0,230,118,.08); color: var(--success); border: 1px solid rgba(0,230,118,.2); }
-  .badge.WARNING { background: rgba(0,229,255,.08); color: var(--accent);  border: 1px solid rgba(0,229,255,.2); }
-  .event-detail { color: var(--muted); font-size: 10px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .empty { padding: 20px 14px; text-align: center; color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
-
-  /* Footer */
-  .footer {
-    display: flex; gap: 8px; padding: 10px 14px;
-    border-top: 1px solid var(--border); background: var(--card);
-  }
-  .footer-btn {
-    flex: 1; padding: 6px; border-radius: 5px; font-size: 11px;
-    font-family: var(--font-mono); cursor: pointer; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); transition: all .2s; text-align: center;
-  }
-  .footer-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .footer-btn.primary { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.06); }
+:root {
+  --bg:#07090d;--card:#0e1318;--border:#1c2a38;--border2:#243040;
+  --accent:#e05a20;--accent2:#f07040;
+  --danger:#f05060;--warn:#f0a030;--success:#3dd68c;
+  --muted:#4e6278;--muted2:#687d90;--text:#b8c8d8;--heading:#e8f0f8;
+  --mono:'DM Mono',monospace;--ui:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  width:300px;min-height:200px;
+  background:var(--bg);color:var(--text);
+  font-family:var(--ui);font-size:13px;
+  -webkit-font-smoothing:antialiased;
+}
+/* Header */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  background:var(--card);
+}
+.logo{display:flex;align-items:center;gap:9px}
+.logo img{
+  width:26px;height:26px;
+  filter:drop-shadow(0 0 6px rgba(224,90,32,.4));
+}
+.logo-name{font-size:14px;font-weight:600;color:var(--heading);letter-spacing:-.2px}
+.logo-name em{font-style:normal;color:var(--accent2)}
+/* Status pill */
+.pill{
+  display:flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:100px;
+  font-size:10px;font-family:var(--mono);font-weight:500;border:1px solid;
+}
+.pill.active  {background:rgba(240,80,96,.1); border-color:#f05060;color:#f05060}
+.pill.inactive{background:rgba(61,214,140,.07);border-color:#3dd68c;color:#3dd68c}
+.pill.unknown {background:rgba(78,98,120,.1);  border-color:var(--muted);color:var(--muted)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* Stats */
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);border-bottom:1px solid var(--border);
+}
+.stat{background:var(--bg);padding:10px 8px;text-align:center}
+.stat-v{font-size:22px;font-weight:700;line-height:1;margin-bottom:2px}
+.stat-v.blocked{color:#f05060}
+.stat-v.flagged{color:#f0a030}
+.stat-v.clean  {color:#3dd68c}
+.stat-l{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+/* Events */
+.section-title{
+  padding:8px 14px 4px;
+  font-size:9px;font-family:var(--mono);text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);
+}
+.event-list{max-height:140px;overflow-y:auto}
+.event-list::-webkit-scrollbar{width:3px}
+.event-list::-webkit-scrollbar-thumb{background:var(--border)}
+.event-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px;border-bottom:1px solid rgba(28,42,56,.6);
+  font-size:11px;font-family:var(--mono);
+}
+.badge{
+  padding:1px 6px;border-radius:3px;font-size:9px;
+  font-weight:500;letter-spacing:.04em;white-space:nowrap;
+}
+.badge.BLOCKED{background:rgba(240,80,96,.12);color:#f05060;border:1px solid rgba(240,80,96,.25)}
+.badge.FLAGGED{background:rgba(240,160,48,.1); color:#f0c060;border:1px solid rgba(240,160,48,.22)}
+.badge.CLEAN  {background:rgba(61,214,140,.07);color:#3dd68c;border:1px solid rgba(61,214,140,.2)}
+.badge.WARNING{background:rgba(224,90,32,.1); color:var(--accent2);border:1px solid rgba(224,90,32,.25)}
+.event-detail{color:var(--muted2);font-size:10px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{padding:20px 14px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px}
+/* Footer */
+.footer{
+  display:flex;gap:8px;padding:10px 14px;
+  border-top:1px solid var(--border);background:var(--card);
+}
+.footer-btn{
+  flex:1;padding:7px;border-radius:6px;font-size:11px;
+  font-family:var(--mono);cursor:pointer;border:1px solid var(--border);
+  background:transparent;color:var(--muted2);transition:all .2s;text-align:center;
+  font-weight:400;
+}
+.footer-btn:hover{border-color:var(--accent);color:var(--accent)}
+.footer-btn.primary{
+  border-color:var(--accent);color:var(--accent);
+  background:rgba(224,90,32,.07);
+}
+.footer-btn.primary:hover{background:rgba(224,90,32,.14)}
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="logo">
-    <div class="logo-icon">🛡️</div>
-    <div class="logo-name">Cowork<span>Guard</span></div>
+    <img src="data:image/png;base64,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" alt="CoworkGuard"/>
+    <div class="logo-name">Cowork<em>Guard</em></div>
   </div>
   <div class="pill unknown" id="status-pill">
     <div class="dot"></div>
@@ -114,18 +112,9 @@
 </div>
 
 <div class="stats">
-  <div class="stat">
-    <div class="stat-val blocked" id="s-blocked">–</div>
-    <div class="stat-lbl">Blocked</div>
-  </div>
-  <div class="stat">
-    <div class="stat-val flagged" id="s-flagged">–</div>
-    <div class="stat-lbl">Flagged</div>
-  </div>
-  <div class="stat">
-    <div class="stat-val clean" id="s-clean">–</div>
-    <div class="stat-lbl">Clean</div>
-  </div>
+  <div class="stat"><div class="stat-v blocked" id="s-blocked">–</div><div class="stat-l">Blocked</div></div>
+  <div class="stat"><div class="stat-v flagged" id="s-flagged">–</div><div class="stat-l">Flagged</div></div>
+  <div class="stat"><div class="stat-v clean"   id="s-clean">–</div><div class="stat-l">Clean</div></div>
 </div>
 
 <div class="section-title">Recent Events</div>
@@ -143,45 +132,35 @@ function openDashboard() {
   chrome.tabs.create({ url: 'http://localhost:7070' });
   window.close();
 }
-
 async function clearData() {
   await chrome.runtime.sendMessage({ type: 'CLEAR_LOG' });
   document.getElementById('s-blocked').textContent = '0';
   document.getElementById('s-flagged').textContent = '0';
-  document.getElementById('s-clean').textContent = '0';
-  document.getElementById('event-list').innerHTML = '<div class="empty">Cleared</div>';
+  document.getElementById('s-clean').textContent   = '0';
+  document.getElementById('event-list').innerHTML  = '<div class="empty">Cleared</div>';
 }
-
 async function load() {
-  // Status
   chrome.runtime.sendMessage({ type: 'GET_STATUS' }, resp => {
     if (!resp) return;
     const pill = document.getElementById('status-pill');
     const text = document.getElementById('status-text');
     if (resp.coworkActive) {
-      pill.className = 'pill active';
-      text.textContent = 'COWORK ACTIVE';
+      pill.className = 'pill active'; text.textContent = 'COWORK ACTIVE';
     } else {
-      pill.className = 'pill inactive';
-      text.textContent = 'COWORK INACTIVE';
+      pill.className = 'pill inactive'; text.textContent = 'COWORK INACTIVE';
     }
     const s = resp.sessionStats || {};
     document.getElementById('s-blocked').textContent = s.blocked ?? '0';
     document.getElementById('s-flagged').textContent = s.flagged ?? '0';
     document.getElementById('s-clean').textContent   = s.clean   ?? '0';
   });
-
-  // Recent events
   chrome.storage.local.get(['auditLog'], result => {
-    const log = result.auditLog || [];
+    const log  = result.auditLog || [];
     const list = document.getElementById('event-list');
-    if (!log.length) {
-      list.innerHTML = '<div class="empty">No events yet</div>';
-      return;
-    }
+    if (!log.length) { list.innerHTML = '<div class="empty">No events yet</div>'; return; }
     list.innerHTML = log.slice(0, 8).map(e => {
       const action = e.action || 'UNKNOWN';
-      const ts = new Date(e.timestamp).toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit'});
+      const ts     = new Date(e.timestamp).toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit'});
       const detail = e.type === 'DOMAIN_WARNING'
         ? `Domain: ${e.domain || '–'}`
         : (e.findings?.length ? e.findings.map(f=>f.type).join(', ') : 'Clean');
@@ -193,7 +172,6 @@ async function load() {
     }).join('');
   });
 }
-
 load();
 </script>
 </body>
