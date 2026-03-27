@@ -1,4 +1,4 @@
-# CoworkGuard
+# CoworkGuard 🛡️
 
 **Real-time privacy protection for Claude Cowork and Claude in Chrome.**
 
@@ -111,6 +111,9 @@ Browser / Cowork Desktop App
 
 ```
 coworkguard/
+├── install.sh          # One-time installer
+├── start.sh            # Start CoworkGuard + enable proxy
+├── stop.sh             # Stop CoworkGuard + restore internet
 ├── scanner.py          # Core PII/secret detection engine (your IP)
 ├── proxy.py            # mitmproxy interceptor script
 ├── server.py           # Local Flask API server for dashboard
@@ -131,6 +134,42 @@ coworkguard/
 ---
 
 ## Quick Start
+
+### Install (one-time)
+
+Open Terminal and run:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash
+```
+
+This automatically installs Python dependencies, downloads CoworkGuard, and sets up the security certificate.
+
+Then install the Chrome extension from the [Chrome Web Store](https://chrome.google.com/webstore/detail/coworkguard).
+
+---
+
+## Daily Use
+
+**Starting CoworkGuard:**
+```bash
+~/CoworkGuard/start.sh
+```
+This starts the proxy, starts the dashboard server, enables your system proxy, and opens the dashboard automatically.
+
+**Stopping CoworkGuard:**
+```bash
+~/CoworkGuard/stop.sh
+```
+This stops the proxy, stops the server, and restores your normal internet connection.
+
+> **Important:** Always run `stop.sh` when you are done. If you close your Mac without stopping CoworkGuard, your internet may stop working until you turn off the system proxy in System Settings → Network → Proxies.
+
+---
+
+## Manual Setup (developers)
+
+If you prefer to run components individually:
 
 ### Prerequisites
 
@@ -258,13 +297,13 @@ If you discover a security issue in CoworkGuard, please open a private GitHub is
 
 ## License
 
-**MIT with Commons Clause** — © 2026 [Katherine Weston]. All rights reserved.
+**MIT with Commons Clause** — © 2026 [YOUR NAME]. All rights reserved.
 
 - ✅ Free for personal and internal non-commercial use
 - ✅ Fork and modify for personal use
 - ❌ Cannot be sold, hosted as a service, or bundled into a commercial product without a separate license
 
-For commercial licensing or acquisition enquiries: [littlerobinagency@gmail.com]
+For commercial licensing or acquisition enquiries: [YOUR EMAIL]
 
 See [LICENSE](./LICENSE) for full terms.
 

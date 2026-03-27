@@ -140,48 +140,41 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
   <p>CoworkGuard has two components — the Chrome extension (domain warnings and popup) and the local proxy stack (payload scanning and dashboard). The extension works immediately after install. The proxy requires a one-time setup.</p>
 
   <h2 style="font-size:17px;margin:28px 0 14px">Prerequisites</h2>
-  <pre>pip install mitmproxy flask flask-cors psutil</pre>
+  <p>You need macOS and Python 3 installed. If you don't have Python, download it from <a href="https://www.python.org/downloads/">python.org</a> — the installer handles everything else.</p>
 
   <div class="steps">
     <div class="step">
       <div class="step-n">01</div>
       <div class="step-body">
-        <div class="step-title">Start the proxy</div>
-        <div class="step-desc">From your CoworkGuard directory, run:<br/>
-        <pre>mitmproxy -s proxy.py --listen-port 8080</pre>
-        Leave this terminal window open while you use Cowork.</div>
+        <div class="step-title">Run the installer</div>
+        <div class="step-desc">Open Terminal and paste this one command:
+        <pre>curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash</pre>
+        This installs all dependencies, downloads CoworkGuard, and sets up the security certificate automatically. You only need to do this once.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">02</div>
       <div class="step-body">
-        <div class="step-title">Set your system proxy</div>
-        <div class="step-desc">Go to <strong>System Settings &#8594; Network &#8594; [Your network] &#8594; Proxies</strong><br/>
-        Set both HTTP and HTTPS proxy to <code>127.0.0.1</code> port <code>8080</code></div>
+        <div class="step-title">Install the Chrome extension</div>
+        <div class="step-desc">Install CoworkGuard from the <a href="https://chrome.google.com/webstore/detail/coworkguard">Chrome Web Store</a>. The toolbar icon appears immediately and shows Cowork status and recent events — no proxy required for domain warnings.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">03</div>
       <div class="step-body">
-        <div class="step-title">Trust the mitmproxy certificate</div>
-        <div class="step-desc">Run this once to open the certificate in Keychain:
-        <pre>open ~/.mitmproxy/mitmproxy-ca-cert.pem</pre>
-        Double-click it in Keychain Access &#8594; expand Trust &#8594; set SSL to <strong>Always Trust</strong></div>
+        <div class="step-title">Start CoworkGuard</div>
+        <div class="step-desc">Each time you want protection, open Terminal and run:
+        <pre>~/CoworkGuard/start.sh</pre>
+        This starts the proxy, enables your system proxy, and opens the dashboard automatically.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">04</div>
       <div class="step-body">
-        <div class="step-title">Start the dashboard server</div>
-        <div class="step-desc"><pre>python3 server.py</pre>
-        Then open <a href="http://localhost:7070">localhost:7070</a> in Chrome. Your audit trail starts immediately.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">05</div>
-      <div class="step-body">
-        <div class="step-title">The Chrome extension</div>
-        <div class="step-desc">Install from the Chrome Web Store. Once installed, the toolbar icon shows Cowork status and recent events immediately — no proxy required for domain warnings.</div>
+        <div class="step-title">Stop CoworkGuard when done</div>
+        <div class="step-desc">Always stop CoworkGuard when you finish your session:
+        <pre>~/CoworkGuard/stop.sh</pre>
+        This stops the proxy and restores your normal internet connection. <strong>Important:</strong> if you skip this step your internet may stop working until you turn off the proxy in System Settings.</div>
       </div>
     </div>
   </div>
