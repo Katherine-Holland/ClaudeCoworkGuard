@@ -1,7 +1,7 @@
 {
   "productName": "CoworkGuard",
   "version": "1.0.0",
-  "identifier": "com.coworkguard.app",
+  "identifier": "com.coworkguard.menubar",
   "build": {
     "frontendDist": "../src"
   },
