@@ -16,7 +16,7 @@ That problem isn't unique to Claude. Every AI agent tool operates with your sess
 
 | Provider | Endpoint | Tools covered |
 |---|---|---|
-| **Anthropic** ⭐ | api.anthropic.com | Claude Cowork, Claude Code, Claude in Chrome |
+| **Anthropic**| api.anthropic.com | Claude Cowork, Claude Code, Claude in Chrome |
 | OpenAI | api.openai.com | ChatGPT, GPT-4, Assistants API |
 | Google | generativelanguage.googleapis.com | Gemini |
 | Perplexity | api.perplexity.ai | Perplexity |
@@ -321,7 +321,7 @@ If you discover a security issue in CoworkGuard, please open a private GitHub is
 
 ## License
 
-**MIT with Commons Clause** — © 2026 [Katherine Weston]. All rights reserved.
+**MIT with Commons Clause** — © 2026 Katherine Weston. All rights reserved.
 
 - ✅ Free for personal and internal non-commercial use
 - ✅ Fork and modify for personal use
