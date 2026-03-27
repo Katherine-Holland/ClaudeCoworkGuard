@@ -1,0 +1,27 @@
+{
+  "_comment": "Single source of truth for sensitive domains. Read by both scanner.py and background.js. Add custom domains here — they will be picked up by both the proxy scanner and the Chrome extension domain guard.",
+  "sensitive_domains": [
+    "console.aws.amazon.com",
+    "app.datadoghq.com",
+    "grafana.",
+    "jenkins.",
+    "gitlab.",
+    "github.com",
+    "bitbucket.",
+    "jira.",
+    "confluence.",
+    "notion.so",
+    "linear.app",
+    "stripe.com/dashboard",
+    "twilio.com/console",
+    "mail.google.com",
+    "outlook.live.com",
+    "outlook.office",
+    "payroll.",
+    "hr.",
+    "workday.com",
+    "bamboohr.",
+    "salesforce.com",
+    "hubspot.com"
+  ]
+}

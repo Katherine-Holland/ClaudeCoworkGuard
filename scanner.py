@@ -10,6 +10,33 @@ import hashlib
 from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import datetime, timezone
+from pathlib import Path
+
+# ─────────────────────────────────────────────
+# Sensitive domains — loaded from shared domains.json
+# Same list is used by the Chrome extension (background.js)
+# Edit domains.json to add custom domains — both layers update automatically
+# ─────────────────────────────────────────────
+def _load_domains():
+    domains_file = Path(__file__).parent / "domains.json"
+    if domains_file.exists():
+        try:
+            with open(domains_file) as f:
+                return json.load(f).get("sensitive_domains", [])
+        except Exception:
+            pass
+    # Fallback if file missing
+    return [
+        "console.aws.amazon.com", "app.datadoghq.com", "grafana.",
+        "jenkins.", "gitlab.", "github.com", "bitbucket.",
+        "jira.", "confluence.", "notion.so", "linear.app",
+        "stripe.com/dashboard", "twilio.com/console",
+        "mail.google.com", "outlook.live.com", "outlook.office",
+        "payroll.", "hr.", "workday.com", "bamboohr.",
+        "salesforce.com", "hubspot.com",
+    ]
+
+SENSITIVE_DOMAINS = _load_domains()
 
 # ─────────────────────────────────────────────
 # Detection Patterns
@@ -120,16 +147,6 @@ SEVERITY = {
 }
 
 # Domains considered sensitive — navigating here while Cowork is active triggers a warning
-SENSITIVE_DOMAINS = [
-    "console.aws.amazon.com", "app.datadoghq.com", "grafana.",
-    "jenkins.", "gitlab.", "github.com", "bitbucket.",
-    "jira.", "confluence.", "notion.so", "linear.app",
-    "stripe.com/dashboard", "twilio.com/console",
-    "mail.google.com", "outlook.live.com", "outlook.office",
-    "payroll.", "hr.", "workday.com", "bamboohr.",
-    "salesforce.com", "hubspot.com",
-]
-
 
 # ─────────────────────────────────────────────
 # Data classes

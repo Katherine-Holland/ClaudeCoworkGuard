@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Katherine Weston. All rights reserved.
+ * Copyright (c) 2026 Katherine Holland. All rights reserved.
  * Licensed under MIT with Commons Clause — see LICENSE for details.
  * Commercial use prohibited without a separate commercial license.
  *
@@ -9,32 +9,33 @@
  */
 
 // ─────────────────────────────────────────────
-// Sensitive domain list (mirrors Python scanner)
+// Sensitive domain list — loaded from shared domains.json
+// Single source of truth with scanner.py
+// Falls back to hardcoded list if server not running
 // ─────────────────────────────────────────────
-const SENSITIVE_DOMAINS = [
-  "console.aws.amazon.com",
-  "app.datadoghq.com",
-  "grafana.",
-  "jenkins.",
-  "gitlab.",
-  "github.com",
-  "bitbucket.",
-  "jira.",
-  "confluence.",
-  "notion.so",
-  "linear.app",
-  "stripe.com/dashboard",
-  "twilio.com/console",
-  "mail.google.com",
-  "outlook.live.com",
-  "outlook.office",
-  "payroll.",
-  "hr.",
-  "workday.com",
-  "bamboohr.",
-  "salesforce.com",
-  "hubspot.com",
+let SENSITIVE_DOMAINS = [
+  "console.aws.amazon.com", "app.datadoghq.com", "grafana.",
+  "jenkins.", "gitlab.", "github.com", "bitbucket.",
+  "jira.", "confluence.", "notion.so", "linear.app",
+  "stripe.com/dashboard", "twilio.com/console",
+  "mail.google.com", "outlook.live.com", "outlook.office",
+  "payroll.", "hr.", "workday.com", "bamboohr.",
+  "salesforce.com", "hubspot.com",
 ];
+
+async function loadDomains() {
+  try {
+    const resp = await fetch("http://localhost:7070/api/domains", {
+      signal: AbortSignal.timeout(2000)
+    });
+    const data = await resp.json();
+    if (Array.isArray(data?.sensitive_domains) && data.sensitive_domains.length) {
+      SENSITIVE_DOMAINS = data.sensitive_domains;
+    }
+  } catch {
+    // Server not running — use fallback list above
+  }
+}
 
 // ─────────────────────────────────────────────
 // State
@@ -205,11 +206,33 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 // Init
+loadDomains();
 detectClaudeSession();
 setInterval(detectClaudeSession, 10000);
 
-// Reset proxy active state every 30s — will be re-set if proxy is still running
-setInterval(() => {
-  proxyActive = false;
-  updateIcon();
-}, 30000);
+// Poll local server for proxy status every 15 seconds
+// This is more reliable than resetting proxyActive on a timer
+async function pollProxyStatus() {
+  try {
+    const resp = await fetch("http://localhost:7070/api/status", {
+      signal: AbortSignal.timeout(2000)
+    });
+    const data = await resp.json();
+    const wasActive = proxyActive;
+    proxyActive = data?.proxy?.running === true;
+    if (wasActive !== proxyActive) {
+      chrome.storage.local.set({ proxyActive });
+      updateIcon();
+    }
+  } catch {
+    // Server not running — proxy is off
+    if (proxyActive) {
+      proxyActive = false;
+      chrome.storage.local.set({ proxyActive });
+      updateIcon();
+    }
+  }
+}
+
+pollProxyStatus();
+setInterval(pollProxyStatus, 15000);

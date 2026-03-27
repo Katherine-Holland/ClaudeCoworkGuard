@@ -69,6 +69,6 @@ function injectWarningBanner(domain, url) {
   setTimeout(() => banner.remove(), 15000);
 }
 
-//Copyright (c) 2026 [Katherine Weston]. All rights reserved.
+//Copyright (c) 2026 Katherine Weston. All rights reserved.
 //Licensed under MIT with Commons Clause — see LICENSE for details.
 //Commercial use prohibited without a separate commercial license.

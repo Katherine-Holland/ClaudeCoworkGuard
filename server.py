@@ -1,5 +1,5 @@
 """
-Copyright (c) 2026 [Katherine Weston]. All rights reserved.
+Copyright (c) 2026 [YOUR NAME]. All rights reserved.
 Licensed under MIT with Commons Clause — see LICENSE for details.
 Commercial use prohibited without a separate commercial license.
 
@@ -173,10 +173,13 @@ def compute_chart_data(entries):
 
 @app.route("/setup")
 def setup():
+    # setup.html is optional — only present after first-run wizard is needed
     setup_page = Path(__file__).parent / "setup.html"
     if setup_page.exists():
         return setup_page.read_text()
-    return "<p>Setup page not found</p>", 404
+    # If setup.html not present, redirect to main dashboard
+    from flask import redirect
+    return redirect("/")
 
 @app.route("/api/setup/generate-cert", methods=["POST"])
 def generate_cert():
@@ -230,6 +233,23 @@ def open_keychain():
         return jsonify({"ok": True})
     return jsonify({"ok": False, "error": "Certificate not found — complete step 1 first"})
 
+@app.route("/api/domains")
+def get_domains():
+    """Serve sensitive domains list from domains.json — used by Chrome extension."""
+    domains_file = Path(__file__).parent / "domains.json"
+    if domains_file.exists():
+        try:
+            with open(domains_file) as f:
+                data = json.load(f)
+            # Merge with any custom domains from settings
+            settings = load_settings()
+            custom = settings.get("custom_blocked_domains", [])
+            all_domains = list(set(data.get("sensitive_domains", []) + custom))
+            return jsonify({"sensitive_domains": all_domains})
+        except Exception:
+            pass
+    return jsonify({"sensitive_domains": []})
+
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -242,7 +262,12 @@ def status():
 
 @app.route("/api/logs")
 def logs():
-    limit   = int(request.args.get("limit", 200))
+    # Bounds-check limit — prevents unbounded log reads
+    try:
+        limit = int(request.args.get("limit", 200))
+        limit = max(1, min(limit, 1000))
+    except (ValueError, TypeError):
+        limit = 200
     entries = read_logs(limit)
     return jsonify({
         "entries":       entries,
@@ -327,4 +352,8 @@ if __name__ == "__main__":
     import logging
     log = logging.getLogger("werkzeug")
     log.setLevel(logging.ERROR)  # Suppress misleading "Running on 0.0.0.0" banner
+    # Intentionally bound to 127.0.0.1 only — dashboard should never be
+    # reachable from other machines on the network. If running in a cloud
+    # dev environment (e.g. Gitpod), the platform's port forwarding handles
+    # external access without exposing the server directly.
     app.run(host="127.0.0.1", port=7070, debug=False)
