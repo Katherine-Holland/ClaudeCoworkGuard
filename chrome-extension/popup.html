@@ -14,87 +14,58 @@
   --mono:'DM Mono',monospace;--ui:'DM Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{
-  width:300px;min-height:200px;
-  background:var(--bg);color:var(--text);
-  font-family:var(--ui);font-size:13px;
-  -webkit-font-smoothing:antialiased;
-}
+body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-family:var(--ui);font-size:13px;-webkit-font-smoothing:antialiased}
+
 /* Header */
-.header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 16px;border-bottom:1px solid var(--border);
-  background:var(--card);
-}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--card)}
 .logo{display:flex;align-items:center;gap:9px}
-.logo img{
-  width:26px;height:26px;
-  filter:drop-shadow(0 0 6px rgba(224,90,32,.4));
-}
+.logo img{width:26px;height:26px;filter:drop-shadow(0 0 6px rgba(224,90,32,.4))}
 .logo-name{font-size:14px;font-weight:600;color:var(--heading);letter-spacing:-.2px}
 .logo-name em{font-style:normal;color:var(--accent2)}
-/* Status pill */
-.pill{
-  display:flex;align-items:center;gap:5px;
-  padding:3px 9px;border-radius:100px;
-  font-size:10px;font-family:var(--mono);font-weight:500;border:1px solid;
-}
-.pill.active  {background:rgba(240,80,96,.1); border-color:#f05060;color:#f05060}
-.pill.inactive{background:rgba(61,214,140,.07);border-color:#3dd68c;color:#3dd68c}
-.pill.unknown {background:rgba(78,98,120,.1);  border-color:var(--muted);color:var(--muted)}
+
+/* Status pill — three states */
+.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:100px;font-size:10px;font-family:var(--mono);font-weight:500;border:1px solid}
+.pill.full    {background:rgba(224,90,32,.1); border-color:var(--accent); color:var(--accent2)}
+.pill.partial {background:rgba(240,160,48,.08);border-color:var(--warn);  color:var(--warn)}
+.pill.inactive{background:rgba(61,214,140,.07);border-color:var(--success);color:var(--success)}
+.pill.unknown {background:rgba(78,98,120,.1);  border-color:var(--muted); color:var(--muted)}
 .dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-/* Stats */
-.stats{
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:1px;background:var(--border);border-bottom:1px solid var(--border);
+
+/* Partial protection warning */
+.partial-banner{
+  background:rgba(240,160,48,.08);border-bottom:1px solid rgba(240,160,48,.2);
+  padding:8px 14px;font-size:11px;font-family:var(--mono);color:var(--warn);
+  display:none;line-height:1.5;
 }
+.partial-banner a{color:var(--accent2);text-decoration:none;cursor:pointer}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
 .stat{background:var(--bg);padding:10px 8px;text-align:center}
 .stat-v{font-size:22px;font-weight:700;line-height:1;margin-bottom:2px}
-.stat-v.blocked{color:#f05060}
-.stat-v.flagged{color:#f0a030}
-.stat-v.clean  {color:#3dd68c}
+.stat-v.blocked{color:#f05060}.stat-v.flagged{color:#f0a030}.stat-v.clean{color:#3dd68c}
 .stat-l{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
 /* Events */
-.section-title{
-  padding:8px 14px 4px;
-  font-size:9px;font-family:var(--mono);text-transform:uppercase;
-  letter-spacing:.1em;color:var(--muted);
-}
+.section-title{padding:8px 14px 4px;font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
 .event-list{max-height:140px;overflow-y:auto}
 .event-list::-webkit-scrollbar{width:3px}
 .event-list::-webkit-scrollbar-thumb{background:var(--border)}
-.event-item{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 14px;border-bottom:1px solid rgba(28,42,56,.6);
-  font-size:11px;font-family:var(--mono);
-}
-.badge{
-  padding:1px 6px;border-radius:3px;font-size:9px;
-  font-weight:500;letter-spacing:.04em;white-space:nowrap;
-}
+.event-item{display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid rgba(28,42,56,.6);font-size:11px;font-family:var(--mono)}
+.badge{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:500;letter-spacing:.04em;white-space:nowrap}
 .badge.BLOCKED{background:rgba(240,80,96,.12);color:#f05060;border:1px solid rgba(240,80,96,.25)}
-.badge.FLAGGED{background:rgba(240,160,48,.1); color:#f0c060;border:1px solid rgba(240,160,48,.22)}
+.badge.FLAGGED{background:rgba(240,160,48,.1);color:#f0c060;border:1px solid rgba(240,160,48,.22)}
 .badge.CLEAN  {background:rgba(61,214,140,.07);color:#3dd68c;border:1px solid rgba(61,214,140,.2)}
-.badge.WARNING{background:rgba(224,90,32,.1); color:var(--accent2);border:1px solid rgba(224,90,32,.25)}
+.badge.WARNING{background:rgba(224,90,32,.1);color:var(--accent2);border:1px solid rgba(224,90,32,.25)}
 .event-detail{color:var(--muted2);font-size:10px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empty{padding:20px 14px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px}
+
 /* Footer */
-.footer{
-  display:flex;gap:8px;padding:10px 14px;
-  border-top:1px solid var(--border);background:var(--card);
-}
-.footer-btn{
-  flex:1;padding:7px;border-radius:6px;font-size:11px;
-  font-family:var(--mono);cursor:pointer;border:1px solid var(--border);
-  background:transparent;color:var(--muted2);transition:all .2s;text-align:center;
-  font-weight:400;
-}
+.footer{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:var(--card)}
+.footer-btn{flex:1;padding:7px;border-radius:6px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted2);transition:all .2s;text-align:center;font-weight:400}
 .footer-btn:hover{border-color:var(--accent);color:var(--accent)}
-.footer-btn.primary{
-  border-color:var(--accent);color:var(--accent);
-  background:rgba(224,90,32,.07);
-}
+.footer-btn.primary{border-color:var(--accent);color:var(--accent);background:rgba(224,90,32,.07)}
 .footer-btn.primary:hover{background:rgba(224,90,32,.14)}
 </style>
 </head>
@@ -109,6 +80,12 @@ body{
     <div class="dot"></div>
     <span id="status-text">CHECKING</span>
   </div>
+</div>
+
+<!-- Shown when Claude session detected but proxy not running -->
+<div class="partial-banner" id="partial-banner">
+  Domain guard active — payload scanning off.<br/>
+  <a onclick="openDashboard()">Run start.sh for full protection →</a>
 </div>
 
 <div class="stats">
@@ -132,6 +109,7 @@ function openDashboard() {
   chrome.tabs.create({ url: 'http://localhost:7070' });
   window.close();
 }
+
 async function clearData() {
   await chrome.runtime.sendMessage({ type: 'CLEAR_LOG' });
   document.getElementById('s-blocked').textContent = '0';
@@ -139,21 +117,41 @@ async function clearData() {
   document.getElementById('s-clean').textContent   = '0';
   document.getElementById('event-list').innerHTML  = '<div class="empty">Cleared</div>';
 }
+
 async function load() {
   chrome.runtime.sendMessage({ type: 'GET_STATUS' }, resp => {
     if (!resp) return;
-    const pill = document.getElementById('status-pill');
-    const text = document.getElementById('status-text');
-    if (resp.coworkActive) {
-      pill.className = 'pill active'; text.textContent = 'COWORK ACTIVE';
+
+    const pill    = document.getElementById('status-pill');
+    const text    = document.getElementById('status-text');
+    const banner  = document.getElementById('partial-banner');
+    const { claudeSessionActive, proxyActive, sessionStats: s } = resp;
+
+    if (claudeSessionActive && proxyActive) {
+      // Full protection
+      pill.className = 'pill full';
+      text.textContent = 'FULL PROTECTION';
+      banner.style.display = 'none';
+    } else if (claudeSessionActive && !proxyActive) {
+      // Partial — domain guard only
+      pill.className = 'pill partial';
+      text.textContent = 'PARTIAL PROTECTION';
+      banner.style.display = 'block';
+    } else if (!claudeSessionActive) {
+      // No Claude session
+      pill.className = 'pill inactive';
+      text.textContent = 'NO CLAUDE SESSION';
+      banner.style.display = 'none';
     } else {
-      pill.className = 'pill inactive'; text.textContent = 'COWORK INACTIVE';
+      pill.className = 'pill unknown';
+      text.textContent = 'CHECKING';
     }
-    const s = resp.sessionStats || {};
-    document.getElementById('s-blocked').textContent = s.blocked ?? '0';
-    document.getElementById('s-flagged').textContent = s.flagged ?? '0';
-    document.getElementById('s-clean').textContent   = s.clean   ?? '0';
+
+    document.getElementById('s-blocked').textContent = s?.blocked ?? '0';
+    document.getElementById('s-flagged').textContent = s?.flagged ?? '0';
+    document.getElementById('s-clean').textContent   = s?.clean   ?? '0';
   });
+
   chrome.storage.local.get(['auditLog'], result => {
     const log  = result.auditLog || [];
     const list = document.getElementById('event-list');
@@ -172,6 +170,7 @@ async function load() {
     }).join('');
   });
 }
+
 load();
 </script>
 </body>

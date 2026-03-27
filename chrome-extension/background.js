@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Katherine Holland. All rights reserved.
+ * Licensed under MIT with Commons Clause — see LICENSE for details.
+ * Commercial use prohibited without a separate commercial license.
+ *
  * CoworkGuard - Background Service Worker
  * Monitors tab navigation and API requests, enforces domain blocklist,
  * communicates with local proxy audit log.
@@ -35,24 +39,27 @@ const SENSITIVE_DOMAINS = [
 // ─────────────────────────────────────────────
 // State
 // ─────────────────────────────────────────────
-let coworkActive = false;
+let claudeSessionActive = false;  // A Claude tab is open in the browser
+let proxyActive = false;          // CoworkGuard proxy is running and scanning
 let sessionStats = { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 };
 
 // ─────────────────────────────────────────────
-// Cowork detection — looks for the Cowork extension ID in installed extensions
-// and for Claude desktop app websocket connections
+// Claude session detection
+// Detects if any Claude-related tab is open in the browser.
+// Note: this does NOT detect the Claude desktop app — that requires
+// the local server.py (psutil process detection) to be running.
 // ─────────────────────────────────────────────
-async function detectCowork() {
+async function detectClaudeSession() {
   try {
     const tabs = await chrome.tabs.query({});
-    const coworkTab = tabs.find(
+    const claudeTab = tabs.find(
       (t) =>
         t.url?.includes("claude.ai") ||
         t.url?.includes("cowork") ||
         t.title?.toLowerCase().includes("claude")
     );
-    coworkActive = !!coworkTab;
-    chrome.storage.local.set({ coworkActive, sessionStats });
+    claudeSessionActive = !!claudeTab;
+    chrome.storage.local.set({ claudeSessionActive, proxyActive, sessionStats });
     updateIcon();
   } catch (e) {
     console.error("[CoworkGuard] Detection error:", e);
@@ -60,16 +67,25 @@ async function detectCowork() {
 }
 
 // ─────────────────────────────────────────────
-// Icon state
+// Icon state — reflects protection level
 // ─────────────────────────────────────────────
 function updateIcon() {
-  const color = coworkActive ? "#ff4444" : "#22cc88";
-  chrome.action.setBadgeBackgroundColor({ color });
-  chrome.action.setBadgeText({ text: coworkActive ? "ON" : "" });
+  if (claudeSessionActive && proxyActive) {
+    // Full protection — proxy scanning + domain guard
+    chrome.action.setBadgeBackgroundColor({ color: "#e05a20" });
+    chrome.action.setBadgeText({ text: "ON" });
+  } else if (claudeSessionActive && !proxyActive) {
+    // Partial protection — domain guard only, no payload scanning
+    chrome.action.setBadgeBackgroundColor({ color: "#f0a030" });
+    chrome.action.setBadgeText({ text: "!" });
+  } else {
+    chrome.action.setBadgeBackgroundColor({ color: "#3dd68c" });
+    chrome.action.setBadgeText({ text: "" });
+  }
 }
 
 // ─────────────────────────────────────────────
-// Domain guard — warns when navigating to sensitive pages while Cowork is active
+// Domain guard — warns when navigating to sensitive pages
 // ─────────────────────────────────────────────
 function isSensitiveDomain(url) {
   return SENSITIVE_DOMAINS.find((d) => url.includes(d));
@@ -78,9 +94,9 @@ function isSensitiveDomain(url) {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
 
-  await detectCowork();
+  await detectClaudeSession();
 
-  if (!coworkActive) return;
+  if (!claudeSessionActive) return;
 
   const matched = isSensitiveDomain(tab.url);
   if (matched) {
@@ -99,7 +115,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       type: "basic",
       iconUrl: "icons/icon48.png",
       title: "⚠️ CoworkGuard Warning",
-      message: `Claude Cowork is active and you've navigated to ${matched}. Page content may be sent to Claude.`,
+      message: `A Claude session is active and you've navigated to ${matched}. Page content may be sent to Claude.`,
       priority: 2,
     });
 
@@ -115,23 +131,33 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 // ─────────────────────────────────────────────
-// Monitor outbound requests to Anthropic API
+// Monitor outbound requests to AI APIs
+// Also uses header presence to detect if proxy is running
 // ─────────────────────────────────────────────
+const AI_API_URLS = [
+  "https://api.anthropic.com/*",
+  "https://api.openai.com/*",
+  "https://generativelanguage.googleapis.com/*",
+  "https://api.perplexity.ai/*",
+  "https://api.mistral.ai/*",
+  "https://api.groq.com/*",
+];
+
 chrome.webRequest.onBeforeSendHeaders.addListener(
   (details) => {
-    if (!details.url.includes("api.anthropic.com")) return;
-
     const guardHeader = details.requestHeaders?.find(
       (h) => h.name === "X-CoworkGuard-Action"
     );
 
-    // If proxy is running, it will have tagged the request
+    // If proxy tagged this request, it's running — update state
     if (guardHeader) {
+      proxyActive = true;
       const action = guardHeader.value;
       if (action === "BLOCKED") sessionStats.blocked++;
       else if (action === "FLAGGED") sessionStats.flagged++;
       else sessionStats.clean++;
-      chrome.storage.local.set({ sessionStats });
+      chrome.storage.local.set({ proxyActive, sessionStats });
+      updateIcon();
     }
 
     logEvent({
@@ -139,10 +165,11 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
       url: details.url,
       method: details.method,
       proxyAction: guardHeader?.value || "NO_PROXY",
+      proxyRunning: !!guardHeader,
       timestamp: new Date().toISOString(),
     });
   },
-  { urls: ["https://api.anthropic.com/*"] },
+  { urls: AI_API_URLS },
   ["requestHeaders"]
 );
 
@@ -151,8 +178,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 // ─────────────────────────────────────────────
 async function logEvent(event) {
   const { auditLog = [] } = await chrome.storage.local.get("auditLog");
-  auditLog.unshift(event); // newest first
-  // Keep last 500 events
+  auditLog.unshift(event);
   if (auditLog.length > 500) auditLog.splice(500);
   chrome.storage.local.set({ auditLog });
 }
@@ -162,19 +188,24 @@ async function logEvent(event) {
 // ─────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "GET_STATUS") {
-    sendResponse({ coworkActive, sessionStats });
+    sendResponse({ claudeSessionActive, proxyActive, sessionStats });
   }
   if (msg.type === "CLEAR_LOG") {
-    chrome.storage.local.set({ auditLog: [], sessionStats: { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 } });
+    chrome.storage.local.set({
+      auditLog: [],
+      sessionStats: { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 }
+    });
     sendResponse({ ok: true });
   }
   return true;
 });
 
 // Init
-detectCowork();
-setInterval(detectCowork, 10000);
+detectClaudeSession();
+setInterval(detectClaudeSession, 10000);
 
-//Copyright (c) 2026 [Katherine Weston]. All rights reserved.
-//Licensed under MIT with Commons Clause — see LICENSE for details.
-//Commercial use prohibited without a separate commercial license.
+// Reset proxy active state every 30s — will be re-set if proxy is still running
+setInterval(() => {
+  proxyActive = false;
+  updateIcon();
+}, 30000);
