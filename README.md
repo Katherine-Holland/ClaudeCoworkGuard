@@ -296,7 +296,7 @@ Add your own in the Settings panel or directly in `~/.coworkguard/settings.json`
 
 CoworkGuard is available on the Chrome Web Store. For enterprise deployment without the store, use Chrome's `ExtensionInstallForcelist` policy or load unpacked via Developer mode.
 
-Privacy policy: see `PRIVACY.md` — host at `https://yourusername.github.io/coworkguard/PRIVACY` for store submission.
+Privacy policy: see `PRIVACY.md` — host at `https://github.com/Katherine-Holland/ClaudeCoworkGuard/blob/main/docs/PRIVACY.md` for store submission.
 
 ---
 
@@ -321,13 +321,13 @@ If you discover a security issue in CoworkGuard, please open a private GitHub is
 
 ## License
 
-**MIT with Commons Clause** — © 2026 [YOUR NAME]. All rights reserved.
+**MIT with Commons Clause** — © 2026 [Katherine Weston]. All rights reserved.
 
 - ✅ Free for personal and internal non-commercial use
 - ✅ Fork and modify for personal use
 - ❌ Cannot be sold, hosted as a service, or bundled into a commercial product without a separate license
 
-For commercial licensing or acquisition enquiries: [YOUR EMAIL]
+For commercial licensing or acquisition enquiries: [littlerobinagency@gmail.com]
 
 See [LICENSE](./LICENSE) for full terms.
 
