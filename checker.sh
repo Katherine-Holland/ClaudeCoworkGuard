@@ -1,6 +1,6 @@
 #!/bin/bash
 # CoworkGuard — Startup Checker
-# © 2026 Katherine Holland. MIT + Commons Clause.
+# © 2026 Katherine Weston. MIT + Commons Clause.
 # Registered as a Login Item by install.sh
 # Runs automatically on Mac startup — checks if proxy was left on
 
@@ -48,7 +48,7 @@ if response is "Start CoworkGuard" then
     do script "echo '🛡️ Starting CoworkGuard...' && ~/CoworkGuard/start.sh"
   end tell
 else if response is "Turn Off Protection" then
-  do shell script "networksetup -setwebproxystate Wi-Fi off; networksetup -setsecurewebproxystate Wi-Fi off" 
+  do shell script "networksetup -setwebproxystate Wi-Fi off; networksetup -setsecurewebproxystate Wi-Fi off"
   display notification "Your internet connection has been restored. Run ~/CoworkGuard/start.sh whenever you want protection back on." with title "🛡️ CoworkGuard" subtitle "Protection turned off"
 end if
 APPLESCRIPT

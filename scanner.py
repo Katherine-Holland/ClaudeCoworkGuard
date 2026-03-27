@@ -50,8 +50,8 @@ PATTERNS = {
     "GOOGLE_API":       r"AIza[0-9A-Za-z\-_]{35}",
     # Hugging Face — user tokens (hf_) and fine-grained org tokens (api_org_)
     "HUGGINGFACE_KEY":  r"hf_[a-zA-Z0-9]{34,}|api_org_[a-zA-Z0-9]{34,}",
-    # Cohere
-    "COHERE_KEY":       r"[a-zA-Z0-9]{40}(?=.*cohere)|co-[a-zA-Z0-9\-]{30,}",
+    # Cohere — avoid lookahead ReDoS, match on context keyword instead
+    "COHERE_KEY":       r"(?i)cohere[_\-\s]*(?:api[_\-\s]*)?key[_\-\s]*[=:]\s*[a-zA-Z0-9]{32,}|co-[a-zA-Z0-9\-]{30,}",
     # Mistral
     "MISTRAL_KEY":      r"(?i)mistral.{0,10}['\"][a-zA-Z0-9]{32,}['\"]",
     # Groq
@@ -291,7 +291,3 @@ if __name__ == "__main__":
     print(f"\nFindings:")
     for f in result.findings:
         print(f"  [{f.severity:8}] {f.pattern_name:20} → {f.match_preview}")
-
-#Copyright (c) 2026 [Katherine Weston]. All rights reserved.
-#Licensed under MIT with Commons Clause — see LICENSE for details.
-#Commercial use prohibited without a separate commercial license.

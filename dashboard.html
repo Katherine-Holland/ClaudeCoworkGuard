@@ -189,6 +189,18 @@
 <!-- DASHBOARD VIEW -->
 <div class="view active" id="view-dashboard">
 <div class="container">
+
+  <!-- Partial protection banner — shown when proxy not running -->
+  <div id="partial-banner" style="display:none;margin:16px 0 0;background:rgba(240,160,48,.08);border:1px solid rgba(240,160,48,.25);border-radius:10px;padding:12px 20px;display:none;align-items:center;justify-content:space-between;gap:16px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:18px">⚠️</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#f0a030;margin-bottom:2px">Partial Protection — Proxy not running</div>
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted2)">Domain warnings active. Payload scanning and blocking require the proxy. Run <code style="color:var(--accent)">~/CoworkGuard/start.sh</code> for full protection.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="stats-grid">
     <div class="stat-card blocked"><div class="stat-label">Requests Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">CRITICAL / HIGH severity</div></div>
     <div class="stat-card flagged"><div class="stat-label">Requests Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">Allowed with warning</div></div>
@@ -361,6 +373,17 @@ function showView(name, btn) {
   if (name === 'settings') loadSettingsIntoForm();
 }
 
+// ── HTML sanitiser — prevents XSS from audit log data ──
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ── Chart ──
 function drawChart(data) {
   const canvas = document.getElementById('trendChart');
@@ -415,13 +438,14 @@ function renderLog() {
     const ts = new Date(e.timestamp);
     const time = ts.toLocaleTimeString('en-US',{hour12:false});
     const date = ts.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const action = e.action||'UNKNOWN', type = e.type==='DOMAIN_WARNING'?'DOMAIN':'API';
+    const action = esc(e.action||'UNKNOWN');
+    const type   = esc(e.type==='DOMAIN_WARNING'?'DOMAIN':'API');
     let detail = e.type==='DOMAIN_WARNING'
-      ? `⚠️ Navigated to <strong style="color:var(--warn)">${e.domain||e.url}</strong> while Cowork active`
+      ? `⚠️ Navigated to <strong style="color:var(--warn)">${esc(e.domain||e.url)}</strong> while AI agent active`
       : e.findings?.length
-        ? e.findings.map(f=>`<span class="finding-tag">${f.type}</span>`).join('')
+        ? e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')
         : `<span style="color:var(--muted)">No sensitive data detected</span>`;
-    return `<div class="event-row" onclick="openModal(${i},event)"><span class="event-time">${date} ${time}</span><span class="badge ${action}">${action}</span><span class="event-type">${type}</span><span class="event-detail">${detail}</span></div>`;
+    return `<div class="event-row" onclick="openModal(${i},event)"><span class="event-time">${esc(date)} ${esc(time)}</span><span class="badge ${action}">${action}</span><span class="event-type">${type}</span><span class="event-detail">${detail}</span></div>`;
   }).join('');
 }
 
@@ -429,7 +453,7 @@ function renderPatterns(counts) {
   const el = document.getElementById('pattern-list');
   const sorted = Object.entries(counts||{}).sort((a,b)=>b[1]-a[1]).slice(0,8);
   el.innerHTML = sorted.length
-    ? sorted.map(([n,c])=>`<div class="pattern-item"><span class="pattern-name">${n}</span><span class="pattern-count">${c}</span></div>`).join('')
+    ? sorted.map(([n,c])=>`<div class="pattern-item"><span class="pattern-name">${esc(n)}</span><span class="pattern-count">${esc(String(c))}</span></div>`).join('')
     : `<div style="color:var(--muted);font-size:12px;font-family:var(--font-mono);padding:8px 0">No patterns triggered yet</div>`;
 }
 
@@ -441,6 +465,12 @@ function updateStats(s) {
 }
 
 function updateProxyPanel(status, settings) {
+  const banner = document.getElementById('partial-banner');
+  if (status.proxy && status.proxy.running) {
+    banner.style.display = 'none';
+  } else {
+    banner.style.display = 'flex';
+  }
   const p = status?.proxy;
   if (p) {
     const el = document.getElementById('ps-proxy');
@@ -459,8 +489,8 @@ function updateProxyPanel(status, settings) {
 
 function updateCoworkStatus(cowork) {
   const pill=document.getElementById('cowork-status'), text=document.getElementById('status-text');
-  if (cowork?.active) { pill.className='status-pill active'; text.textContent='COWORK ACTIVE'; }
-  else { pill.className='status-pill inactive'; text.textContent='COWORK INACTIVE'; }
+  if (cowork?.active) { pill.className='status-pill active'; text.textContent='CLAUDE SESSION ACTIVE'; }
+  else { pill.className='status-pill inactive'; text.textContent='NO CLAUDE SESSION'; }
 }
 
 // ── Modal ──
@@ -468,7 +498,7 @@ function openModal(idx, evt) {
   if (evt) evt.stopPropagation();
   const filtered = currentFilter==='ALL'?allEvents:allEvents.filter(e=>e.action===currentFilter||e.type===currentFilter);
   const e = filtered[idx]; if (!e) return;
-  const action = e.action||'UNKNOWN';
+  const action = esc(e.action||'UNKNOWN');
   document.getElementById('modal-title').innerHTML = `Event Detail <span class="badge ${action}" style="font-size:11px">${action}</span>`;
   const ts = new Date(e.timestamp).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'long'});
   const findings = e.findings||[];
@@ -476,19 +506,19 @@ function openModal(idx, evt) {
     <div class="modal-section">
       <div class="modal-section-title">Event Info</div>
       <div class="modal-meta-grid">
-        <div class="meta-item"><div class="meta-key">Timestamp</div><div class="meta-val">${ts}</div></div>
-        <div class="meta-item"><div class="meta-key">Type</div><div class="meta-val">${e.type||'API_REQUEST'}</div></div>
+        <div class="meta-item"><div class="meta-key">Timestamp</div><div class="meta-val">${esc(ts)}</div></div>
+        <div class="meta-item"><div class="meta-key">Type</div><div class="meta-val">${esc(e.type||'API_REQUEST')}</div></div>
         <div class="meta-item"><div class="meta-key">Payload Size</div><div class="meta-val">${e.payload_size_bytes?(e.payload_size_bytes/1024).toFixed(1)+' KB':'–'}</div></div>
-        <div class="meta-item"><div class="meta-key">Payload Hash</div><div class="meta-val" style="font-size:10px">${e.payload_hash||'–'}</div></div>
-        ${e.url?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">URL</div><div class="meta-val" style="font-size:10px">${e.url}</div></div>`:''}
-        ${e.domain?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Domain</div><div class="meta-val">${e.domain}</div></div>`:''}
+        <div class="meta-item"><div class="meta-key">Payload Hash</div><div class="meta-val" style="font-size:10px">${esc(e.payload_hash||'–')}</div></div>
+        ${e.url?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">URL</div><div class="meta-val" style="font-size:10px">${esc(e.url)}</div></div>`:''}
+        ${e.domain?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Domain</div><div class="meta-val">${esc(e.domain)}</div></div>`:''}
       </div>
     </div>
     <div class="modal-section">
       <div class="modal-section-title">Findings (${findings.length})</div>
       ${!findings.length
         ? `<div class="no-findings">✓ No sensitive data detected in this request</div>`
-        : findings.map(f=>`<div class="finding-row"><span class="badge ${f.severity}">${f.severity}</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--text);min-width:140px">${f.type}</span><span class="finding-preview">${f.preview||f.match_preview||'–'}</span>${f.blocked?'<span class="finding-blocked-tag">BLOCKED</span>':''}</div>`).join('')
+        : findings.map(f=>`<div class="finding-row"><span class="badge ${esc(f.severity)}">${esc(f.severity)}</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--text);min-width:140px">${esc(f.type)}</span><span class="finding-preview">${esc(f.preview||f.match_preview||'–')}</span>${f.blocked?'<span class="finding-blocked-tag">BLOCKED</span>':''}</div>`).join('')
       }
     </div>`;
   document.getElementById('modal').classList.add('open');

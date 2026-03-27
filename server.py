@@ -1,4 +1,8 @@
 """
+Copyright (c) 2026 [Katherine Weston]. All rights reserved.
+Licensed under MIT with Commons Clause — see LICENSE for details.
+Commercial use prohibited without a separate commercial license.
+
 CoworkGuard - Local API Server
 Serves live audit log data to the dashboard over localhost.
 Also handles settings persistence and process detection.
@@ -27,7 +31,13 @@ except ImportError:
     HAS_PSUTIL = False
 
 app = Flask(__name__)
-CORS(app)  # Allow dashboard (file:// or localhost) to call this
+# Restrict CORS to localhost only — prevents malicious pages from
+# calling the API while the dashboard is open in another tab
+CORS(app, origins=[
+    "http://localhost:7070",
+    "http://127.0.0.1:7070",
+    "http://localhost:3000",   # dev convenience
+])
 
 LOG_DIR  = Path.home() / ".coworkguard" / "logs"
 SETTINGS = Path.home() / ".coworkguard" / "settings.json"
@@ -87,12 +97,13 @@ def detect_proxy():
     """Check if mitmproxy is listening on the configured port."""
     settings = load_settings()
     port = settings.get("proxy_port", 8080)
-    if not HAS_PSUTIL:
-        return {"running": False, "reason": "psutil not installed"}
-    for conn in psutil.net_connections(kind="inet"):
-        if conn.laddr.port == port and conn.status == "LISTEN":
+    # Use socket check instead of psutil — avoids macOS permission issues
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5):
             return {"running": True, "port": port}
-    return {"running": False, "port": port}
+    except (ConnectionRefusedError, OSError):
+        return {"running": False, "port": port}
 
 # ─────────────────────────────────────────────
 # Log reading
@@ -160,6 +171,65 @@ def compute_chart_data(entries):
 # Routes
 # ─────────────────────────────────────────────
 
+@app.route("/setup")
+def setup():
+    setup_page = Path(__file__).parent / "setup.html"
+    if setup_page.exists():
+        return setup_page.read_text()
+    return "<p>Setup page not found</p>", 404
+
+@app.route("/api/setup/generate-cert", methods=["POST"])
+def generate_cert():
+    """Run mitmdump briefly to generate the mitmproxy CA certificate."""
+    import subprocess, time
+    try:
+        p = subprocess.Popen(
+            ["mitmdump", "--listen-port", "18765", "--quiet"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        time.sleep(2)
+        p.terminate()
+        p.wait(timeout=3)
+        cert = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
+        if cert.exists():
+            return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "Certificate file not found after generation"})
+    except FileNotFoundError:
+        return jsonify({"ok": False, "error": "mitmdump not found — run: pip install mitmproxy"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+@app.route("/api/setup/trust-cert", methods=["POST"])
+def trust_cert():
+    """Attempt to auto-trust the mitmproxy certificate via macOS security command."""
+    import subprocess
+    cert = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
+    if not cert.exists():
+        return jsonify({"ok": False, "error": "Certificate not found — complete step 1 first"})
+    try:
+        result = subprocess.run([
+            "sudo", "-n", "security", "add-trusted-cert",
+            "-d", "-r", "trustRoot",
+            "-k", "/Library/Keychains/System.keychain",
+            str(cert)
+        ], capture_output=True, timeout=10)
+        if result.returncode == 0:
+            return jsonify({"ok": True})
+        # sudo -n fails silently if password needed — try without -n (will prompt in terminal)
+        return jsonify({"ok": False, "error": "Password required — please use the manual steps"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+@app.route("/api/setup/open-keychain", methods=["POST"])
+def open_keychain():
+    """Open the mitmproxy certificate in Keychain Access."""
+    import subprocess
+    cert = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
+    if cert.exists():
+        subprocess.Popen(["open", str(cert)])
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "error": "Certificate not found — complete step 1 first"})
+
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -189,8 +259,52 @@ def get_settings():
 @app.route("/api/settings", methods=["POST"])
 def post_settings():
     data = request.get_json(force=True)
-    saved = save_settings(data)
-    # Write a signal file so proxy.py can hot-reload settings
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Invalid settings format"}), 400
+
+    # Validate and sanitise each field — never trust user input
+    validated = {}
+
+    # Booleans
+    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain"):
+        if key in data:
+            validated[key] = bool(data[key])
+
+    # Integers with bounds
+    if "proxy_port" in data:
+        port = int(data["proxy_port"])
+        validated["proxy_port"] = max(1024, min(65535, port))
+    if "max_log_entries" in data:
+        entries = int(data["max_log_entries"])
+        validated["max_log_entries"] = max(100, min(10000, entries))
+
+    # Lists of strings — validate each item is a non-empty string
+    if "custom_patterns" in data:
+        patterns = data["custom_patterns"]
+        if isinstance(patterns, list):
+            safe = []
+            for p in patterns:
+                if isinstance(p, str) and p.strip() and not p.strip().startswith("#"):
+                    # Test compile the regex — reject invalid patterns
+                    try:
+                        import re
+                        re.compile(p.strip())
+                        safe.append(p.strip()[:200])  # cap length
+                    except re.error:
+                        pass  # silently skip invalid regex
+            validated["custom_patterns"] = safe
+
+    if "custom_blocked_domains" in data:
+        domains = data["custom_blocked_domains"]
+        if isinstance(domains, list):
+            safe = [
+                str(d).strip()[:100]
+                for d in domains
+                if isinstance(d, str) and d.strip()
+            ]
+            validated["custom_blocked_domains"] = safe
+
+    saved = save_settings(validated)
     sig = Path.home() / ".coworkguard" / ".settings_updated"
     sig.touch()
     return jsonify({"ok": True, "settings": saved})
@@ -210,8 +324,7 @@ def index():
 
 if __name__ == "__main__":
     print("\n🛡️  CoworkGuard Server running at http://localhost:7070\n")
-    app.run(host="0.0.0.0", port=7070, debug=False)
-
-#Copyright (c) 2026 [Katherine Weston]. All rights reserved.
-#Licensed under MIT with Commons Clause — see LICENSE for details.
-#Commercial use prohibited without a separate commercial license.
+    import logging
+    log = logging.getLogger("werkzeug")
+    log.setLevel(logging.ERROR)  # Suppress misleading "Running on 0.0.0.0" banner
+    app.run(host="127.0.0.1", port=7070, debug=False)

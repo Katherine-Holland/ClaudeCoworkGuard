@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Katherine Holland. All rights reserved.
+ * Copyright (c) 2026 Katherine Weston. All rights reserved.
  * Licensed under MIT with Commons Clause — see LICENSE for details.
  * Commercial use prohibited without a separate commercial license.
  *
@@ -139,8 +139,12 @@ const AI_API_URLS = [
   "https://api.openai.com/*",
   "https://generativelanguage.googleapis.com/*",
   "https://api.perplexity.ai/*",
+  "https://api.cursor.sh/*",
+  "https://copilot-proxy.githubusercontent.com/*",
   "https://api.mistral.ai/*",
+  "https://api.cohere.com/*",
   "https://api.groq.com/*",
+  "https://api.x.ai/*",
 ];
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
