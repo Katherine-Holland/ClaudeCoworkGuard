@@ -10,6 +10,8 @@ That problem isn't unique to Claude. Every AI agent tool operates with your sess
 
 ---
 
+![CoworkGuard Demo](store-assets/demo.gif)
+
 ## Monitored AI endpoints
 
 | Provider | Endpoint | Tools covered |
