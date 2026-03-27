@@ -1,18 +1,37 @@
 # CoworkGuard 🛡️
 
-**Real-time privacy protection for Claude Cowork and Claude in Chrome.**
+**A privacy layer for the AI agent ecosystem.**
 
-CoworkGuard monitors and blocks sensitive data — PII, auth tokens, secrets, and internal URLs — before it leaves your machine via the Anthropic API. It fills the compliance gap that Anthropic themselves acknowledge: Cowork activity is explicitly excluded from Audit Logs, the Compliance API, and Data Exports.
+CoworkGuard monitors and blocks sensitive data — PII, auth tokens, secrets, and internal URLs — before it leaves your machine via any major AI API.
 
-> Two days after Cowork launched, researchers demonstrated that a Word document with hidden white text could trick Cowork into uploading files containing partial Social Security numbers to an attacker's account. CoworkGuard is the layer that stops that.
+Built originally for **Claude Cowork**, where the gap is most visible: Anthropic acknowledge that Cowork activity is excluded from Audit Logs, the Compliance API, and Data Exports. Two days after Cowork launched, researchers demonstrated that a Word document with hidden white text could trick Cowork into uploading files containing partial Social Security numbers to an attacker's account.
+
+That problem isn't unique to Claude. Every AI agent tool operates with your session credentials and none of them provide a native audit layer. CoworkGuard adds that layer — locally, with no cloud dependency.
+
+---
+
+## Monitored AI endpoints
+
+| Provider | Endpoint | Tools covered |
+|---|---|---|
+| **Anthropic** ⭐ | api.anthropic.com | Claude Cowork, Claude Code, Claude in Chrome |
+| OpenAI | api.openai.com | ChatGPT, GPT-4, Assistants API |
+| Google | generativelanguage.googleapis.com | Gemini |
+| Perplexity | api.perplexity.ai | Perplexity |
+| Cursor | api.cursor.sh | Cursor IDE |
+| GitHub | copilot-proxy.githubusercontent.com | GitHub Copilot |
+| Mistral | api.mistral.ai | Mistral |
+| Cohere | api.cohere.com | Cohere |
+| Groq | api.groq.com | Groq |
+| xAI | api.x.ai | Grok |
 
 ---
 
 ## Why this exists
 
-Claude Cowork and Claude in Chrome are powerful — and they inherit access to your entire browser session. Every tab you navigate, every page Claude reads, every file in your working folder can be sent to `api.anthropic.com`. There is no native audit trail, no payload scanner, and no warning when you navigate to sensitive pages while Cowork is active.
+AI agents inherit access to your entire environment — your browser session, your files, your credentials. Claude Cowork, Cursor, GitHub Copilot, and every other agent tool operate with the same permissions you have. There is no native audit trail, no payload scanner, and no warning when sensitive data is about to leave your machine.
 
-CoworkGuard adds that layer, running entirely on your own machine with no cloud dependency.
+CoworkGuard sits between your machine and every AI API endpoint, scanning every outbound request before it leaves. Built for Claude Cowork first — where the compliance gap is documented and the CVE-class risks are proven — and extended to cover the tools you use alongside it.
 
 ---
 
@@ -74,7 +93,8 @@ CoworkGuard adds that layer, running entirely on your own machine with no cloud 
 ## Architecture
 
 ```
-Browser / Cowork Desktop App
+Browser / AI Agent Tools
+(Claude Cowork · Cursor · ChatGPT · Copilot · Gemini · Perplexity…)
          │
          ▼
  ┌──────────────┐      ┌─────────────────────────────────┐
@@ -84,8 +104,10 @@ Browser / Cowork Desktop App
          │              │  • Redacted finding previews     │
          │              └─────────────────────────────────┘
          ▼
- api.anthropic.com  ← allowed, or 403 BLOCKED
-         
+ api.anthropic.com  ╮
+ api.openai.com     ╟── allowed, or 403 BLOCKED
+ + 8 more AI APIs  ╯
+
  ┌──────────────┐
  │  server.py   │  Flask local API — serves dashboard, reads logs,
  │  :7070       │  detects processes, persists settings
