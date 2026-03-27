@@ -47,7 +47,12 @@ let sessionStats = { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 };
 // ─────────────────────────────────────────────
 // Claude session detection
 // Detects if any Claude-related tab is open in the browser.
-// Note: this does NOT detect the Claude desktop app — that requires
+// Note: this triggers on any claude.ai tab including the standard
+// chat interface — not just Cowork. This is intentional for v1.0
+// as CoworkGuard now covers all AI agents, not just Cowork.
+// A future improvement would be to detect the specific Cowork
+// interface vs standard Claude chat and adjust warning severity.
+// Note: does NOT detect the Claude desktop app — that requires
 // the local server.py (psutil process detection) to be running.
 // ─────────────────────────────────────────────
 async function detectClaudeSession() {

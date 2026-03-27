@@ -10,13 +10,11 @@ That problem isn't unique to Claude. Every AI agent tool operates with your sess
 
 ---
 
-![CoworkGuard Demo](store-assets/demo.gif)
-
 ## Monitored AI endpoints
 
 | Provider | Endpoint | Tools covered |
 |---|---|---|
-| **Anthropic**| api.anthropic.com | Claude Cowork, Claude Code, Claude in Chrome |
+| **Anthropic** ⭐ | api.anthropic.com | Claude Cowork, Claude Code, Claude in Chrome |
 | OpenAI | api.openai.com | ChatGPT, GPT-4, Assistants API |
 | Google | generativelanguage.googleapis.com | Gemini |
 | Perplexity | api.perplexity.ai | Perplexity |
@@ -41,7 +39,7 @@ CoworkGuard sits between your machine and every AI API endpoint, scanning every 
 
 | Feature | Description |
 |---|---|
-| **Payload scanner** | 36 regex patterns detecting PII, secrets, and internal data in every outbound request |
+| **Payload scanner** | 48 patterns detecting PII, secrets, and internal data in every outbound request |
 | **Active blocking** | Configurable by severity — CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
 | **Domain guard** | In-page warning banner + Chrome notification when Cowork is active and you navigate to a sensitive domain |
 | **Live audit log** | Real-time JSONL log of every intercepted request, with filterable dashboard view |
@@ -327,7 +325,7 @@ If you discover a security issue in CoworkGuard, please open a private GitHub is
 - ✅ Fork and modify for personal use
 - ❌ Cannot be sold, hosted as a service, or bundled into a commercial product without a separate license
 
-For commercial licensing or acquisition enquiries: [littlerobinagency@gmail.com]
+For commercial licensing or acquisition enquiries: littlerobinagency@gmail.com
 
 See [LICENSE](./LICENSE) for full terms.
 

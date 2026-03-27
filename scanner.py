@@ -55,6 +55,10 @@ PATTERNS = {
     # ── Cloud provider credentials ────────────────────────────────────────
     "AWS_KEY":          r"AKIA[0-9A-Z]{16}",
     "AWS_SECRET":       r"(?i)aws.{0,20}secret.{0,20}['\"][0-9a-zA-Z/+]{40}['\"]",
+    # GCP — note: this pattern can fire on documentation/examples containing
+    # "service_account" — consider the false positive risk in your environment.
+    # The pattern is intentionally broad because a real GCP key in a payload
+    # is always CRITICAL. Custom patterns can be used to refine if needed.
     "GCP_SERVICE_ACCT": r'"type":\s*"service_account"',
     "AZURE_CONN_STR":   r"DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}",
 
