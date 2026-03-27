@@ -1,8 +1,5 @@
 // CoworkGuard — macOS Menubar App
 // © 2026 Katherine Holland. MIT + Commons Clause.
-//
-// Wraps the CoworkGuard proxy stack (mitmproxy + server.py) in a
-// native macOS menubar app. No terminal required.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -10,13 +7,10 @@ use std::process::{Child, Command};
 use std::sync::Mutex;
 use std::path::PathBuf;
 use tauri::{
-    AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayEvent,
-    SystemTrayMenu, SystemTrayMenuItem, SystemTraySubmenu,
+    AppHandle, Manager,
+    menu::{Menu, MenuItem, PredefinedMenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
-
-// ─────────────────────────────────────────────
-// App state — tracks running processes
-// ─────────────────────────────────────────────
 
 struct AppState {
     proxy_process:  Mutex<Option<Child>>,
@@ -24,328 +18,205 @@ struct AppState {
     is_running:     Mutex<bool>,
 }
 
-// ─────────────────────────────────────────────
-// Find CoworkGuard install directory
-// Looks next to the app bundle first, then ~/CoworkGuard
-// ─────────────────────────────────────────────
-
 fn find_install_dir() -> PathBuf {
-    // Check bundled resources first (production)
-    if let Ok(resource_dir) = std::env::current_exe() {
-        let bundled = resource_dir
-            .parent().unwrap_or(&resource_dir)
-            .parent().unwrap_or(&resource_dir)
-            .join("Resources");
-        if bundled.join("scanner.py").exists() {
-            return bundled;
-        }
-    }
-    // Fall back to ~/CoworkGuard (development / manual install)
     let home = std::env::var("HOME").unwrap_or_default();
-    PathBuf::from(home).join("CoworkGuard")
+    PathBuf::from(home).join("ClaudeCoworkGuard")
 }
-
-// ─────────────────────────────────────────────
-// System proxy management
-// ─────────────────────────────────────────────
 
 fn get_network_service() -> String {
     let output = Command::new("networksetup")
         .args(["-listallnetworkservices"])
-        .output()
-        .unwrap_or_else(|_| std::process::Output {
-            status: std::process::ExitStatus::from_raw(1),
-            stdout: vec![],
-            stderr: vec![],
-        });
-
-    let services = String::from_utf8_lossy(&output.stdout);
-    for line in services.lines() {
-        if !line.starts_with('*') &&
-           (line.contains("Wi-Fi") || line.contains("Ethernet") || line.contains("USB")) {
-            return line.trim().to_string();
+        .output();
+    if let Ok(out) = output {
+        let text = String::from_utf8_lossy(&out.stdout);
+        for line in text.lines() {
+            if !line.starts_with('*') &&
+               (line.contains("Wi-Fi") || line.contains("Ethernet") || line.contains("USB")) {
+                return line.trim().to_string();
+            }
         }
     }
     "Wi-Fi".to_string()
 }
 
 fn enable_proxy() {
-    let service = get_network_service();
-    let _ = Command::new("networksetup")
-        .args(["-setwebproxy", &service, "127.0.0.1", "8080"])
-        .output();
-    let _ = Command::new("networksetup")
-        .args(["-setsecurewebproxy", &service, "127.0.0.1", "8080"])
-        .output();
-    let _ = Command::new("networksetup")
-        .args(["-setwebproxystate", &service, "on"])
-        .output();
-    let _ = Command::new("networksetup")
-        .args(["-setsecurewebproxystate", &service, "on"])
-        .output();
+    let svc = get_network_service();
+    let _ = Command::new("networksetup").args(["-setwebproxy", &svc, "127.0.0.1", "8080"]).output();
+    let _ = Command::new("networksetup").args(["-setsecurewebproxy", &svc, "127.0.0.1", "8080"]).output();
+    let _ = Command::new("networksetup").args(["-setwebproxystate", &svc, "on"]).output();
+    let _ = Command::new("networksetup").args(["-setsecurewebproxystate", &svc, "on"]).output();
 }
 
 fn disable_proxy() {
-    let service = get_network_service();
-    let _ = Command::new("networksetup")
-        .args(["-setwebproxystate", &service, "off"])
-        .output();
-    let _ = Command::new("networksetup")
-        .args(["-setsecurewebproxystate", &service, "off"])
-        .output();
+    let svc = get_network_service();
+    let _ = Command::new("networksetup").args(["-setwebproxystate", &svc, "off"]).output();
+    let _ = Command::new("networksetup").args(["-setsecurewebproxystate", &svc, "off"]).output();
 }
-
-// ─────────────────────────────────────────────
-// Start CoworkGuard
-// ─────────────────────────────────────────────
 
 fn start_coworkguard(app: &AppHandle) {
     let state = app.state::<AppState>();
-    let install_dir = find_install_dir();
+    let dir = find_install_dir();
 
-    // Start mitmproxy
-    let proxy_cmd = Command::new("mitmproxy")
+    let proxy = Command::new("mitmproxy")
         .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
-        .current_dir(&install_dir)
+        .current_dir(&dir)
         .spawn();
 
-    match proxy_cmd {
-        Ok(child) => {
-            *state.proxy_process.lock().unwrap() = Some(child);
-        }
+    match proxy {
+        Ok(child) => { *state.proxy_process.lock().unwrap() = Some(child); }
         Err(e) => {
-            eprintln!("[CoworkGuard] Failed to start mitmproxy: {}", e);
-            send_notification(app, "CoworkGuard", "Failed to start proxy — is mitmproxy installed?");
+            eprintln!("[CoworkGuard] mitmproxy failed: {}", e);
             return;
         }
     }
 
-    // Give mitmproxy a moment to start
     std::thread::sleep(std::time::Duration::from_secs(2));
 
-    // Start dashboard server
-    let server_cmd = Command::new("python3")
+    let server = Command::new("python3")
         .args(["server.py"])
-        .current_dir(&install_dir)
+        .current_dir(&dir)
         .spawn();
 
-    match server_cmd {
-        Ok(child) => {
-            *state.server_process.lock().unwrap() = Some(child);
-        }
-        Err(e) => {
-            eprintln!("[CoworkGuard] Failed to start server: {}", e);
-        }
+    if let Ok(child) = server {
+        *state.server_process.lock().unwrap() = Some(child);
     }
 
-    // Enable system proxy
     enable_proxy();
-
-    // Update state
     *state.is_running.lock().unwrap() = true;
-
-    // Update tray menu
-    update_tray_menu(app, true);
-
-    send_notification(app, "🛡️ CoworkGuard Active", "Protection is on. All AI traffic is being scanned.");
+    let _ = update_tray(app, true);
 }
-
-// ─────────────────────────────────────────────
-// Stop CoworkGuard
-// ─────────────────────────────────────────────
 
 fn stop_coworkguard(app: &AppHandle) {
     let state = app.state::<AppState>();
-
-    // Disable system proxy first — most important step
     disable_proxy();
-
-    // Stop mitmproxy
-    if let Some(mut child) = state.proxy_process.lock().unwrap().take() {
-        let _ = child.kill();
-    }
-    // Also kill any stray mitmproxy processes
+    if let Some(mut c) = state.proxy_process.lock().unwrap().take() { let _ = c.kill(); }
+    if let Some(mut c) = state.server_process.lock().unwrap().take() { let _ = c.kill(); }
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
-
-    // Stop dashboard server
-    if let Some(mut child) = state.server_process.lock().unwrap().take() {
-        let _ = child.kill();
-    }
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
-
-    // Update state
     *state.is_running.lock().unwrap() = false;
-
-    // Update tray menu
-    update_tray_menu(app, false);
-
-    send_notification(app, "CoworkGuard Off", "Protection stopped. Your internet connection is restored.");
+    let _ = update_tray(app, false);
 }
 
-// ─────────────────────────────────────────────
-// Tray menu builder
-// ─────────────────────────────────────────────
+fn update_tray(app: &AppHandle, running: bool) -> tauri::Result<()> {
+    let toggle_label = if running { "Stop Protection" } else { "Start Protection" };
+    let status_label = if running { "● PROTECTION ON" } else { "○ Protection off" };
 
-fn build_tray_menu(is_running: bool) -> SystemTrayMenu {
-    let status_text = if is_running {
-        "● PROTECTION ON"
-    } else {
-        "○ Protection off"
-    };
+    let menu = Menu::new(app)?;
+    let status   = MenuItem::new(app, status_label, false, None::<&str>)?;
+    let sep1     = PredefinedMenuItem::separator(app)?;
+    let toggle   = MenuItem::with_id(app, "toggle", toggle_label, true, None::<&str>)?;
+    let dash     = MenuItem::with_id(app, "dashboard", "Open Dashboard →", true, None::<&str>)?;
+    let sep2     = PredefinedMenuItem::separator(app)?;
+    let about    = MenuItem::with_id(app, "about", "About CoworkGuard", true, None::<&str>)?;
+    let quit     = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
-    let toggle_text = if is_running {
-        "Stop Protection"
-    } else {
-        "Start Protection"
-    };
+    menu.append(&status)?;
+    menu.append(&sep1)?;
+    menu.append(&toggle)?;
+    menu.append(&dash)?;
+    menu.append(&sep2)?;
+    menu.append(&about)?;
+    menu.append(&quit)?;
 
-    let status     = CustomMenuItem::new("status", status_text).disabled();
-    let separator1 = SystemTrayMenuItem::Separator;
-    let toggle     = CustomMenuItem::new("toggle", toggle_text);
-    let dashboard  = CustomMenuItem::new("dashboard", "Open Dashboard →");
-    let separator2 = SystemTrayMenuItem::Separator;
-    let about      = CustomMenuItem::new("about", "About CoworkGuard");
-    let quit       = CustomMenuItem::new("quit", "Quit");
-
-    SystemTrayMenu::new()
-        .add_item(status)
-        .add_native_item(separator1)
-        .add_item(toggle)
-        .add_item(dashboard)
-        .add_native_item(separator2)
-        .add_item(about)
-        .add_item(quit)
-}
-
-fn update_tray_menu(app: &AppHandle, is_running: bool) {
-    let tray = app.tray_handle();
-    let _ = tray.set_menu(build_tray_menu(is_running));
-
-    // Update icon — template icons in macOS are automatically
-    // inverted for dark/light mode
-    let icon_name = if is_running { "tray-active" } else { "tray-icon" };
-    if let Ok(icon) = load_tray_icon(icon_name) {
-        let _ = tray.set_icon(icon);
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_menu(Some(menu))?;
+        tray.set_tooltip(Some(if running {
+            "CoworkGuard — Protection ON"
+        } else {
+            "CoworkGuard — Click to start protection"
+        }))?;
     }
+    Ok(())
 }
 
-fn load_tray_icon(name: &str) -> Result<tauri::Icon, Box<dyn std::error::Error>> {
-    let path = find_install_dir()
-        .parent().unwrap_or(&find_install_dir().clone())
-        .join(format!("menubar-app/src-tauri/icons/{}.png", name));
-    Ok(tauri::Icon::File(path))
-}
-
-// ─────────────────────────────────────────────
-// Notifications
-// ─────────────────────────────────────────────
-
-fn send_notification(app: &AppHandle, title: &str, body: &str) {
-    let _ = tauri::api::notification::Notification::new(&app.config().tauri.bundle.identifier)
-        .title(title)
-        .body(body)
-        .show();
-}
-
-// ─────────────────────────────────────────────
-// Check for broken proxy state on startup
-// (proxy on but mitmproxy not running)
-// ─────────────────────────────────────────────
-
-fn check_proxy_state_on_startup(app: &AppHandle) {
-    let service = get_network_service();
-
-    // Check if proxy is currently enabled
-    let output = Command::new("networksetup")
-        .args(["-getwebproxy", &service])
-        .output();
-
-    if let Ok(out) = output {
-        let text = String::from_utf8_lossy(&out.stdout);
-        let enabled = text.contains("Enabled: Yes");
-        let points_to_us = text.contains("127.0.0.1") && text.contains("8080");
-
-        if enabled && points_to_us {
-            // Proxy is on — check if mitmproxy is actually running
-            let running = std::net::TcpStream::connect("127.0.0.1:8080").is_ok();
-            if !running {
-                // Broken state — show alert
-                send_notification(
-                    app,
-                    "🛡️ CoworkGuard — Action needed",
-                    "Your internet may not be working. CoworkGuard was left on when your Mac restarted. Click Start Protection to fix it.",
-                );
-                // Disable the broken proxy so internet works
+fn check_startup(app: &AppHandle) {
+    let svc = get_network_service();
+    let out = Command::new("networksetup").args(["-getwebproxy", &svc]).output();
+    if let Ok(o) = out {
+        let text = String::from_utf8_lossy(&o.stdout);
+        if text.contains("Enabled: Yes") && text.contains("127.0.0.1") {
+            if std::net::TcpStream::connect("127.0.0.1:8080").is_err() {
                 disable_proxy();
+                eprintln!("[CoworkGuard] Broken proxy state detected and fixed on startup");
             }
         }
     }
 }
 
-// ─────────────────────────────────────────────
-// Main
-// ─────────────────────────────────────────────
+#[tauri::command]
+fn get_status(state: tauri::State<AppState>) -> bool {
+    *state.is_running.lock().unwrap()
+}
 
 fn main() {
-    let tray = SystemTray::new()
-        .with_menu(build_tray_menu(false))
-        .with_tooltip("CoworkGuard — AI Privacy Protection");
-
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(AppState {
             proxy_process:  Mutex::new(None),
             server_process: Mutex::new(None),
             is_running:     Mutex::new(false),
         })
-        .system_tray(tray)
-        .on_system_tray_event(|app, event| {
-            if let SystemTrayEvent::MenuItemClick { id, .. } = event {
-                match id.as_str() {
-                    "toggle" => {
-                        let is_running = *app.state::<AppState>().is_running.lock().unwrap();
-                        if is_running {
-                            stop_coworkguard(app);
-                        } else {
-                            start_coworkguard(app);
-                        }
-                    }
-                    "dashboard" => {
-                        let _ = tauri::api::shell::open(
-                            &app.shell_scope(),
-                            "http://localhost:7070",
-                            None,
-                        );
-                    }
-                    "about" => {
-                        let _ = tauri::api::shell::open(
-                            &app.shell_scope(),
-                            "https://katherine-holland.github.io/ClaudeCoworkGuard",
-                            None,
-                        );
-                    }
-                    "quit" => {
-                        // Always clean up before quitting
-                        stop_coworkguard(app);
-                        std::process::exit(0);
-                    }
-                    _ => {}
-                }
-            }
-        })
+        .invoke_handler(tauri::generate_handler![get_status])
         .setup(|app| {
-            // Hide from Dock — menubar only app
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            // Build initial tray
+            let menu = Menu::new(app)?;
+            let status = MenuItem::new(app, "○ Protection off", false, None::<&str>)?;
+            let sep1   = PredefinedMenuItem::separator(app)?;
+            let toggle = MenuItem::with_id(app, "toggle", "Start Protection", true, None::<&str>)?;
+            let dash   = MenuItem::with_id(app, "dashboard", "Open Dashboard →", true, None::<&str>)?;
+            let sep2   = PredefinedMenuItem::separator(app)?;
+            let about  = MenuItem::with_id(app, "about", "About CoworkGuard", true, None::<&str>)?;
+            let quit   = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            menu.append(&status)?;
+            menu.append(&sep1)?;
+            menu.append(&toggle)?;
+            menu.append(&dash)?;
+            menu.append(&sep2)?;
+            menu.append(&about)?;
+            menu.append(&quit)?;
+
+            let icon_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("icons/tray-icon.png");
+
+            TrayIconBuilder::with_id("main")
+                .icon(tauri::image::Image::from_path(&icon_path)?)
+                .icon_as_template(true)
+                .menu(&menu)
+                .menu_on_left_click(true)
+                .on_menu_event(|app, event| {
+                    match event.id().as_ref() {
+                        "toggle" => {
+                            let running = *app.state::<AppState>().is_running.lock().unwrap();
+                            if running { stop_coworkguard(app); } else { start_coworkguard(app); }
+                        }
+                        "dashboard" => {
+                            let _ = open::that("http://localhost:7070");
+                        }
+                        "about" => {
+                            let _ = open::that("https://katherine-holland.github.io/ClaudeCoworkGuard");
+                        }
+                        "quit" => {
+                            stop_coworkguard(app);
+                            std::process::exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .build(app)?;
+
             // Check for broken proxy state from previous session
-            let app_handle = app.handle();
+            let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(3));
-                check_proxy_state_on_startup(&app_handle);
+                check_startup(&handle);
             });
 
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running CoworkGuard");
+        .expect("error running CoworkGuard");
 }
