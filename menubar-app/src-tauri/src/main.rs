@@ -187,6 +187,18 @@ fn main() {
                 .icon_as_template(true)
                 .menu(&menu)
                 .show_menu_on_left_click(true)
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event {
+                        let app = tray.app_handle();
+                        if let Some(tray) = app.tray_by_id("main") {
+                            let _ = tray.set_show_menu_on_left_click(true);
+                        }
+                    }
+                })
                 .on_menu_event(|app, event| {
                     match event.id().as_ref() {
                         "toggle" => {
