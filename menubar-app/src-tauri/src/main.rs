@@ -10,7 +10,6 @@ use tauri::{
     AppHandle, Manager,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    image::Image,
 };
 
 struct AppState {
@@ -180,10 +179,8 @@ fn main() {
             menu.append(&about)?;
             menu.append(&quit)?;
 
-            let icon_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("icons/tray-icon.png");
-            let icon_bytes = std::fs::read(&icon_path)?;
-            let icon = Image::from_bytes(&icon_bytes)?;
+            let icon_rgba = include_bytes!("../icons/tray-icon.png").to_vec();
+            let icon = tauri::image::Image::new_owned(icon_rgba, 22, 22);
 
             TrayIconBuilder::with_id("main")
                 .icon(icon)
