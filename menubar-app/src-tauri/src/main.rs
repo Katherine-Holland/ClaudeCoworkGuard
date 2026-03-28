@@ -85,6 +85,19 @@ fn find_install_dir() -> PathBuf {
     PathBuf::from(home).join("ClaudeCoworkGuard")
 }
 
+fn kill_port(port: u16) {
+    // Find and kill any process using the given port
+    let output = Command::new("lsof")
+        .args(["-ti", &format!(":{}", port)])
+        .output();
+    if let Ok(out) = output {
+        let pids = String::from_utf8_lossy(&out.stdout);
+        for pid in pids.split_whitespace() {
+            let _ = Command::new("kill").args(["-9", pid]).output();
+        }
+    }
+}
+
 fn start_coworkguard(app: &AppHandle) {
     let state = app.state::<AppState>();
     let dir = find_install_dir();
@@ -94,6 +107,11 @@ fn start_coworkguard(app: &AppHandle) {
     eprintln!("[CoworkGuard] Using mitmproxy: {}", mitmproxy_bin);
     eprintln!("[CoworkGuard] Using python3: {}", python_bin);
     eprintln!("[CoworkGuard] Install dir: {:?}", dir);
+
+    // Clear any stale processes on our ports
+    kill_port(8080);
+    kill_port(7070);
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
     let proxy = Command::new(&mitmproxy_bin)
         .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
