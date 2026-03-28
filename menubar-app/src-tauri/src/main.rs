@@ -9,7 +9,8 @@ use std::path::PathBuf;
 use tauri::{
     AppHandle, Manager,
     menu::{Menu, MenuItem, PredefinedMenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    tray::TrayIconBuilder,
+    image::Image,
 };
 
 struct AppState {
@@ -129,7 +130,7 @@ fn update_tray(app: &AppHandle, running: bool) -> tauri::Result<()> {
     Ok(())
 }
 
-fn check_startup(app: &AppHandle) {
+fn check_startup(_app: &AppHandle) {
     let svc = get_network_service();
     let out = Command::new("networksetup").args(["-getwebproxy", &svc]).output();
     if let Ok(o) = out {
@@ -181,12 +182,14 @@ fn main() {
 
             let icon_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("icons/tray-icon.png");
+            let icon_bytes = std::fs::read(&icon_path)?;
+            let icon = Image::from_bytes(&icon_bytes)?;
 
             TrayIconBuilder::with_id("main")
-                .icon(tauri::image::Image::from_path(&icon_path)?)
+                .icon(icon)
                 .icon_as_template(true)
                 .menu(&menu)
-                .menu_on_left_click(true)
+                .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {
                     match event.id().as_ref() {
                         "toggle" => {
