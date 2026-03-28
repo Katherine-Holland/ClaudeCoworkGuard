@@ -18,9 +18,36 @@ struct AppState {
     is_running:     Mutex<bool>,
 }
 
-fn find_install_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    PathBuf::from(home).join("ClaudeCoworkGuard")
+fn find_mitmproxy() -> String {
+    let candidates = [
+        "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmproxy",
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmproxy",
+        "/usr/local/bin/mitmproxy",
+        "/opt/homebrew/bin/mitmproxy",
+    ];
+    for path in &candidates {
+        if std::path::Path::new(path).exists() {
+            return path.to_string();
+        }
+    }
+    // Fall back to PATH lookup
+    "mitmproxy".to_string()
+}
+
+fn find_python() -> String {
+    let candidates = [
+        "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+        "/usr/local/bin/python3",
+        "/opt/homebrew/bin/python3",
+        "/usr/bin/python3",
+    ];
+    for path in &candidates {
+        if std::path::Path::new(path).exists() {
+            return path.to_string();
+        }
+    }
+    "python3".to_string()
 }
 
 fn get_network_service() -> String {
@@ -53,29 +80,50 @@ fn disable_proxy() {
     let _ = Command::new("networksetup").args(["-setsecurewebproxystate", &svc, "off"]).output();
 }
 
+fn find_install_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    PathBuf::from(home).join("ClaudeCoworkGuard")
+}
+
 fn start_coworkguard(app: &AppHandle) {
     let state = app.state::<AppState>();
     let dir = find_install_dir();
+    let mitmproxy_bin = find_mitmproxy();
+    let python_bin = find_python();
 
-    let proxy = Command::new("mitmproxy")
+    eprintln!("[CoworkGuard] Using mitmproxy: {}", mitmproxy_bin);
+    eprintln!("[CoworkGuard] Using python3: {}", python_bin);
+    eprintln!("[CoworkGuard] Install dir: {:?}", dir);
+
+    let proxy = Command::new(&mitmproxy_bin)
         .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
         .current_dir(&dir)
         .spawn();
 
     match proxy {
-        Ok(child) => { *state.proxy_process.lock().unwrap() = Some(child); }
-        Err(e) => { eprintln!("[CoworkGuard] mitmproxy failed: {}", e); return; }
+        Ok(child) => {
+            eprintln!("[CoworkGuard] mitmproxy started");
+            *state.proxy_process.lock().unwrap() = Some(child);
+        }
+        Err(e) => {
+            eprintln!("[CoworkGuard] mitmproxy failed: {}", e);
+            return;
+        }
     }
 
     std::thread::sleep(std::time::Duration::from_secs(2));
 
-    let server = Command::new("python3")
+    let server = Command::new(&python_bin)
         .args(["server.py"])
         .current_dir(&dir)
         .spawn();
 
-    if let Ok(child) = server {
-        *state.server_process.lock().unwrap() = Some(child);
+    match server {
+        Ok(child) => {
+            eprintln!("[CoworkGuard] server.py started");
+            *state.server_process.lock().unwrap() = Some(child);
+        }
+        Err(e) => eprintln!("[CoworkGuard] server.py failed: {}", e),
     }
 
     enable_proxy();
@@ -92,6 +140,7 @@ fn stop_coworkguard(app: &AppHandle) {
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
     *state.is_running.lock().unwrap() = false;
     let _ = rebuild_menu(app, false);
+    eprintln!("[CoworkGuard] Stopped");
 }
 
 fn build_menu(app: &AppHandle, running: bool) -> tauri::Result<Menu<tauri::Wry>> {
