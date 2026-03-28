@@ -64,10 +64,7 @@ fn start_coworkguard(app: &AppHandle) {
 
     match proxy {
         Ok(child) => { *state.proxy_process.lock().unwrap() = Some(child); }
-        Err(e) => {
-            eprintln!("[CoworkGuard] mitmproxy failed: {}", e);
-            return;
-        }
+        Err(e) => { eprintln!("[CoworkGuard] mitmproxy failed: {}", e); return; }
     }
 
     std::thread::sleep(std::time::Duration::from_secs(2));
@@ -83,7 +80,7 @@ fn start_coworkguard(app: &AppHandle) {
 
     enable_proxy();
     *state.is_running.lock().unwrap() = true;
-    let _ = update_tray(app, true);
+    let _ = rebuild_menu(app, true);
 }
 
 fn stop_coworkguard(app: &AppHandle) {
@@ -94,21 +91,21 @@ fn stop_coworkguard(app: &AppHandle) {
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
     *state.is_running.lock().unwrap() = false;
-    let _ = update_tray(app, false);
+    let _ = rebuild_menu(app, false);
 }
 
-fn update_tray(app: &AppHandle, running: bool) -> tauri::Result<()> {
+fn build_menu(app: &AppHandle, running: bool) -> tauri::Result<Menu<tauri::Wry>> {
     let toggle_label = if running { "Stop Protection" } else { "Start Protection" };
     let status_label = if running { "● PROTECTION ON" } else { "○ Protection off" };
 
-    let menu = Menu::new(app)?;
-    let status   = MenuItem::new(app, status_label, false, None::<&str>)?;
-    let sep1     = PredefinedMenuItem::separator(app)?;
-    let toggle   = MenuItem::with_id(app, "toggle", toggle_label, true, None::<&str>)?;
-    let dash     = MenuItem::with_id(app, "dashboard", "Open Dashboard →", true, None::<&str>)?;
-    let sep2     = PredefinedMenuItem::separator(app)?;
-    let about    = MenuItem::with_id(app, "about", "About CoworkGuard", true, None::<&str>)?;
-    let quit     = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu    = Menu::new(app)?;
+    let status  = MenuItem::new(app, status_label, false, None::<&str>)?;
+    let sep1    = PredefinedMenuItem::separator(app)?;
+    let toggle  = MenuItem::with_id(app, "toggle",    toggle_label,        true, None::<&str>)?;
+    let dash    = MenuItem::with_id(app, "dashboard", "Open Dashboard →",  true, None::<&str>)?;
+    let sep2    = PredefinedMenuItem::separator(app)?;
+    let about   = MenuItem::with_id(app, "about",     "About CoworkGuard", true, None::<&str>)?;
+    let quit    = MenuItem::with_id(app, "quit",      "Quit",              true, None::<&str>)?;
 
     menu.append(&status)?;
     menu.append(&sep1)?;
@@ -117,13 +114,17 @@ fn update_tray(app: &AppHandle, running: bool) -> tauri::Result<()> {
     menu.append(&sep2)?;
     menu.append(&about)?;
     menu.append(&quit)?;
+    Ok(menu)
+}
 
+fn rebuild_menu(app: &AppHandle, running: bool) -> tauri::Result<()> {
     if let Some(tray) = app.tray_by_id("main") {
+        let menu = build_menu(app, running)?;
         tray.set_menu(Some(menu))?;
         tray.set_tooltip(Some(if running {
             "CoworkGuard — Protection ON"
         } else {
-            "CoworkGuard — Click to start protection"
+            "CoworkGuard — Click to start"
         }))?;
     }
     Ok(())
@@ -137,15 +138,10 @@ fn check_startup(_app: &AppHandle) {
         if text.contains("Enabled: Yes") && text.contains("127.0.0.1") {
             if std::net::TcpStream::connect("127.0.0.1:8080").is_err() {
                 disable_proxy();
-                eprintln!("[CoworkGuard] Broken proxy state detected and fixed on startup");
+                eprintln!("[CoworkGuard] Fixed broken proxy state on startup");
             }
         }
     }
-}
-
-#[tauri::command]
-fn get_status(state: tauri::State<AppState>) -> bool {
-    *state.is_running.lock().unwrap()
 }
 
 fn main() {
@@ -157,48 +153,22 @@ fn main() {
             server_process: Mutex::new(None),
             is_running:     Mutex::new(false),
         })
-        .invoke_handler(tauri::generate_handler![get_status])
         .setup(|app| {
+            // Hide from Dock — menubar only
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            // Build initial tray
-            let menu = Menu::new(app)?;
-            let status = MenuItem::new(app, "○ Protection off", false, None::<&str>)?;
-            let sep1   = PredefinedMenuItem::separator(app)?;
-            let toggle = MenuItem::with_id(app, "toggle", "Start Protection", true, None::<&str>)?;
-            let dash   = MenuItem::with_id(app, "dashboard", "Open Dashboard →", true, None::<&str>)?;
-            let sep2   = PredefinedMenuItem::separator(app)?;
-            let about  = MenuItem::with_id(app, "about", "About CoworkGuard", true, None::<&str>)?;
-            let quit   = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            menu.append(&status)?;
-            menu.append(&sep1)?;
-            menu.append(&toggle)?;
-            menu.append(&dash)?;
-            menu.append(&sep2)?;
-            menu.append(&about)?;
-            menu.append(&quit)?;
+            let menu = build_menu(app.handle(), false)?;
 
-            let icon_rgba = include_bytes!("../icons/tray-icon.png").to_vec();
-            let icon = tauri::image::Image::new_owned(icon_rgba, 22, 22);
+            let icon_bytes = include_bytes!("../icons/tray-icon.png").to_vec();
+            let (width, height) = (22u32, 22u32);
+            let icon = tauri::image::Image::new_owned(icon_bytes, width, height);
 
             TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .icon_as_template(true)
                 .menu(&menu)
                 .show_menu_on_left_click(true)
-                .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click {
-                        button: tauri::tray::MouseButton::Left,
-                        button_state: tauri::tray::MouseButtonState::Up,
-                        ..
-                    } = event {
-                        let app = tray.app_handle();
-                        if let Some(tray) = app.tray_by_id("main") {
-                            let _ = tray.set_show_menu_on_left_click(true);
-                        }
-                    }
-                })
                 .on_menu_event(|app, event| {
                     match event.id().as_ref() {
                         "toggle" => {
@@ -220,7 +190,7 @@ fn main() {
                 })
                 .build(app)?;
 
-            // Check for broken proxy state from previous session
+            // Check for broken proxy state on startup
             let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(3));
