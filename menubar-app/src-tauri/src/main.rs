@@ -160,9 +160,9 @@ fn main() {
 
             let menu = build_menu(app.handle(), false)?;
 
-            let icon_bytes = include_bytes!("../icons/tray-icon.png").to_vec();
-            let (width, height) = (22u32, 22u32);
-            let icon = tauri::image::Image::new_owned(icon_bytes, width, height);
+            let icon = tauri::image::Image::from_bytes(
+                include_bytes!("../icons/tray-icon.png")
+            )?;
 
             TrayIconBuilder::with_id("main")
                 .icon(icon)
