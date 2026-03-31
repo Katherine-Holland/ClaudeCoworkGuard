@@ -1,5 +1,13 @@
 """
-CoworkGuard - Core Scanner Engine
+CoworkGuard Detection Engine
+Copyright © 2026 Katherine Weston. All Rights Reserved.
+
+This file is proprietary and confidential. Viewing for security 
+audit purposes is permitted. Copying, modification, or use in any 
+product without explicit written permission is prohibited.
+
+For licensing enquiries: littlerobinagency@gmail.com
+
 Detects PII, secrets, auth tokens, and internal URLs in outbound payloads.
 Proprietary logic — © CoworkGuard
 """
