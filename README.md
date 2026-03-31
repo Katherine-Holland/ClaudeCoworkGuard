@@ -2,7 +2,7 @@
 
 **A firewall for AI agents.**
 
-AI agent tools — Claude, Cursor, GitHub Copilot, ChatGPT, Gemini — operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer.
+AI agent tools — Claude, Cursor, GitHub Copilot, ChatGPT, Gemini — operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer (as of this release).
 
 CoworkGuard adds that layer. It sits between your machine and every major AI API, scanning outbound payloads in real time, blocking sensitive data before it leaves, and keeping a local audit log of everything that passes through.
 
