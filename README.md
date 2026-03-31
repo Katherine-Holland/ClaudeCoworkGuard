@@ -8,7 +8,7 @@ CoworkGuard adds that layer. It sits between your machine and every major AI API
 
 No cloud dependency. No accounts. Everything runs on your own machine.
 
-> **Proven in the wild:** Within 48 hours of Claude Cowork's launch, researchers demonstrated a Word document with hidden white text could exfiltrate partial Social Security numbers via the Anthropic API. CoworkGuard blocks that class of attack across all 10 monitored AI endpoints.
+> **Proven in the wild:** Within 48 hours of Claude Cowork's launch, researchers demonstrated a Word document with hidden white text could exfiltrate partial Social Security numbers via the Anthropic API. CoworkGuard intercepted and blocked a live SSN payload in testing — the same scanner runs across all 10 monitored AI endpoints.
 
 ---
 
