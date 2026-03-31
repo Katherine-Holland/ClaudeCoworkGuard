@@ -215,6 +215,29 @@ loadDomains();
 detectClaudeSession();
 setInterval(detectClaudeSession, 10000);
 
+// First-run notification — show once on install
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.notifications.create('first-run', {
+      type: 'basic',
+      iconUrl: 'icons/icon48.png',
+      title: '🛡️ CoworkGuard installed',
+      message: 'Domain protection is active. Download the macOS app for full payload scanning and blocking.',
+      buttons: [{ title: 'Finish Installation' }],
+      priority: 2,
+    });
+  }
+});
+
+// Handle notification button click
+chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+  if (notifId === 'first-run' && btnIdx === 0) {
+    chrome.tabs.create({
+      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg'
+    });
+  }
+});
+
 // Poll local server for proxy status every 15 seconds
 // This is more reliable than resetting proxyActive on a timer
 async function pollProxyStatus() {

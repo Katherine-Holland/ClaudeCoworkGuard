@@ -191,14 +191,15 @@
 <div class="container">
 
   <!-- Partial protection banner — shown when proxy not running -->
-  <div id="partial-banner" style="display:none;margin:16px 0 0;background:rgba(240,160,48,.08);border:1px solid rgba(240,160,48,.25);border-radius:10px;padding:12px 20px;display:none;align-items:center;justify-content:space-between;gap:16px">
-    <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:18px">⚠️</span>
-      <div>
-        <div style="font-size:13px;font-weight:600;color:#f0a030;margin-bottom:2px">Partial Protection — Proxy not running</div>
-        <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted2)">Domain warnings active. Payload scanning and blocking require the proxy. Run <code style="color:var(--accent)">~/CoworkGuard/start.sh</code> for full protection.</div>
-      </div>
+  <div id="partial-banner" style="display:none;margin:16px 0 0;background:rgba(240,160,48,.08);border:1px solid rgba(240,160,48,.25);border-left:3px solid #f0a030;border-radius:10px;padding:16px 20px;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#f0a030;margin-bottom:4px">⚠️ Finish your installation — proxy not running</div>
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted2)">You have domain warnings but payload scanning is off. Download the macOS app to get full protection — one click to start and stop, no terminal needed.</div>
     </div>
+    <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg"
+       style="display:inline-flex;align-items:center;gap:8px;background:#e05a20;color:white;text-decoration:none;font-size:12px;font-weight:500;padding:10px 20px;border-radius:7px;white-space:nowrap;box-shadow:0 2px 12px rgba(224,90,32,.3);flex-shrink:0;font-family:var(--font-ui)">
+      ⬇&nbsp; Finish Installation
+    </a>
   </div>
 
   <div class="stats-grid">
@@ -256,16 +257,22 @@
         <div class="pattern-list" id="pattern-list"><div style="color:var(--muted);font-size:12px;font-family:var(--font-mono);padding:8px 0">No patterns triggered yet</div></div>
       </div>
       <div class="panel">
-        <div class="panel-header"><span class="panel-title">Setup Guide</span></div>
+        <div class="panel-header"><span class="panel-title">Quick Start</span></div>
         <div style="padding:16px 20px;font-size:12px;font-family:var(--font-mono);color:var(--muted);line-height:1.8">
+
+          <div style="color:var(--accent);margin-bottom:2px;font-size:11px">RECOMMENDED</div>
+          <div style="margin-bottom:6px;color:var(--text);font-size:11px;font-weight:600">macOS Menubar App</div>
+          <div style="margin-bottom:10px;color:var(--muted);font-size:10px;line-height:1.6">Download the app, open it, click Start Protection. No terminal needed.</div>
+          <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg"
+             style="display:flex;align-items:center;justify-content:center;gap:6px;background:var(--accent);color:white;text-decoration:none;font-size:11px;font-weight:500;padding:8px;border-radius:6px;margin-bottom:16px">
+            ⬇ Finish Installation
+          </a>
+
+          <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:6px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Terminal (advanced)</div>
           <div style="color:var(--accent);margin-bottom:2px">1. Start proxy</div>
-          <div style="margin-bottom:10px;color:var(--text);font-size:10px">mitmproxy -s proxy.py --port 8080</div>
-          <div style="color:var(--accent);margin-bottom:2px">2. Set system proxy</div>
-          <div style="margin-bottom:10px;color:var(--text);font-size:10px">127.0.0.1:8080 (HTTP + HTTPS)</div>
-          <div style="color:var(--accent);margin-bottom:2px">3. Start this server</div>
-          <div style="margin-bottom:10px;color:var(--text);font-size:10px">python3 server.py</div>
-          <div style="color:var(--accent);margin-bottom:2px">4. Load Chrome extension</div>
-          <div style="color:var(--text);font-size:10px">chrome://extensions → Load unpacked</div>
+          <div style="margin-bottom:8px;color:var(--text);font-size:10px">~/CoworkGuard/start.sh</div>
+          <div style="color:var(--accent);margin-bottom:2px">2. Stop when done</div>
+          <div style="color:var(--text);font-size:10px">~/CoworkGuard/stop.sh</div>
         </div>
       </div>
     </div>

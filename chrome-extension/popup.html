@@ -35,7 +35,7 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 /* Partial protection warning */
 .partial-banner{
   background:rgba(240,160,48,.08);border-bottom:1px solid rgba(240,160,48,.2);
-  padding:8px 14px;font-size:11px;font-family:var(--mono);color:var(--warn);
+  padding:10px 14px;font-size:11px;font-family:var(--mono);color:var(--warn);
   display:none;line-height:1.5;
 }
 .partial-banner a{color:var(--accent2);text-decoration:none;cursor:pointer}
@@ -84,8 +84,10 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 
 <!-- Shown when Claude session detected but proxy not running -->
 <div class="partial-banner" id="partial-banner">
-  Domain guard active — payload scanning off.<br/>
-  <a onclick="openDashboard()">Run start.sh for full protection →</a>
+  <div style="margin-bottom:6px">Payload scanning is off.</div>
+  <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg" style="display:inline-flex;align-items:center;gap:6px;background:#e05a20;color:white;text-decoration:none;font-size:10px;font-weight:500;padding:6px 12px;border-radius:5px;margin-top:2px">
+    ⬇ Finish Installation
+  </a>
 </div>
 
 <div class="stats">
