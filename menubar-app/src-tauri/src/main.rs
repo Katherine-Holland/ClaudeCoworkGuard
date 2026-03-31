@@ -99,48 +99,62 @@ fn kill_port(port: u16) {
 }
 
 fn start_coworkguard(app: &AppHandle) {
-    let state = app.state::<AppState>();
     let dir = find_install_dir();
+
+    // Validate install directory before doing anything
+    if !dir.join("proxy.py").exists() {
+        eprintln!("[CoworkGuard] proxy.py not found in {:?}", dir);
+        // Show user-facing error via tray tooltip
+        if let Some(tray) = app.tray_by_id("main") {
+            let _ = tray.set_tooltip(Some(
+                "CoworkGuard: Installation not found. Expected ~/ClaudeCoworkGuard — please reinstall."
+            ));
+        }
+        return;
+    }
+
     let mitmproxy_bin = find_mitmproxy();
     let python_bin = find_python();
+    let app_handle = app.clone();
 
-    // Clear any stale processes on our ports
-    kill_port(8080);
-    kill_port(7070);
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    // Move all blocking work to a background thread so the menu stays responsive
+    std::thread::spawn(move || {
+        let state = app_handle.state::<AppState>();
 
-    let proxy = Command::new(&mitmproxy_bin)
-        .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
-        .current_dir(&dir)
-        .spawn();
+        // Clear any stale processes on our ports
+        kill_port(8080);
+        kill_port(7070);
+        std::thread::sleep(std::time::Duration::from_millis(500));
 
-    match proxy {
-        Ok(child) => {
-            *state.proxy_process.lock().unwrap() = Some(child);
+        let proxy = Command::new(&mitmproxy_bin)
+            .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
+            .current_dir(&dir)
+            .spawn();
+
+        match proxy {
+            Ok(child) => { *state.proxy_process.lock().unwrap() = Some(child); }
+            Err(e) => {
+                eprintln!("[CoworkGuard] mitmdump failed: {}", e);
+                return;
+            }
         }
-        Err(e) => {
-            eprintln!("[CoworkGuard] mitmproxy failed: {}", e);
-            return;
+
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        let server = Command::new(&python_bin)
+            .args(["server.py"])
+            .current_dir(&dir)
+            .spawn();
+
+        match server {
+            Ok(child) => { *state.server_process.lock().unwrap() = Some(child); }
+            Err(e) => eprintln!("[CoworkGuard] server.py failed: {}", e),
         }
-    }
 
-    std::thread::sleep(std::time::Duration::from_secs(2));
-
-    let server = Command::new(&python_bin)
-        .args(["server.py"])
-        .current_dir(&dir)
-        .spawn();
-
-    match server {
-        Ok(child) => {
-            *state.server_process.lock().unwrap() = Some(child);
-        }
-        Err(e) => eprintln!("[CoworkGuard] server.py failed: {}", e),
-    }
-
-    enable_proxy();
-    *state.is_running.lock().unwrap() = true;
-    let _ = rebuild_menu(app, true);
+        enable_proxy();
+        *state.is_running.lock().unwrap() = true;
+        let _ = rebuild_menu(&app_handle, true);
+    });
 }
 
 fn stop_coworkguard(app: &AppHandle) {
