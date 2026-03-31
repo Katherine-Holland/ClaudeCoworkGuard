@@ -104,10 +104,6 @@ fn start_coworkguard(app: &AppHandle) {
     let mitmproxy_bin = find_mitmproxy();
     let python_bin = find_python();
 
-    eprintln!("[CoworkGuard] Using mitmproxy: {}", mitmproxy_bin);
-    eprintln!("[CoworkGuard] Using python3: {}", python_bin);
-    eprintln!("[CoworkGuard] Install dir: {:?}", dir);
-
     // Clear any stale processes on our ports
     kill_port(8080);
     kill_port(7070);
@@ -120,7 +116,6 @@ fn start_coworkguard(app: &AppHandle) {
 
     match proxy {
         Ok(child) => {
-            eprintln!("[CoworkGuard] mitmproxy started");
             *state.proxy_process.lock().unwrap() = Some(child);
         }
         Err(e) => {
@@ -138,7 +133,6 @@ fn start_coworkguard(app: &AppHandle) {
 
     match server {
         Ok(child) => {
-            eprintln!("[CoworkGuard] server.py started");
             *state.server_process.lock().unwrap() = Some(child);
         }
         Err(e) => eprintln!("[CoworkGuard] server.py failed: {}", e),
@@ -151,14 +145,27 @@ fn start_coworkguard(app: &AppHandle) {
 
 fn stop_coworkguard(app: &AppHandle) {
     let state = app.state::<AppState>();
+
+    // Disable system proxy first — most important, restores internet
     disable_proxy();
+
+    // Kill tracked child processes
     if let Some(mut c) = state.proxy_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.server_process.lock().unwrap().take() { let _ = c.kill(); }
+
+    // Belt and braces — kill by name too in case child handle is stale
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
+    let _ = Command::new("pkill").args(["-f", "mitmdump"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
+
+    // Final cleanup — kill anything still holding our ports
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    kill_port(8080);
+    kill_port(7070);
+
     *state.is_running.lock().unwrap() = false;
     let _ = rebuild_menu(app, false);
-    eprintln!("[CoworkGuard] Stopped");
+    eprintln!("[CoworkGuard] Stopped cleanly");
 }
 
 fn build_menu(app: &AppHandle, running: bool) -> tauri::Result<Menu<tauri::Wry>> {
