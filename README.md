@@ -41,12 +41,12 @@ CoworkGuard sits between your machine and every AI API endpoint, scanning every 
 |---|---|
 | **Payload scanner** | 48 patterns detecting PII, secrets, and internal data in every outbound request |
 | **Active blocking** | Configurable by severity — CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
-| **Domain guard** | In-page warning banner + Chrome notification when Cowork is active and you navigate to a sensitive domain |
+| **Domain guard** | In-page warning banner + Chrome notification when a Claude session is active and you navigate to a sensitive domain |
 | **Live audit log** | Real-time JSONL log of every intercepted request, with filterable dashboard view |
 | **Threat detail modal** | Click any log entry to see full finding breakdown — severity, type, redacted preview |
 | **Payload trend chart** | 24-hour bar chart showing data volume sent per hour, colour-coded by worst action |
 | **Settings panel** | Toggle block levels, add custom patterns and domains — no config file editing required |
-| **Process detection** | Detects whether the Claude desktop app is running and reflects status in the dashboard |
+| **Menubar app** | Native macOS menubar app — start/stop protection with one click, no terminal required |
 | **Zero cloud dependency** | Everything runs locally. No accounts, no telemetry, no data leaves your machine |
 
 ---
@@ -98,7 +98,7 @@ Browser / AI Agent Tools
          │
          ▼
  ┌──────────────┐      ┌─────────────────────────────────┐
- │  mitmproxy   │─────▶│  scanner.py  (Detection engine) │
+ │  mitmdump    │─────▶│  scanner.py  (Detection engine) │
  │  proxy.py    │      │  • 48 severity-scored patterns   │
  └──────────────┘      │  • Payload hash (never raw)      │
          │              │  • Redacted finding previews     │
@@ -119,9 +119,14 @@ Browser / AI Agent Tools
  │ .html        │  Threat detail modal · Settings panel
  └──────────────┘
 
+ ┌──────────────────────────────────────┐
+ │  CoworkGuard.app (macOS menubar)     │
+ │  One-click start/stop · No terminal  │
+ └──────────────────────────────────────┘
+
  Chrome Extension (parallel layer)
  ┌────────────────────────────────────────────┐
- │ background.js  Cowork detection, API watch │
+ │ background.js  Session detection, API watch│
  │ content.js     In-page warning banners     │
  │ manifest.json  Manifest V3                 │
  └────────────────────────────────────────────┘
@@ -133,120 +138,81 @@ Browser / AI Agent Tools
 
 ```
 coworkguard/
-├── install.sh          # One-time installer
-├── start.sh            # Start CoworkGuard + enable proxy
-├── stop.sh             # Stop CoworkGuard + restore internet
-├── scanner.py          # Core PII/secret detection engine (your IP)
-├── proxy.py            # mitmproxy interceptor script
-├── server.py           # Local Flask API server for dashboard
-├── dashboard.html      # Audit dashboard UI
-├── PRIVACY.md          # Privacy policy (host on GitHub Pages for Chrome store)
+├── install.sh              # One-time installer (terminal approach)
+├── start.sh                # Start CoworkGuard + enable proxy
+├── stop.sh                 # Stop CoworkGuard + restore internet
+├── checker.sh              # Startup checker — detects broken proxy state
+├── scanner.py              # Core PII/secret detection engine
+├── proxy.py                # mitmproxy interceptor script
+├── server.py               # Local Flask API server for dashboard
+├── dashboard.html          # Audit dashboard UI
+├── domains.json            # Shared sensitive domains list
 ├── README.md
+├── menubar-app/            # Native macOS menubar app (Tauri)
+│   ├── src-tauri/
+│   │   ├── src/main.rs     # Rust backend — process management, proxy toggle
+│   │   ├── Cargo.toml
+│   │   └── tauri.conf.json
+│   └── src/index.html      # First-run setup wizard
 └── chrome-extension/
-    ├── manifest.json   # Manifest V3
-    ├── popup.html      # Toolbar icon popup — live stats + recent events
-    ├── background.js   # Service worker — detection + monitoring
-    ├── content.js      # In-page warning banner injection
+    ├── manifest.json       # Manifest V3
+    ├── popup.html          # Toolbar popup — live stats + recent events
+    ├── background.js       # Service worker — detection + monitoring
+    ├── content.js          # In-page warning banner injection
     └── icons/
-        ├── icon16.png
-        ├── icon48.png
-        └── icon128.png
 ```
 
 ---
 
 ## Quick Start
 
-### Install (one-time)
+### Option 1 — macOS Menubar App (recommended)
 
-Open Terminal and run:
+Download `CoworkGuard_1.0.0_aarch64.dmg` from the [latest release](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases).
+
+1. Open the `.dmg` and drag CoworkGuard to Applications
+2. Open CoworkGuard — a shield icon appears in your menubar
+3. Complete the one-time setup wizard (generates and trusts the certificate)
+4. Click the shield → **Start Protection**
+
+That's it. No terminal required.
+
+Then install the Chrome extension from the [Chrome Web Store](https://chrome.google.com/webstore/detail/coworkguard).
+
+### Option 2 — Terminal installer
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash
 ```
 
-This automatically installs Python dependencies, downloads CoworkGuard, and sets up the security certificate.
-
-Then install the Chrome extension from the [Chrome Web Store](https://chrome.google.com/webstore/detail/coworkguard).
-
 ---
 
 ## Daily Use
 
-**Starting CoworkGuard:**
+### Menubar app
+Click the shield icon in your menubar → **Start Protection** / **Stop Protection**.
+
+### Terminal
 ```bash
-~/CoworkGuard/start.sh
-```
-This starts the proxy, starts the dashboard server, enables your system proxy, and opens the dashboard automatically.
-
-**Stopping CoworkGuard:**
-```bash
-~/CoworkGuard/stop.sh
-```
-This stops the proxy, stops the server, and restores your normal internet connection.
-
-> **Important:** Always run `stop.sh` when you are done. If you close your Mac without stopping CoworkGuard, your internet may stop working until you turn off the system proxy in System Settings → Network → Proxies.
-
----
-
-## Manual Setup (developers)
-
-If you prefer to run components individually:
-
-### Prerequisites
-
-```bash
-pip install mitmproxy flask flask-cors psutil
+~/CoworkGuard/start.sh   # Start protection
+~/CoworkGuard/stop.sh    # Stop protection + restore internet
 ```
 
-### Step 1 — Start the proxy
-
-```bash
-mitmproxy -s proxy.py --listen-port 8080
-```
-
-Set your macOS system proxy:
-- **System Settings → Network → [Your network] → Proxies**
-- HTTP Proxy: `127.0.0.1` Port: `8080`
-- HTTPS Proxy: `127.0.0.1` Port: `8080`
-
-Trust the mitmproxy certificate:
-```bash
-open ~/.mitmproxy/mitmproxy-ca-cert.pem
-# Add to Keychain → Trust for SSL
-```
-
-### Step 2 — Start the local server
-
-```bash
-python3 server.py
-# Dashboard available at http://localhost:7070
-```
-
-### Step 3 — Load the Chrome extension
-
-1. Open `chrome://extensions`
-2. Enable **Developer mode** (top right toggle)
-3. Click **Load unpacked**
-4. Select the `chrome-extension/` folder
-
-### Step 4 — Open the dashboard
-
-Navigate to `http://localhost:7070` in Chrome.
+> **Important:** Always stop CoworkGuard when done. If your Mac restarts with protection on, CoworkGuard will alert you automatically and offer to fix it.
 
 ---
 
 ## Configuration
 
-All settings are available through the dashboard Settings panel — no config file editing needed. Settings are persisted to `~/.coworkguard/settings.json` and hot-reloaded by the proxy.
+All settings are available through the dashboard at `http://localhost:7070` — no config file editing needed.
 
 | Setting | Default | Description |
 |---|---|---|
 | Block Critical | ✅ On | SSNs, credit cards, private keys, raw API keys |
 | Block High | ❌ Off | JWTs, bearer tokens, GitHub tokens, Stripe keys |
 | Block Medium | ❌ Off | Emails, phone numbers, IP addresses |
-| Domain Alerts | ✅ On | Warn when navigating to sensitive domains while Cowork is active |
-| Proxy Port | 8080 | Port mitmproxy listens on |
+| Domain Alerts | ✅ On | Warn when navigating to sensitive domains while a Claude session is active |
+| Proxy Port | 8080 | Port mitmdump listens on |
 | Max Log Entries | 1000 | Audit log rotation limit |
 | Custom Patterns | — | Your own regex patterns, applied at MEDIUM severity |
 | Custom Domains | — | Additional domains to monitor |
@@ -256,8 +222,6 @@ All settings are available through the dashboard Settings panel — no config fi
 ## Audit Logs
 
 Logs are written to `~/.coworkguard/logs/audit_YYYYMMDD.jsonl` — one JSON object per line, one file per day.
-
-Each entry contains:
 
 ```json
 {
@@ -276,44 +240,34 @@ Each entry contains:
 }
 ```
 
-**Raw payload content is never stored.** Only SHA-256 hashes, byte sizes, pattern types, severities, and redacted previews are logged.
+**Raw payload content is never stored.**
 
 ---
 
 ## Sensitive Domains (built-in)
 
-CoworkGuard warns when Cowork is active and you navigate to any of these:
-
 `console.aws.amazon.com` · `app.datadoghq.com` · `grafana.*` · `jenkins.*` · `gitlab.*` · `github.com` · `jira.*` · `confluence.*` · `notion.so` · `linear.app` · `stripe.com/dashboard` · `mail.google.com` · `outlook.*` · `workday.com` · `bamboohr.*` · `salesforce.com` · `hubspot.com`
 
-Add your own in the Settings panel or directly in `~/.coworkguard/settings.json`.
-
----
-
-## Chrome Web Store
-
-CoworkGuard is available on the Chrome Web Store. For enterprise deployment without the store, use Chrome's `ExtensionInstallForcelist` policy or load unpacked via Developer mode.
-
-Privacy policy: see `PRIVACY.md` — host at `https://github.com/Katherine-Holland/ClaudeCoworkGuard/blob/main/docs/PRIVACY.md` for store submission.
+Add your own in the Settings panel.
 
 ---
 
 ## Roadmap
 
-- [ ] macOS menubar app wrapper (status indicator without opening dashboard)
 - [ ] OTel exporter — pipe findings to Grafana/Datadog/SIEM
-- [ ] Windows support (mitmproxy works cross-platform; Cowork Windows support is planned by Anthropic)
+- [ ] Windows support
 - [ ] Firefox extension
-- [ ] Enterprise managed policy support (pre-configure block levels and custom domains via IT)
+- [ ] Enterprise managed policy support
 - [ ] Webhook alerts — POST to Slack/Teams when a request is blocked
+- [ ] Mac App Store distribution (requires Network Extension entitlement)
 
 ---
 
 ## Security
 
-CoworkGuard itself never sends data externally. The proxy runs on `localhost:8080`, the server on `localhost:7070`, and the Chrome extension communicates only with these local endpoints.
+CoworkGuard never sends data externally. The proxy runs on `localhost:8080`, the server on `localhost:7070`, and the Chrome extension communicates only with these local endpoints.
 
-If you discover a security issue in CoworkGuard, please open a private GitHub issue.
+For security disclosures, please open a private GitHub issue.
 
 ---
 
@@ -329,4 +283,4 @@ For commercial licensing or acquisition enquiries: littlerobinagency@gmail.com
 
 See [LICENSE](./LICENSE) for full terms.
 
-CoworkGuard is built on Apache 2.0 open source components: mitmproxy, Flask, OpenTelemetry.
+CoworkGuard is built on open source components: mitmproxy, Flask, Tauri.
