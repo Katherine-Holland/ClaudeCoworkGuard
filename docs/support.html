@@ -110,15 +110,15 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
 
 <div class="wrap">
   <div class="page-label">Support</div>
-  <h1>How can we <strong>help?</strong></h1>
-  <p class="sub">Setup guides, troubleshooting, and answers to common questions.</p>
+  <h1>Getting <strong>started.</strong></h1>
+  <p class="sub">Two ways to install — menubar app (no terminal) or command line. Both take under five minutes.</p>
 
   <!-- Quick links -->
   <div class="quick-grid">
     <a class="quick-card" href="#setup">
       <div class="qc-icon">&#9881;</div>
-      <div class="qc-title">Setup Guide</div>
-      <div class="qc-desc">Step-by-step instructions for installing the proxy, extension, and dashboard.</div>
+      <div class="qc-title">Menubar App</div>
+      <div class="qc-desc">Download, install, and start protecting your AI sessions with one click. No terminal.</div>
       <div class="qc-link">View guide &#8594;</div>
     </a>
     <a class="quick-card" href="#faq">
@@ -140,41 +140,68 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
   <p>CoworkGuard has two components — the Chrome extension (domain warnings and popup) and the local proxy stack (payload scanning and dashboard). The extension works immediately after install. The proxy requires a one-time setup.</p>
 
   <h2 style="font-size:17px;margin:28px 0 14px">Prerequisites</h2>
-  <p>You need macOS and Python 3 installed. If you don't have Python, download it from <a href="https://www.python.org/downloads/">python.org</a> — the installer handles everything else.</p>
+  <p>macOS 12 (Monterey) or later, and Python 3.11+ with mitmproxy installed. If you use the menubar app, the setup wizard handles the certificate — no terminal needed for that step.</p>
 
+  <!-- Option 1 — Menubar App -->
+  <h2 style="font-size:17px;margin:28px 0 14px">Option 1 — macOS Menubar App (recommended)</h2>
   <div class="steps">
     <div class="step">
       <div class="step-n">01</div>
       <div class="step-body">
-        <div class="step-title">Run the installer</div>
-        <div class="step-desc">Open Terminal and paste this one command:
-        <pre>curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash</pre>
-        This installs all dependencies, downloads CoworkGuard, and sets up the security certificate automatically. You only need to do this once.</div>
+        <div class="step-title">Download CoworkGuard</div>
+        <div class="step-desc"><a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg" class="contact-link" style="display:inline-flex;margin-top:8px">Download CoworkGuard_1.0.0_aarch64.dmg</a></div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">02</div>
       <div class="step-body">
-        <div class="step-title">Install the Chrome extension</div>
-        <div class="step-desc">Install CoworkGuard from the <a href="https://chrome.google.com/webstore/detail/coworkguard">Chrome Web Store</a>. The toolbar icon appears immediately and shows Cowork status and recent events — no proxy required for domain warnings.</div>
+        <div class="step-title">Install the app</div>
+        <div class="step-desc">Open the .dmg file and drag CoworkGuard to your Applications folder. Then open it — a shield icon appears in your menubar.<br/><br/><strong>First time only:</strong> macOS may show a security warning. Right-click the app → <strong>Open</strong> → <strong>Open</strong> to proceed.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">03</div>
       <div class="step-body">
-        <div class="step-title">Start CoworkGuard</div>
-        <div class="step-desc">Each time you want protection, open Terminal and run:
-        <pre>~/CoworkGuard/start.sh</pre>
-        This starts the proxy, enables your system proxy, and opens the dashboard automatically.</div>
+        <div class="step-title">Complete setup</div>
+        <div class="step-desc">A setup wizard opens automatically on first launch. It generates and trusts the security certificate in one step — enter your Mac password once when prompted. This never needs to be done again.</div>
       </div>
     </div>
     <div class="step">
       <div class="step-n">04</div>
       <div class="step-body">
-        <div class="step-title">Stop CoworkGuard when done</div>
-        <div class="step-desc">Always stop CoworkGuard when you finish your session:
-        <pre>~/CoworkGuard/stop.sh</pre>
-        This stops the proxy and restores your normal internet connection. <strong>Important:</strong> if you skip this step your internet may stop working until you turn off the proxy in System Settings.</div>
+        <div class="step-title">Start protection</div>
+        <div class="step-desc">Click the shield icon in your menubar → <strong>Start Protection</strong>. The dashboard opens automatically at <a href="http://localhost:7070">localhost:7070</a>. Click <strong>Stop Protection</strong> when you are done.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">05</div>
+      <div class="step-body">
+        <div class="step-title">Install the Chrome extension</div>
+        <div class="step-desc">Install CoworkGuard from the <a href="https://chrome.google.com/webstore/detail/coworkguard">Chrome Web Store</a>. The toolbar icon shows protection status and recent events immediately.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option 2 — Terminal -->
+  <h2 style="font-size:17px;margin:40px 0 14px">Option 2 — Terminal installer</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">01</div>
+      <div class="step-body">
+        <div class="step-title">Run the installer</div>
+        <div class="step-desc">Open Terminal and run:
+        <pre>curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash</pre>
+        Installs dependencies, downloads CoworkGuard, and sets up the certificate. One-time only.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">02</div>
+      <div class="step-body">
+        <div class="step-title">Start and stop</div>
+        <div class="step-desc">
+        <pre>~/CoworkGuard/start.sh   # Start protection
+~/CoworkGuard/stop.sh    # Stop + restore internet</pre>
+        Always run stop.sh when done — if you forget and restart your Mac, CoworkGuard will alert you automatically.</div>
       </div>
     </div>
   </div>
