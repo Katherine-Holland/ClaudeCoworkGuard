@@ -19,19 +19,19 @@ struct AppState {
 }
 
 fn find_mitmproxy() -> String {
+    // Use mitmdump (headless) not mitmproxy (requires a TTY and suspends without one)
     let candidates = [
-        "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmproxy",
-        "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmproxy",
-        "/usr/local/bin/mitmproxy",
-        "/opt/homebrew/bin/mitmproxy",
+        "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmdump",
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmdump",
+        "/usr/local/bin/mitmdump",
+        "/opt/homebrew/bin/mitmdump",
     ];
     for path in &candidates {
         if std::path::Path::new(path).exists() {
             return path.to_string();
         }
     }
-    // Fall back to PATH lookup
-    "mitmproxy".to_string()
+    "mitmdump".to_string()
 }
 
 fn find_python() -> String {
@@ -154,8 +154,8 @@ fn stop_coworkguard(app: &AppHandle) {
     if let Some(mut c) = state.server_process.lock().unwrap().take() { let _ = c.kill(); }
 
     // Belt and braces — kill by name too in case child handle is stale
-    let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "mitmdump"]).output();
+    let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
 
     // Final cleanup — kill anything still holding our ports
