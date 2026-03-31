@@ -1,12 +1,14 @@
 # CoworkGuard 🛡️
 
-**A privacy layer for the AI agent ecosystem.**
+**A firewall for AI agents.**
 
-CoworkGuard monitors and blocks sensitive data — PII, auth tokens, secrets, and internal URLs — before it leaves your machine via any major AI API.
+AI agent tools — Claude, Cursor, GitHub Copilot, ChatGPT, Gemini — operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer.
 
-Built originally for **Claude Cowork**, where the gap is most visible: Anthropic acknowledge that Cowork activity is excluded from Audit Logs, the Compliance API, and Data Exports. Two days after Cowork launched, researchers demonstrated that a Word document with hidden white text could trick Cowork into uploading files containing partial Social Security numbers to an attacker's account.
+CoworkGuard adds that layer. It sits between your machine and every major AI API, scanning outbound payloads in real time, blocking sensitive data before it leaves, and keeping a local audit log of everything that passes through.
 
-That problem isn't unique to Claude. Every AI agent tool operates with your session credentials and none of them provide a native audit layer. CoworkGuard adds that layer — locally, with no cloud dependency.
+No cloud dependency. No accounts. Everything runs on your own machine.
+
+> **Proven in the wild:** Within 48 hours of Claude Cowork's launch, researchers demonstrated a Word document with hidden white text could exfiltrate partial Social Security numbers via the Anthropic API. CoworkGuard blocks that class of attack across all 10 monitored AI endpoints.
 
 ---
 
@@ -29,9 +31,9 @@ That problem isn't unique to Claude. Every AI agent tool operates with your sess
 
 ## Why this exists
 
-AI agents inherit access to your entire environment — your browser session, your files, your credentials. Claude Cowork, Cursor, GitHub Copilot, and every other agent tool operate with the same permissions you have. There is no native audit trail, no payload scanner, and no warning when sensitive data is about to leave your machine.
+Every AI agent tool operates with the same permissions you have — your browser session, your files, your credentials are all in scope. There is no native audit trail, no payload scanner, and no warning when sensitive data is about to leave your machine.
 
-CoworkGuard sits between your machine and every AI API endpoint, scanning every outbound request before it leaves. Built for Claude Cowork first — where the compliance gap is documented and the CVE-class risks are proven — and extended to cover the tools you use alongside it.
+This isn't a theoretical risk. Prompt injection, data exfiltration via hidden document content, and MCP supply chain attacks are all documented vectors. CoworkGuard is the DLP layer that AI agent tools don't ship with.
 
 ---
 
