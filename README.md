@@ -1,8 +1,8 @@
 # CoworkGuard 🛡️
 
-**A firewall for AI agents.** · [coworkguard.com](https://www.coworkguard.com) · [Support](https://www.coworkguard.com/support) · [Privacy Policy](https://www.coworkguard.com/privacy) · [GitHub](https://github.com/Katherine-Holland/ClaudeCoworkGuard)
+**A firewall for AI agents.**
 
-AI agent tools — Claude, Cursor, GitHub Copilot, ChatGPT, Gemini — operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer (as of this release).
+AI agent tools — Claude, Cursor, GitHub Copilot, ChatGPT, Gemini — operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer.
 
 CoworkGuard adds that layer. It sits between your machine and every major AI API, scanning outbound payloads in real time, blocking sensitive data before it leaves, and keeping a local audit log of everything that passes through.
 
@@ -150,6 +150,10 @@ coworkguard/
 ├── dashboard.html          # Audit dashboard UI
 ├── domains.json            # Shared sensitive domains list
 ├── README.md
+├── docs/                   # GitHub Pages — public site
+│   ├── index.html          # Landing page
+│   ├── privacy.html        # Privacy policy
+│   └── support.html        # Support & setup guide
 ├── menubar-app/            # Native macOS menubar app (Tauri)
 │   ├── src-tauri/
 │   │   ├── src/main.rs     # Rust backend — process management, proxy toggle
@@ -256,12 +260,29 @@ Add your own in the Settings panel.
 
 ## Roadmap
 
-- [ ] OTel exporter — pipe findings to Grafana/Datadog/SIEM
+### Immediate
+- [ ] Code signed `.dmg` — Apple Developer certificate in progress
+- [ ] Chrome Web Store approval — resubmitted
+
+### Post-launch (v1.x)
+- [ ] Skill file scanner — static analysis of Cowork and OpenClaw skills before installation, using the existing detection engine extended with skill-specific patterns (outbound network calls, credential harvesting, obfuscated payloads)
+- [ ] Mac App Store distribution (menubar app)
 - [ ] Windows support
 - [ ] Firefox extension
+- [ ] OTel exporter — pipe findings to Grafana/Datadog/SIEM
 - [ ] Enterprise managed policy support
 - [ ] Webhook alerts — POST to Slack/Teams when a request is blocked
-- [ ] Mac App Store distribution (requires Network Extension entitlement)
+- [ ] `.pkg` installer
+
+### CoworkGuard Shield (v2) — enterprise
+Shield extends protection from the network layer to the endpoint layer, catching supply chain and runtime attack classes that a network proxy cannot address.
+
+- [ ] **Runtime behaviour monitoring** — macOS Endpoint Security Framework integration monitoring filesystem access, child process creation, and network connections by AI agent processes
+- [ ] **MCP server vetting** — scan MCP server configurations before activation, monitor MCP network traffic, alert on permission escalation
+- [ ] **Company skill sharing protection** — scan Anthropic Cowork company skills before distribution to employees, establish behaviour baselines, detect deviations
+- [ ] **Skill supply chain integrity** — verify skill manifests, detect privilege escalation, alert when a skill requests more access than declared
+- [ ] **SIEM integration** — Splunk, Datadog, Elastic
+- [ ] **Centralised team dashboard** — organisation-wide visibility across all protected machines
 
 ---
 
