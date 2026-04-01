@@ -3,6 +3,7 @@
   "name": "CoworkGuard",
   "version": "1.0.0",
   "description": "Monitors and guards against sensitive data exposure when Claude Cowork is active.",
+  "homepage_url": "https://www.coworkguard.com",
   "permissions": [
     "tabs",
     "activeTab",
