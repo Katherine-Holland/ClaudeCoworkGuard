@@ -38,7 +38,7 @@
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "12.0",
-      "signingIdentity": null,
+      "signingIdentity": "Developer ID Application: Kathy Weston (R7Z3X3LDRF)",
       "entitlements": null
     },
     "resources": {
