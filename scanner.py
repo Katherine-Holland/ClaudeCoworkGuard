@@ -1,13 +1,5 @@
 """
-CoworkGuard Detection Engine
-Copyright © 2026 Katherine Weston. All Rights Reserved.
-
-This file is proprietary and confidential. Viewing for security 
-audit purposes is permitted. Copying, modification, or use in any 
-product without explicit written permission is prohibited.
-
-For licensing enquiries: littlerobinagency@gmail.com
-
+CoworkGuard - Core Scanner Engine
 Detects PII, secrets, auth tokens, and internal URLs in outbound payloads.
 Proprietary logic — © CoworkGuard
 """
@@ -58,7 +50,9 @@ PATTERNS = {
     "DOB":              r"\b(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01])/\d{4}\b",
     "CREDIT_CARD":      r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b",
     "IP_ADDRESS":       r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b",
-    "PASSPORT":         r"\b[A-Z]{1,2}[0-9]{6,9}\b",
+    # Passport — requires document/travel context nearby to reduce false positives
+    # on product codes, order IDs etc. that match the raw character class
+    "PASSPORT":         r"(?i)(?:passport|travel\s*doc(?:ument)?|pass(?:port)?\s*(?:no|num|number|#)?)\s*(?:is|:|\s)\s*[A-Z]{1,2}[0-9]{6,9}\b",
 
     # ── Cloud provider credentials ────────────────────────────────────────
     "AWS_KEY":          r"AKIA[0-9A-Z]{16}",
@@ -200,9 +194,19 @@ class CoworkScanner:
     Never stores raw payload content — only hashes and redacted previews.
     """
 
-    def __init__(self, block_on_critical=True, block_on_high=False):
+    # Maximum findings per pattern type — prevents log flooding on
+    # payloads with many repeated matches (e.g. 1000 email addresses)
+    MAX_FINDINGS_PER_PATTERN = 5
+
+    def __init__(self, block_on_critical=True, block_on_high=False,
+                 email_allowlist=None, suppressed_patterns=None):
         self.block_on_critical = block_on_critical
         self.block_on_high = block_on_high
+        # User-configurable email domain allowlist — e.g. ["mycompany.com"]
+        # Emails matching these domains are not flagged
+        self.email_allowlist = [d.lower() for d in (email_allowlist or [])]
+        # Patterns to suppress entirely — e.g. ["GCP_SERVICE_ACCT"] if known safe
+        self.suppressed_patterns = set(suppressed_patterns or [])
         self._compiled = {
             name: re.compile(pattern, re.IGNORECASE if name not in ("AWS_KEY", "GH_TOKEN", "JWT") else 0)
             for name, pattern in PATTERNS.items()
@@ -215,15 +219,41 @@ class CoworkScanner:
             return "*" * n
         return match_str[:2] + "*" * (n - 4) + match_str[-2:]
 
+    def _is_allowlisted_email(self, match_str: str) -> bool:
+        """Returns True if email matches user's allowlist domains."""
+        if not self.email_allowlist:
+            return False
+        lower = match_str.lower()
+        return any(lower.endswith("@" + domain) or lower.endswith("." + domain)
+                   for domain in self.email_allowlist)
+
     def scan(self, text: str) -> ScanResult:
         findings = []
+        # Track count per pattern for deduplication cap
+        pattern_counts: dict = {}
 
         for name, pattern in self._compiled.items():
+            # Skip suppressed patterns
+            if name in self.suppressed_patterns:
+                continue
+
             for match in pattern.finditer(text):
+                match_str = match.group()
+
+                # Apply email allowlist
+                if name == "EMAIL" and self._is_allowlisted_email(match_str):
+                    continue
+
+                # Cap findings per pattern type
+                count = pattern_counts.get(name, 0)
+                if count >= self.MAX_FINDINGS_PER_PATTERN:
+                    continue
+                pattern_counts[name] = count + 1
+
                 findings.append(Finding(
                     pattern_name=name,
                     severity=SEVERITY.get(name, "LOW"),
-                    match_preview=self._redact(match.group()),
+                    match_preview=self._redact(match_str),
                     char_position=match.start(),
                 ))
 
@@ -252,37 +282,105 @@ class CoworkScanner:
 
         return result
 
-    def scan_json_payload(self, raw_body: bytes) -> ScanResult:
+    def _extract_text_anthropic(self, body: dict) -> list:
+        """Extract text from Anthropic API request format."""
+        parts = []
+        for msg in body.get("messages", []):
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                parts.append(content)
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        parts.append(block.get("text", ""))
+        system = body.get("system", "")
+        if isinstance(system, str):
+            parts.append(system)
+        elif isinstance(system, list):
+            for block in system:
+                if isinstance(block, dict):
+                    parts.append(block.get("text", ""))
+        return parts
+
+    def _extract_text_openai(self, body: dict) -> list:
+        """Extract text from OpenAI API request format (ChatCompletion)."""
+        parts = []
+        for msg in body.get("messages", []):
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                parts.append(content)
+            elif isinstance(content, list):
+                # OpenAI vision format: [{type: "text", text: "..."}, ...]
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        parts.append(block.get("text", ""))
+        # Also check prompt field (completions API)
+        if "prompt" in body:
+            prompt = body["prompt"]
+            if isinstance(prompt, str):
+                parts.append(prompt)
+            elif isinstance(prompt, list):
+                parts.extend([p for p in prompt if isinstance(p, str)])
+        return parts
+
+    def _extract_text_gemini(self, body: dict) -> list:
+        """Extract text from Google Gemini API request format."""
+        parts = []
+        for content in body.get("contents", []):
+            for part in content.get("parts", []):
+                if isinstance(part, dict) and "text" in part:
+                    parts.append(part["text"])
+        # System instruction
+        system = body.get("systemInstruction", {})
+        for part in system.get("parts", []):
+            if isinstance(part, dict) and "text" in part:
+                parts.append(part["text"])
+        return parts
+
+    def _extract_text_generic(self, body: dict) -> list:
         """
-        Extracts text content from an Anthropic API request body and scans it.
-        Handles nested message arrays.
+        Generic text extractor for other providers (Mistral, Cohere, Groq, etc.)
+        Handles common message formats and falls back to full JSON string.
+        """
+        parts = []
+        # Try OpenAI-compatible format first (most providers use this)
+        if "messages" in body:
+            parts.extend(self._extract_text_openai(body))
+        # Cohere format
+        if "message" in body and isinstance(body["message"], str):
+            parts.append(body["message"])
+        if "chat_history" in body:
+            for msg in body["chat_history"]:
+                if isinstance(msg, dict) and "message" in msg:
+                    parts.append(msg["message"])
+        # If nothing extracted, fall back to full JSON text
+        if not parts:
+            parts.append(json.dumps(body))
+        return parts
+
+    def scan_json_payload(self, raw_body: bytes, url: str = "") -> ScanResult:
+        """
+        Extracts text content from an AI API request body and scans it.
+        Routes to provider-specific extractors based on URL.
         """
         try:
             body = json.loads(raw_body)
         except Exception:
             return self.scan(raw_body.decode("utf-8", errors="replace"))
 
-        # Extract all text content from messages
-        text_parts = []
-        for msg in body.get("messages", []):
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                text_parts.append(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        text_parts.append(block.get("text", ""))
+        # Route to provider-specific extractor
+        url_lower = url.lower()
+        if "anthropic.com" in url_lower:
+            parts = self._extract_text_anthropic(body)
+        elif "openai.com" in url_lower or "cursor.sh" in url_lower or "groq.com" in url_lower:
+            parts = self._extract_text_openai(body)
+        elif "googleapis.com" in url_lower:
+            parts = self._extract_text_gemini(body)
+        else:
+            # Mistral, Cohere, Perplexity, xAI, Copilot — generic handler
+            parts = self._extract_text_generic(body)
 
-        # Also check system prompt
-        system = body.get("system", "")
-        if isinstance(system, str):
-            text_parts.append(system)
-        elif isinstance(system, list):
-            for block in system:
-                if isinstance(block, dict):
-                    text_parts.append(block.get("text", ""))
-
-        combined = "\n".join(text_parts)
+        combined = "\n".join(parts)
         return self.scan(combined)
 
     def check_domain(self, url: str) -> Optional[str]:
