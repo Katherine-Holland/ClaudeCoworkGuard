@@ -1,5 +1,17 @@
 {
-  "_comment": "Single source of truth for sensitive domains. Read by both scanner.py and background.js. Add custom domains here — they will be picked up by both the proxy scanner and the Chrome extension domain guard.",
+  "_comment": "Single source of truth for sensitive domains and monitored AI API endpoints. Read by scanner.py, skill_scanner.py, and background.js.",
+  "ai_api_domains": [
+    "api.anthropic.com",
+    "api.openai.com",
+    "generativelanguage.googleapis.com",
+    "api.mistral.ai",
+    "api.cohere.com",
+    "api.groq.com",
+    "api.x.ai",
+    "api.perplexity.ai",
+    "api.cursor.sh",
+    "copilot-proxy.githubusercontent.com"
+  ],
   "sensitive_domains": [
     "console.aws.amazon.com",
     "app.datadoghq.com",

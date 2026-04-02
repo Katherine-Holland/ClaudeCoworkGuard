@@ -34,6 +34,36 @@ logging.basicConfig(
 log = logging.getLogger("skill_scanner")
 
 # ─────────────────────────────────────────────
+# Load monitored AI API domains from domains.json
+# Keeps FETCH_EXTERNAL allowlist in sync with proxy.py and background.js
+# ─────────────────────────────────────────────
+
+def _load_ai_api_domains() -> list:
+    """Load monitored AI API hostnames from shared domains.json."""
+    domains_file = Path(__file__).parent / "domains.json"
+    if domains_file.exists():
+        try:
+            with open(domains_file) as f:
+                data = json.load(f)
+                return data.get("ai_api_domains", [])
+        except Exception:
+            pass
+    # Fallback — hardcoded list matches proxy.py
+    return [
+        "api.anthropic.com", "api.openai.com",
+        "generativelanguage.googleapis.com", "api.mistral.ai",
+        "api.cohere.com", "api.groq.com", "api.x.ai",
+        "api.perplexity.ai", "api.cursor.sh",
+        "copilot-proxy.githubusercontent.com",
+    ]
+
+# Build negative lookahead from domains list — keeps patterns in sync with domains.json
+_AI_DOMAINS = _load_ai_api_domains()
+_AI_DOMAIN_LOOKAHEAD = "|".join(
+    re.escape(d).replace(r"\.", r"\.") for d in _AI_DOMAINS
+)
+
+# ─────────────────────────────────────────────
 # Skill-specific detection patterns
 # These extend the core CoworkGuard scanner patterns
 # with patterns specific to skill file content
@@ -51,11 +81,12 @@ SKILL_PATTERNS = {
     "CHAR_CODE":        r"String\.fromCharCode\s*\(",
 
     # ── Network calls to non-AI domains ──────────────────────────────────
-    "FETCH_EXTERNAL":   r"\bfetch\s*\(\s*['\"]https?://(?!api\.anthropic|api\.openai|generativelanguage\.googleapis|api\.mistral|api\.cohere|api\.groq|api\.x\.ai|api\.perplexity|api\.cursor|copilot-proxy)[^'\"]+['\"]",
-    "AXIOS_EXTERNAL":   r"\baxios\.(get|post|put|delete)\s*\(\s*['\"]https?://(?!api\.anthropic|api\.openai)[^'\"]+['\"]",
-    "CURL_COMMAND":     r"\bcurl\s+(?:-[a-zA-Z]+\s+)*https?://(?!api\.anthropic|api\.openai)[^\s]+",
-    "WGET_COMMAND":     r"\bwget\s+https?://(?!api\.anthropic|api\.openai)[^\s]+",
-    "XHR_OPEN":         r"\.open\s*\(\s*['\"](?:GET|POST)['\"],\s*['\"]https?://(?!api\.anthropic|api\.openai)[^'\"]+['\"]",
+    # Allowlist loaded from domains.json — stays in sync with proxy.py and background.js
+    "FETCH_EXTERNAL":   r"\bfetch\s*\(\s*['\"]https?://(?!__AI_DOMAINS__)[^'\"]+['\"]",
+    "AXIOS_EXTERNAL":   r"\baxios\.(get|post|put|delete)\s*\(\s*['\"]https?://(?!__AI_DOMAINS__)[^'\"]+['\"]",
+    "CURL_COMMAND":     r"\bcurl\s+(?:-[a-zA-Z]+\s+)*https?://(?!__AI_DOMAINS__)[^\s]+",
+    "WGET_COMMAND":     r"\bwget\s+https?://(?!__AI_DOMAINS__)[^\s]+",
+    "XHR_OPEN":         r"\.open\s*\(\s*['\"](?:GET|POST)['\"],\s*['\"]https?://(?!__AI_DOMAINS__)[^'\"]+['\"]",
 
     # ── Sensitive filesystem access ───────────────────────────────────────
     "SSH_KEY_READ":     r"['\"]?~?/\.ssh/|readFileSync\s*\(['\"][^'\"]*\.ssh[^'\"]*['\"]",
@@ -77,12 +108,15 @@ SKILL_PATTERNS = {
     "MCP_NO_SANDBOX":   r'"sandbox"\s*:\s*false|"isolation"\s*:\s*false',
 
     # ── Credential harvesting ─────────────────────────────────────────────
+    # ENV_HARVEST is LOW — reading env vars is normal in any Node/Python skill.
+    # Only flag if combined with exfiltration patterns.
     "ENV_HARVEST":      r"process\.env\.[A-Z_]{5,}|os\.environ(?:\.get)?\s*\(['\"][A-Z_]{5,}['\"]",
     "KEYSTORE_READ":    r"(?i)keytar\.getPassword|keychain\.get|credential(?:s)?\.get",
 
     # ── Persistence mechanisms ────────────────────────────────────────────
-    "LAUNCHAGENT":      r"(?i)LaunchAgents|launchd|systemd\.service|crontab",
-    "STARTUP_ENTRY":    r"(?i)HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run|\.bashrc|\.zshrc|\.profile",
+    # Anchored to actual code — not just the word in comments/docs
+    "LAUNCHAGENT":      r"(?i)(?:cp|copy|install|write|create|plist)\s[^\n]*LaunchAgents|LaunchAgents[^\n]*(?:cp|copy|install|write|create|plist)|launchctl\s+(?:load|submit|start)|systemctl\s+(?:enable|start)\s",
+    "STARTUP_ENTRY":    r"(?i)HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run|echo\s[^\n]*>>\s*~?/\.(?:bashrc|zshrc|profile)|append.*(?:bashrc|zshrc|profile)",
 }
 
 # Severity for skill-specific patterns
@@ -111,7 +145,7 @@ SKILL_SEVERITY = {
     "MCP_FULL_FS":      "CRITICAL",
     "MCP_SHELL_ACCESS": "CRITICAL",
     "MCP_NO_SANDBOX":   "HIGH",
-    "ENV_HARVEST":      "MEDIUM",
+    "ENV_HARVEST":      "LOW",      # Reading env vars is normal — LOW to avoid noise
     "KEYSTORE_READ":    "HIGH",
     "LAUNCHAGENT":      "HIGH",
     "STARTUP_ENTRY":    "HIGH",
@@ -146,6 +180,12 @@ SKILL_WATCH_PATHS = [
     Path.home() / "Downloads",
     Path.home() / "Desktop",
 ]
+
+# High-traffic directories where we apply stricter filtering
+HIGH_TRAFFIC_DIRS = {
+    Path.home() / "Downloads",
+    Path.home() / "Desktop",
+}
 
 # ─────────────────────────────────────────────
 # Audit log
@@ -241,11 +281,15 @@ def detect_skill_type(path: Path, content: str) -> str:
 # ─────────────────────────────────────────────
 
 class SkillScanner:
+    # Max findings per pattern — prevents score inflation from repeated matches
+    MAX_FINDINGS_PER_PATTERN = 5
+
     def __init__(self):
-        self._compiled = {
-            name: re.compile(pattern, re.IGNORECASE)
-            for name, pattern in SKILL_PATTERNS.items()
-        }
+        # Build patterns — replace __AI_DOMAINS__ placeholder with live domain list
+        self._compiled = {}
+        for name, pattern in SKILL_PATTERNS.items():
+            resolved = pattern.replace("__AI_DOMAINS__", _AI_DOMAIN_LOOKAHEAD)
+            self._compiled[name] = re.compile(resolved, re.IGNORECASE)
 
     def _redact(self, match_str: str) -> str:
         n = len(match_str)
@@ -262,6 +306,7 @@ class SkillScanner:
                 score += 15
             elif f.severity == "MEDIUM":
                 score += 5
+            # LOW (ENV_HARVEST etc.) does not contribute to risk score
         return min(score, 100)
 
     def scan_file(self, path: Path) -> Optional[SkillScanResult]:
@@ -281,9 +326,16 @@ class SkillScanner:
         file_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
         skill_type = detect_skill_type(path, content)
         findings = []
+        pattern_counts: dict = {}
 
         for name, pattern in self._compiled.items():
             for match in pattern.finditer(content):
+                # Cap findings per pattern to avoid score inflation
+                count = pattern_counts.get(name, 0)
+                if count >= self.MAX_FINDINGS_PER_PATTERN:
+                    continue
+                pattern_counts[name] = count + 1
+
                 line_num = content[:match.start()].count("\n") + 1
                 findings.append(SkillFinding(
                     pattern_name=name,
@@ -293,6 +345,9 @@ class SkillScanner:
                 ))
 
         risk = self._risk_score(findings)
+
+        # Only non-LOW findings affect the action
+        notable_findings = [f for f in findings if f.severity != "LOW"]
 
         result = SkillScanResult(
             timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -305,7 +360,7 @@ class SkillScanner:
             risk_score=risk,
         )
 
-        if findings:
+        if notable_findings:
             result.action = "BLOCKED" if result.has_critical else "FLAGGED"
             result.blocked = result.has_critical
             for f in findings:
@@ -353,13 +408,25 @@ def notify_finding(result: SkillScanResult):
 # File filter — decides if a file is a skill
 # ─────────────────────────────────────────────
 
-def is_skill_file(path: Path) -> bool:
+def is_skill_file(path: Path, in_high_traffic_dir: bool = False) -> bool:
     """Returns True if the file looks like a skill that should be scanned."""
     # Must have a scannable extension
     if path.suffix.lower() not in SKILL_EXTENSIONS:
         return False
 
-    # Match by filename
+    # In high-traffic directories (Downloads, Desktop), require stronger signals
+    # to avoid noise from common files like package.json, manifest.json
+    if in_high_traffic_dir:
+        # Only scan if the filename is unambiguously a skill
+        if path.name in {"SKILL.md", "skill.md", "claude_desktop_config.json", ".mcp.json"}:
+            return True
+        # Or if it's in a subdirectory with a skill-hint name
+        parent_name = path.parent.name.lower()
+        if parent_name in SKILL_DIR_HINTS and path.name not in {"package.json", "manifest.json"}:
+            return True
+        return False
+
+    # For known skill directories — match by filename
     if path.name in SKILL_FILENAMES:
         return True
 
@@ -415,8 +482,9 @@ class SkillWatcher:
         for watch_path in SKILL_WATCH_PATHS:
             if not watch_path.exists():
                 continue
+            in_high_traffic = watch_path in HIGH_TRAFFIC_DIRS
             for path in watch_path.rglob("*"):
-                if path.is_file() and is_skill_file(path):
+                if path.is_file() and is_skill_file(path, in_high_traffic_dir=in_high_traffic):
                     self.scan_and_report(path)
                     found += 1
         log.info(f"Startup scan complete — {found} skill files checked")
@@ -434,20 +502,22 @@ class SkillWatcher:
                 def __init__(self, watcher):
                     self.watcher = watcher
 
+                def _check(self, src_path: str):
+                    path = Path(src_path)
+                    in_high_traffic = any(
+                        str(path).startswith(str(d)) for d in HIGH_TRAFFIC_DIRS
+                    )
+                    if is_skill_file(path, in_high_traffic_dir=in_high_traffic):
+                        time.sleep(0.5)
+                        self.watcher.scan_and_report(path)
+
                 def on_created(self, event):
                     if not event.is_directory:
-                        path = Path(event.src_path)
-                        if is_skill_file(path):
-                            # Brief delay to ensure file is fully written
-                            time.sleep(0.5)
-                            self.watcher.scan_and_report(path)
+                        self._check(event.src_path)
 
                 def on_modified(self, event):
                     if not event.is_directory:
-                        path = Path(event.src_path)
-                        if is_skill_file(path):
-                            time.sleep(0.5)
-                            self.watcher.scan_and_report(path)
+                        self._check(event.src_path)
 
             observer = Observer()
             handler = Handler(self)

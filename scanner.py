@@ -369,8 +369,9 @@ class CoworkScanner:
             return self.scan(raw_body.decode("utf-8", errors="replace"))
 
         # Route to provider-specific extractor
+        # Default (empty URL) uses Anthropic format for backwards compatibility
         url_lower = url.lower()
-        if "anthropic.com" in url_lower:
+        if not url_lower or "anthropic.com" in url_lower:
             parts = self._extract_text_anthropic(body)
         elif "openai.com" in url_lower or "cursor.sh" in url_lower or "groq.com" in url_lower:
             parts = self._extract_text_openai(body)
