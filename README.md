@@ -43,6 +43,7 @@ This isn't a theoretical risk. Prompt injection, data exfiltration via hidden do
 |---|---|
 | **Payload scanner** | 48 patterns detecting PII, secrets, and internal data in every outbound request |
 | **Active blocking** | Configurable by severity — CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
+| **Skill scanner** | Watch mode scanner for Cowork, OpenClaw, and MCP skills — detects supply chain attacks, obfuscated payloads, and excessive permissions before a skill executes |
 | **Domain guard** | In-page warning banner + Chrome notification when a Claude session is active and you navigate to a sensitive domain |
 | **Live audit log** | Real-time JSONL log of every intercepted request, with filterable dashboard view |
 | **Threat detail modal** | Click any log entry to see full finding breakdown — severity, type, redacted preview |
@@ -90,6 +91,22 @@ This isn't a theoretical risk. Prompt injection, data exfiltration via hidden do
 | .env file values (DB_PASSWORD, SECRET_KEY, etc.) | HIGH |
 | Database connection string (PostgreSQL, MySQL, MongoDB, Redis) | HIGH |
 
+### Skill supply chain (skill_scanner.py)
+| Pattern | Severity |
+|---|---|
+| eval() / dynamic code execution | CRITICAL |
+| Subprocess / shell execution | CRITICAL |
+| SSH key filesystem access | CRITICAL |
+| AWS credentials filesystem access | CRITICAL |
+| Keychain access | CRITICAL |
+| MCP full filesystem permission | CRITICAL |
+| MCP shell access | CRITICAL |
+| Base64 / hex obfuscation | HIGH |
+| Outbound fetch/curl to non-AI domains | HIGH |
+| WhatsApp / Telegram / Slack / Discord exfiltration | HIGH |
+| Persistence via LaunchAgent / bashrc | HIGH |
+| MCP sandbox disabled | HIGH |
+
 ---
 
 ## Architecture
@@ -121,6 +138,12 @@ Browser / AI Agent Tools
  │ .html        │  Threat detail modal · Settings panel
  └──────────────┘
 
+ ┌──────────────────────────────────────────────────────┐
+ │  skill_scanner.py                                    │
+ │  Watch mode · Scans Cowork / OpenClaw / MCP skills   │
+ │  28 patterns · macOS notifications · JSONL audit log │
+ └──────────────────────────────────────────────────────┘
+
  ┌──────────────────────────────────────┐
  │  CoworkGuard.app (macOS menubar)     │
  │  One-click start/stop · No terminal  │
@@ -144,12 +167,16 @@ coworkguard/
 ├── start.sh                # Start CoworkGuard + enable proxy
 ├── stop.sh                 # Stop CoworkGuard + restore internet
 ├── checker.sh              # Startup checker — detects broken proxy state
-├── scanner.py              # Core PII/secret detection engine
+├── scanner.py              # Core PII/secret detection engine (proprietary)
+├── skill_scanner.py        # Skill supply chain scanner — watch mode
 ├── proxy.py                # mitmproxy interceptor script
 ├── server.py               # Local Flask API server for dashboard
 ├── dashboard.html          # Audit dashboard UI
 ├── domains.json            # Shared sensitive domains list
 ├── README.md
+├── tests/
+│   ├── test_scanner.py     # 71 tests for scanner.py
+│   └── test_skill_scanner.py # 56 tests for skill_scanner.py
 ├── docs/                   # GitHub Pages — public site
 │   ├── index.html          # Landing page
 │   ├── privacy.html        # Privacy policy
@@ -198,6 +225,17 @@ curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/
 ### Menubar app
 Click the shield icon in your menubar → **Start Protection** / **Stop Protection**.
 
+### Skill scanner
+```bash
+# Watch mode — runs in background, scans skills as they arrive
+python3 skill_scanner.py
+
+# Scan a specific skill file
+python3 skill_scanner.py path/to/SKILL.md
+```
+
+Requires `pip install watchdog` for watch mode. Falls back to polling if not installed.
+
 ### Terminal
 ```bash
 ~/CoworkGuard/start.sh   # Start protection
@@ -227,8 +265,9 @@ All settings are available through the dashboard at `http://localhost:7070` — 
 
 ## Audit Logs
 
-Logs are written to `~/.coworkguard/logs/audit_YYYYMMDD.jsonl` — one JSON object per line, one file per day.
+Logs are written to `~/.coworkguard/logs/` — one JSONL file per day.
 
+**API traffic** (`audit_YYYYMMDD.jsonl`):
 ```json
 {
   "timestamp": "2026-03-26T15:09:05Z",
@@ -241,12 +280,29 @@ Logs are written to `~/.coworkguard/logs/audit_YYYYMMDD.jsonl` — one JSON obje
   "finding_count": 2,
   "findings": [
     { "type": "SSN", "severity": "CRITICAL", "preview": "12*******89", "blocked": true },
-    { "type": "EMAIL", "severity": "MEDIUM",  "preview": "jo****@****.com", "blocked": false }
+    { "type": "EMAIL", "severity": "MEDIUM", "preview": "jo****@****.com", "blocked": false }
   ]
 }
 ```
 
-**Raw payload content is never stored.**
+**Skill scans** (`skill_scan_YYYYMMDD.jsonl`):
+```json
+{
+  "timestamp": "2026-03-26T15:09:05Z",
+  "type": "SKILL_SCAN",
+  "file_path": "/Users/katherine/.openclaw/workspace/skills/helper/SKILL.md",
+  "skill_type": "OPENCLAW",
+  "action": "BLOCKED",
+  "risk_score": 85,
+  "finding_count": 2,
+  "findings": [
+    { "type": "EVAL_EXEC", "severity": "CRITICAL", "line": 12, "blocked": true },
+    { "type": "FETCH_EXTERNAL", "severity": "HIGH", "line": 15, "blocked": false }
+  ]
+}
+```
+
+**Raw payload and file content is never stored.**
 
 ---
 
@@ -261,11 +317,11 @@ Add your own in the Settings panel.
 ## Roadmap
 
 ### Immediate
-- [ ] Code signed `.dmg` — Apple Developer certificate in progress
+- [ ] Apple notarisation — pending Apple support response
 - [ ] Chrome Web Store approval — resubmitted
 
 ### Post-launch (v1.x)
-- [ ] Skill file scanner — static analysis of Cowork and OpenClaw skills before installation, using the existing detection engine extended with skill-specific patterns (outbound network calls, credential harvesting, obfuscated payloads)
+- [x] **Skill scanner** — ✅ shipped — watch mode, 28 patterns, 56 tests passing
 - [ ] Mac App Store distribution (menubar app)
 - [ ] Windows support
 - [ ] Firefox extension
