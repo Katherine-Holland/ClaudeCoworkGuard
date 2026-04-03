@@ -13,9 +13,11 @@ use tauri::{
 };
 
 struct AppState {
-    proxy_process:  Mutex<Option<Child>>,
-    server_process: Mutex<Option<Child>>,
-    is_running:     Mutex<bool>,
+    proxy_process:          Mutex<Option<Child>>,
+    server_process:         Mutex<Option<Child>>,
+    skill_scanner_process:  Mutex<Option<Child>>,
+    is_running:             Mutex<bool>,
+    quiet_mode:             Mutex<bool>,
 }
 
 fn find_mitmproxy() -> String {
@@ -151,6 +153,17 @@ fn start_coworkguard(app: &AppHandle) {
             Err(e) => eprintln!("[CoworkGuard] server.py failed: {}", e),
         }
 
+        // Start skill scanner in watch mode
+        let skill_scanner = Command::new(&python_bin)
+            .args(["skill_scanner.py"])
+            .current_dir(&dir)
+            .spawn();
+
+        match skill_scanner {
+            Ok(child) => { *state.skill_scanner_process.lock().unwrap() = Some(child); }
+            Err(e) => eprintln!("[CoworkGuard] skill_scanner.py failed: {}", e),
+        }
+
         enable_proxy();
         *state.is_running.lock().unwrap() = true;
         let _ = rebuild_menu(&app_handle, true);
@@ -166,11 +179,13 @@ fn stop_coworkguard(app: &AppHandle) {
     // Kill tracked child processes
     if let Some(mut c) = state.proxy_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.server_process.lock().unwrap().take() { let _ = c.kill(); }
+    if let Some(mut c) = state.skill_scanner_process.lock().unwrap().take() { let _ = c.kill(); }
 
     // Belt and braces — kill by name too in case child handle is stale
     let _ = Command::new("pkill").args(["-f", "mitmdump"]).output();
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
+    let _ = Command::new("pkill").args(["-f", "skill_scanner.py"]).output();
 
     // Final cleanup — kill anything still holding our ports
     std::thread::sleep(std::time::Duration::from_millis(500));
@@ -182,9 +197,10 @@ fn stop_coworkguard(app: &AppHandle) {
     eprintln!("[CoworkGuard] Stopped cleanly");
 }
 
-fn build_menu(app: &AppHandle, running: bool) -> tauri::Result<Menu<tauri::Wry>> {
+fn build_menu(app: &AppHandle, running: bool, quiet: bool) -> tauri::Result<Menu<tauri::Wry>> {
     let toggle_label = if running { "Stop Protection" } else { "Start Protection" };
     let status_label = if running { "● PROTECTION ON" } else { "○ Protection off" };
+    let quiet_label  = if quiet { "✓ Quiet Mode — notifications off" } else { "Quiet Mode" };
 
     let menu    = Menu::new(app)?;
     let status  = MenuItem::new(app, status_label, false, None::<&str>)?;
@@ -192,6 +208,8 @@ fn build_menu(app: &AppHandle, running: bool) -> tauri::Result<Menu<tauri::Wry>>
     let toggle  = MenuItem::with_id(app, "toggle",    toggle_label,        true, None::<&str>)?;
     let dash    = MenuItem::with_id(app, "dashboard", "Open Dashboard →",  true, None::<&str>)?;
     let sep2    = PredefinedMenuItem::separator(app)?;
+    let quiet_item = MenuItem::with_id(app, "quiet",  quiet_label,         true, None::<&str>)?;
+    let sep3    = PredefinedMenuItem::separator(app)?;
     let about   = MenuItem::with_id(app, "about",     "About CoworkGuard", true, None::<&str>)?;
     let quit    = MenuItem::with_id(app, "quit",      "Quit",              true, None::<&str>)?;
 
@@ -200,14 +218,17 @@ fn build_menu(app: &AppHandle, running: bool) -> tauri::Result<Menu<tauri::Wry>>
     menu.append(&toggle)?;
     menu.append(&dash)?;
     menu.append(&sep2)?;
+    menu.append(&quiet_item)?;
+    menu.append(&sep3)?;
     menu.append(&about)?;
     menu.append(&quit)?;
     Ok(menu)
 }
 
 fn rebuild_menu(app: &AppHandle, running: bool) -> tauri::Result<()> {
+    let quiet = *app.state::<AppState>().quiet_mode.lock().unwrap();
     if let Some(tray) = app.tray_by_id("main") {
-        let menu = build_menu(app, running)?;
+        let menu = build_menu(app, running, quiet)?;
         tray.set_menu(Some(menu))?;
         tray.set_tooltip(Some(if running {
             "CoworkGuard — Protection ON"
@@ -237,16 +258,18 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
         .manage(AppState {
-            proxy_process:  Mutex::new(None),
-            server_process: Mutex::new(None),
-            is_running:     Mutex::new(false),
+            proxy_process:          Mutex::new(None),
+            server_process:         Mutex::new(None),
+            skill_scanner_process:  Mutex::new(None),
+            is_running:             Mutex::new(false),
+            quiet_mode:             Mutex::new(false),
         })
         .setup(|app| {
             // Hide from Dock — menubar only
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            let menu = build_menu(app.handle(), false)?;
+            let menu = build_menu(app.handle(), false, false)?;
 
             let icon = tauri::image::Image::from_bytes(
                 include_bytes!("../icons/tray-icon.png")
@@ -265,6 +288,24 @@ fn main() {
                         }
                         "dashboard" => {
                             let _ = open::that("http://localhost:7070");
+                        }
+                        "quiet" => {
+                            let state = app.state::<AppState>();
+                            let new_quiet = {
+                                let mut quiet = state.quiet_mode.lock().unwrap();
+                                *quiet = !*quiet;
+                                *quiet
+                            };
+                            let is_running = *state.is_running.lock().unwrap();
+                            let _ = rebuild_menu(app, is_running);
+                            // Persist to settings.json so skill_scanner.py respects it
+                            let settings_dir = std::path::Path::new(
+                                &std::env::var("HOME").unwrap_or_default()
+                            ).join(".coworkguard");
+                            let _ = std::fs::create_dir_all(&settings_dir);
+                            let settings_path = settings_dir.join("settings.json");
+                            let content = format!("{{\"quiet_mode\":{}}}", new_quiet);
+                            let _ = std::fs::write(settings_path, content);
                         }
                         "about" => {
                             let _ = open::that("https://katherine-holland.github.io/ClaudeCoworkGuard");

@@ -383,7 +383,25 @@ def notify(title: str, message: str):
     except Exception:
         pass
 
+def is_quiet_mode() -> bool:
+    """Check if quiet mode is enabled in CoworkGuard settings."""
+    settings_file = Path.home() / ".coworkguard" / "settings.json"
+    if settings_file.exists():
+        try:
+            with open(settings_file) as f:
+                settings = json.load(f)
+                return settings.get("quiet_mode", False)
+        except Exception:
+            pass
+    return False
+
 def notify_finding(result: SkillScanResult):
+    # Respect quiet mode — log but don't notify
+    if is_quiet_mode():
+        log.info(f"[quiet mode] {result.action} — {Path(result.file_path).name} "
+                 f"(risk score: {result.risk_score})")
+        return
+
     path = Path(result.file_path)
     critical_count = sum(1 for f in result.findings if f.severity == "CRITICAL")
     high_count = sum(1 for f in result.findings if f.severity == "HIGH")
