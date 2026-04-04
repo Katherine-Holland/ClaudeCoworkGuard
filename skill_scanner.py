@@ -157,7 +157,6 @@ SKILL_SEVERITY = {
 
 SKILL_FILENAMES = {
     "SKILL.md", "skill.md", "SKILL.MD",
-    "manifest.json", "package.json",
     "claude_desktop_config.json",
     "mcp_config.json", ".mcp.json",
 }
