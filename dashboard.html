@@ -176,6 +176,7 @@
       <div class="header-right">
         <span class="last-update" id="last-update">connecting…</span>
         <button class="nav-btn active" onclick="showView('dashboard',this)">Dashboard</button>
+        <button class="nav-btn" onclick="showView('skills',this)">Skills</button>
         <button class="nav-btn" onclick="showView('settings',this)">Settings</button>
         <div class="status-pill unknown" id="cowork-status">
           <div class="pulse"></div>
@@ -279,6 +280,49 @@
 </div>
 </div>
 
+<!-- SKILLS VIEW -->
+<div class="view" id="view-skills">
+<div class="container">
+
+  <div style="padding:28px 0 20px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin-bottom:6px">Skill Supply Chain Scanner</div>
+      <div style="font-size:22px;font-weight:600;color:var(--heading);letter-spacing:-.4px">Skill Scans</div>
+      <div style="font-size:13px;color:var(--muted2);margin-top:4px">Skills scanned before execution — Cowork, OpenClaw, MCP</div>
+    </div>
+    <button class="btn" onclick="loadSkillScans()" style="font-size:11px">Refresh</button>
+  </div>
+
+  <!-- Skill stats row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" id="skill-stats">
+    <div class="stat-card blocked"><div class="stat-label">Blocked</div><div class="stat-value" id="ss-blocked">–</div><div class="stat-sub">CRITICAL findings</div></div>
+    <div class="stat-card flagged"><div class="stat-label">Flagged</div><div class="stat-value" id="ss-flagged">–</div><div class="stat-sub">HIGH findings</div></div>
+    <div class="stat-card clean"><div class="stat-label">Clean</div><div class="stat-value" id="ss-clean">–</div><div class="stat-sub">No issues found</div></div>
+    <div class="stat-card warnings"><div class="stat-label">Total Scanned</div><div class="stat-value" id="ss-total">–</div><div class="stat-sub">All skill files</div></div>
+  </div>
+
+  <!-- Skill scan log -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Scan Log</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="filter-btn skill-filter active" onclick="setSkillFilter('ALL',this)">All</button>
+        <button class="filter-btn skill-filter" onclick="setSkillFilter('BLOCKED',this)">Blocked</button>
+        <button class="filter-btn skill-filter" onclick="setSkillFilter('FLAGGED',this)">Flagged</button>
+        <button class="filter-btn skill-filter" onclick="setSkillFilter('CLEAN',this)">Clean</button>
+      </div>
+    </div>
+    <div id="skill-log" style="min-height:200px">
+      <div style="padding:48px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:13px">
+        <div style="font-size:32px;margin-bottom:12px">👁</div>
+        Loading skill scans…
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
 <!-- SETTINGS VIEW -->
 <div class="view" id="view-settings">
 <div class="container">
@@ -377,6 +421,7 @@ function showView(name, btn) {
   document.getElementById('view-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
   if (name === 'settings') loadSettingsIntoForm();
+  if (name === 'skills') loadSkillScans();
 }
 
 // ── HTML sanitiser — prevents XSS from audit log data ──
@@ -607,6 +652,91 @@ async function clearLog() {
 fetchAll();
 setInterval(fetchAll, 5000);
 window.addEventListener('resize', ()=>drawChart([]));
+
+// ── Skill Scans ──
+let allSkillScans = [], currentSkillFilter = 'ALL';
+
+function setSkillFilter(f, btn) {
+  currentSkillFilter = f;
+  document.querySelectorAll('.skill-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSkillLog();
+}
+
+function renderSkillLog() {
+  const log = document.getElementById('skill-log');
+  const filtered = currentSkillFilter === 'ALL'
+    ? allSkillScans
+    : allSkillScans.filter(s => s.action === currentSkillFilter);
+
+  if (!filtered.length) {
+    log.innerHTML = `<div style="padding:48px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:13px">
+      <div style="font-size:32px;margin-bottom:12px">🔍</div>
+      <div>No skill scans yet — scanner watches for new skills automatically</div>
+    </div>`;
+    return;
+  }
+
+  log.innerHTML = filtered.map(s => {
+    const actionColor = s.action === 'BLOCKED' ? 'var(--danger)' : s.action === 'FLAGGED' ? 'var(--warn)' : 'var(--success)';
+    const typeColor = s.skill_type === 'COWORK' ? 'var(--accent2)' : s.skill_type === 'OPENCLAW' ? '#63b3ed' : s.skill_type === 'MCP' ? '#b794f4' : 'var(--muted2)';
+    const filename = esc(s.file_path.split('/').pop());
+    const shortPath = esc(s.file_path.replace(/\/Users\/[^/]+/, '~'));
+    const time = new Date(s.timestamp).toLocaleTimeString();
+    const date = new Date(s.timestamp).toLocaleDateString();
+
+    const findings = s.findings && s.findings.length
+      ? s.findings.map(f => `<span style="display:inline-block;font-size:9px;font-family:var(--font-mono);padding:2px 7px;border-radius:3px;margin:2px 2px 2px 0;background:${f.severity==='CRITICAL'?'rgba(240,80,96,.12)':f.severity==='HIGH'?'rgba(240,160,48,.1)':'rgba(100,120,140,.1)'};color:${f.severity==='CRITICAL'?'#f08090':f.severity==='HIGH'?'#f0c060':'var(--muted2)'};border:1px solid ${f.severity==='CRITICAL'?'rgba(240,80,96,.2)':f.severity==='HIGH'?'rgba(240,160,48,.18)':'var(--border)'}">${esc(f.type)} line ${f.line}</span>`).join('')
+      : '<span style="color:var(--muted);font-size:11px">No findings</span>';
+
+    return `<div class="event-row" style="border-bottom:1px solid var(--border);padding:14px 20px">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="min-width:72px;font-family:var(--font-mono);font-size:10px;color:var(--muted);padding-top:2px">${time}<br/>${date}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+            <span style="font-weight:600;color:var(--heading);font-size:13px">${filename}</span>
+            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:100px;background:rgba(224,90,32,.1);border:1px solid var(--accent-border);color:${typeColor}">${esc(s.skill_type)}</span>
+            <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:${actionColor}">${esc(s.action)}</span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">risk: ${s.risk_score}/100</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:8px;word-break:break-all">${shortPath}</div>
+          <div>${findings}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadSkillScans() {
+  try {
+    const res = await fetch(API + '/api/skill-scans');
+    if (!res.ok) throw new Error('not available');
+    const data = await res.json();
+    allSkillScans = data.scans || [];
+
+    // Update stats
+    const blocked = allSkillScans.filter(s => s.action === 'BLOCKED').length;
+    const flagged = allSkillScans.filter(s => s.action === 'FLAGGED').length;
+    const clean   = allSkillScans.filter(s => s.action === 'CLEAN').length;
+    document.getElementById('ss-blocked').textContent = blocked;
+    document.getElementById('ss-flagged').textContent = flagged;
+    document.getElementById('ss-clean').textContent   = clean;
+    document.getElementById('ss-total').textContent   = allSkillScans.length;
+
+    renderSkillLog();
+  } catch(e) {
+    document.getElementById('skill-log').innerHTML = `
+      <div style="padding:48px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:13px">
+        <div style="font-size:32px;margin-bottom:12px">👁</div>
+        <div>Skill scan data not yet available — start protection to enable the skill scanner</div>
+      </div>`;
+    document.getElementById('ss-blocked').textContent =
+    document.getElementById('ss-flagged').textContent =
+    document.getElementById('ss-clean').textContent   =
+    document.getElementById('ss-total').textContent   = '0';
+  }
+}
+
 </script>
 </body>
 </html>

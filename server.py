@@ -1,5 +1,5 @@
 """
-Copyright (c) 2026 Katherine Weston. All rights reserved.
+Copyright (c) 2026 [YOUR NAME]. All rights reserved.
 Licensed under MIT with Commons Clause — see LICENSE for details.
 Commercial use prohibited without a separate commercial license.
 
@@ -275,6 +275,45 @@ def logs():
         "patternCounts": compute_pattern_counts(entries),
         "chartData":     compute_chart_data(entries),
         "total":         len(entries),
+    })
+
+@app.route("/api/skill-scans")
+def skill_scans():
+    """Read skill scan JSONL logs and return as JSON."""
+    try:
+        limit = int(request.args.get("limit", 200))
+        limit = max(1, min(limit, 1000))
+    except (ValueError, TypeError):
+        limit = 200
+
+    log_dir = Path.home() / ".coworkguard" / "logs"
+    entries = []
+
+    # Read all skill_scan_*.jsonl files sorted newest first
+    try:
+        log_files = sorted(log_dir.glob("skill_scan_*.jsonl"), reverse=True)
+        for log_file in log_files:
+            with open(log_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entries.append(json.loads(line))
+                    except Exception:
+                        continue
+            if len(entries) >= limit:
+                break
+    except Exception:
+        pass
+
+    entries = entries[:limit]
+    # Sort newest first
+    entries.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
+
+    return jsonify({
+        "scans": entries,
+        "total": len(entries),
     })
 
 @app.route("/api/settings", methods=["GET"])
