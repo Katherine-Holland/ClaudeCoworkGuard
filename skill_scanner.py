@@ -428,6 +428,14 @@ def notify_finding(result: SkillScanResult):
 
 def is_skill_file(path: Path, in_high_traffic_dir: bool = False) -> bool:
     """Returns True if the file looks like a skill that should be scanned."""
+    # Never scan inside .app bundles — these are application packages
+    if any(p.endswith('.app') for p in path.parts):
+        return False
+
+    # Never scan inside node_modules — too much noise
+    if 'node_modules' in path.parts:
+        return False
+
     # Must have a scannable extension
     if path.suffix.lower() not in SKILL_EXTENSIONS:
         return False
