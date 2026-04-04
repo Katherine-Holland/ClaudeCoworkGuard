@@ -72,7 +72,7 @@ _AI_DOMAIN_LOOKAHEAD = "|".join(
 SKILL_PATTERNS = {
     # ── Code execution / privilege escalation ────────────────────────────
     "EVAL_EXEC":        r"\beval\s*\(|new\s+Function\s*\(|exec\s*\(|execSync\s*\(",
-    "SUBPROCESS":       r"\bchild_process\b|subprocess\.(?:run|call|Popen|check_output)|os\.system\s*\(",
+    "SUBPROCESS":       r"\bchild_process\s*[=.(]|subprocess\.(?:run|call|Popen|check_output)\s*\(|os\.system\s*\(",
     "SHELL_INJECT":     r"\bspawn\s*\(['\"](?:bash|sh|zsh|cmd|powershell)['\"]|\bexecFile\s*\(",
 
     # ── Obfuscation signals ───────────────────────────────────────────────
@@ -428,12 +428,18 @@ def notify_finding(result: SkillScanResult):
 
 def is_skill_file(path: Path, in_high_traffic_dir: bool = False) -> bool:
     """Returns True if the file looks like a skill that should be scanned."""
-    # Never scan inside .app bundles — these are application packages
+    # Never scan inside .app bundles
     if any(p.endswith('.app') for p in path.parts):
         return False
 
-    # Never scan inside node_modules — too much noise
+    # Never scan inside node_modules anywhere in the path
     if 'node_modules' in path.parts:
+        return False
+
+    # Never scan inside common project/dependency directories
+    blocked_dirs = {'node_modules', '.git', '__pycache__', '.venv', 'venv',
+                    'dist', 'build', '.next', '.nuxt', 'vendor'}
+    if set(path.parts) & blocked_dirs:
         return False
 
     # Must have a scannable extension
@@ -468,22 +474,54 @@ def is_skill_file(path: Path, in_high_traffic_dir: bool = False) -> bool:
 # ─────────────────────────────────────────────
 
 class SkillWatcher:
+    CACHE_FILE = Path.home() / ".coworkguard" / "scan_cache.json"
+
     def __init__(self):
         self.scanner = SkillScanner()
-        self._scanned = set()  # Avoid double-scanning
+        self._scanned = self._load_cache()
+
+    def _load_cache(self) -> dict:
+        """Load persistent scan cache — {path: mtime} — survives restarts."""
+        try:
+            if self.CACHE_FILE.exists():
+                with open(self.CACHE_FILE) as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def _save_cache(self):
+        """Persist scan cache to disk."""
+        try:
+            self.CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.CACHE_FILE, 'w') as f:
+                json.dump(self._scanned, f)
+        except Exception:
+            pass
 
     def scan_and_report(self, path: Path):
         """Scan a file and log/notify results."""
-        # Debounce — skip if already scanned this file recently
-        key = (str(path), path.stat().st_mtime if path.exists() else 0)
-        if key in self._scanned:
+        if not path.exists():
             return
-        self._scanned.add(key)
+
+        # Persistent debounce — skip if same path+mtime already scanned
+        try:
+            mtime = str(path.stat().st_mtime)
+        except Exception:
+            return
+
+        key = str(path)
+        if self._scanned.get(key) == mtime:
+            return
 
         log.info(f"Scanning: {path}")
         result = self.scanner.scan_file(path)
         if result is None:
             return
+
+        # Mark as scanned and persist cache
+        self._scanned[key] = mtime
+        self._save_cache()
 
         # Always write to audit log
         write_log(result.to_jsonl())
