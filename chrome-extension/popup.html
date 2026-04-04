@@ -96,20 +96,60 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
   <div class="stat"><div class="stat-v clean"   id="s-clean">–</div><div class="stat-l">Clean</div></div>
 </div>
 
-<div class="section-title">Recent Events</div>
+<!-- Skill scanner alert — shown when skill findings exist -->
+<div id="skill-alert" style="display:none;background:rgba(240,80,96,.07);border-bottom:1px solid rgba(240,80,96,.18);padding:8px 14px;font-size:10px;font-family:var(--mono)">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <span style="color:#f08090;font-weight:500" id="skill-alert-text">Skill scanner findings</span>
+    <span style="color:var(--muted);cursor:pointer" onclick="showSkillsTab()">View →</span>
+  </div>
+</div>
+
+<div class="section-title" style="display:flex;align-items:center;justify-content:space-between;padding-right:14px">
+  <span>Recent Events</span>
+  <span id="tab-toggle" style="font-size:9px;color:var(--accent2);cursor:pointer;letter-spacing:.06em" onclick="toggleTab()">SKILLS</span>
+</div>
 <div class="event-list" id="event-list">
   <div class="empty">No events yet</div>
+</div>
+<div class="event-list" id="skill-list" style="display:none">
+  <div class="empty">No skill scans yet</div>
 </div>
 
 <div class="footer">
   <button class="footer-btn primary" onclick="openDashboard()">Open Dashboard</button>
+  <button class="footer-btn" onclick="openSkillsTab()">Skills</button>
   <button class="footer-btn" onclick="clearData()">Clear</button>
 </div>
 
 <script>
+let showingSkills = false;
+
 function openDashboard() {
   chrome.tabs.create({ url: 'http://localhost:7070' });
   window.close();
+}
+
+function openSkillsTab() {
+  chrome.tabs.create({ url: 'http://localhost:7070#skills' });
+  window.close();
+}
+
+function showSkillsTab() {
+  showingSkills = true;
+  document.getElementById('event-list').style.display = 'none';
+  document.getElementById('skill-list').style.display = 'block';
+  document.getElementById('tab-toggle').textContent = 'EVENTS';
+}
+
+function toggleTab() {
+  showingSkills = !showingSkills;
+  document.getElementById('event-list').style.display = showingSkills ? 'none' : 'block';
+  document.getElementById('skill-list').style.display = showingSkills ? 'block' : 'none';
+  document.getElementById('tab-toggle').textContent = showingSkills ? 'EVENTS' : 'SKILLS';
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 async function clearData() {
@@ -118,6 +158,48 @@ async function clearData() {
   document.getElementById('s-flagged').textContent = '0';
   document.getElementById('s-clean').textContent   = '0';
   document.getElementById('event-list').innerHTML  = '<div class="empty">Cleared</div>';
+}
+
+async function loadSkillScans() {
+  try {
+    const res = await fetch('http://localhost:7070/api/skill-scans?limit=50');
+    if (!res.ok) return;
+    const data = await res.json();
+    const scans = (data.scans || []).filter(s => s.action !== 'CLEAN').slice(0, 8);
+    const allScans = data.scans || [];
+
+    // Show alert banner if any blocked/flagged skill scans
+    const notable = allScans.filter(s => s.action !== 'CLEAN');
+    const blocked = notable.filter(s => s.action === 'BLOCKED').length;
+    const alert = document.getElementById('skill-alert');
+    const alertText = document.getElementById('skill-alert-text');
+    if (notable.length > 0) {
+      alert.style.display = 'block';
+      alertText.textContent = blocked > 0
+        ? `${blocked} skill${blocked>1?'s':''} blocked — supply chain risk`
+        : `${notable.length} skill${notable.length>1?'s':''} flagged for review`;
+    }
+
+    // Populate skills list
+    const list = document.getElementById('skill-list');
+    if (!scans.length) {
+      list.innerHTML = '<div class="empty">No skill findings</div>';
+      return;
+    }
+    list.innerHTML = scans.map(s => {
+      const ts = new Date(s.timestamp).toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit'});
+      const filename = esc(s.file_path.split('/').pop());
+      const topFinding = s.findings?.[0]?.type || '';
+      const detail = topFinding ? `${esc(s.skill_type)} — ${esc(topFinding)}` : esc(s.skill_type);
+      return `<div class="event-item">
+        <span class="badge ${esc(s.action)}">${esc(s.action)}</span>
+        <span class="event-detail" title="${esc(s.file_path)}">${filename} ${detail}</span>
+        <span style="color:var(--muted);font-size:10px;white-space:nowrap">${ts}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    // Server not available — silently skip skill data
+  }
 }
 
 async function load() {
@@ -130,17 +212,14 @@ async function load() {
     const { claudeSessionActive, proxyActive, sessionStats: s } = resp;
 
     if (claudeSessionActive && proxyActive) {
-      // Full protection
       pill.className = 'pill full';
       text.textContent = 'FULL PROTECTION';
       banner.style.display = 'none';
     } else if (claudeSessionActive && !proxyActive) {
-      // Partial — domain guard only
       pill.className = 'pill partial';
       text.textContent = 'PARTIAL PROTECTION';
       banner.style.display = 'block';
     } else if (!claudeSessionActive) {
-      // No Claude session
       pill.className = 'pill inactive';
       text.textContent = 'NO CLAUDE SESSION';
       banner.style.display = 'none';
@@ -171,6 +250,9 @@ async function load() {
       </div>`;
     }).join('');
   });
+
+  // Load skill scan data from local server
+  await loadSkillScans();
 }
 
 load();
