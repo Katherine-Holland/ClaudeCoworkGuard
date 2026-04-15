@@ -317,7 +317,6 @@ Add your own in the Settings panel.
 ## Roadmap
 
 ### Immediate
-- [ ] Apple notarisation — pending Apple support response
 - [ ] Chrome Web Store approval — resubmitted
 
 ### Post-launch (v1.x)
