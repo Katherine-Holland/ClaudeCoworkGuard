@@ -1,6 +1,6 @@
 #!/bin/bash
 # CoworkGuard — Stop
-# © 2026 Katherine Holland. MIT + Commons Clause.
+# © 2026 Katherine Weston. MIT + Commons Clause.
 
 BOLD='\033[1m'
 GREEN='\033[0;32m'
@@ -27,16 +27,33 @@ touch "$HOME/.coworkguard/.clean_stop"
 
 echo -e "${GREEN}✓ Normal internet restored${NC}"
 
-# ── Stop mitmproxy ────────────────────────────────────────────────────
+# ── Stop proxy scanner ────────────────────────────────────────────────
 echo -e "${CYAN}→ Stopping proxy scanner...${NC}"
-pkill -f "mitmproxy" 2>/dev/null || true
+if [ -f "$HOME/.coworkguard/proxy.pid" ]; then
+  kill "$(cat "$HOME/.coworkguard/proxy.pid")" 2>/dev/null || true
+  rm "$HOME/.coworkguard/proxy.pid"
+fi
 pkill -f "mitmdump" 2>/dev/null || true
+pkill -f "mitmproxy" 2>/dev/null || true
 echo -e "${GREEN}✓ Proxy scanner stopped${NC}"
 
 # ── Stop dashboard server ─────────────────────────────────────────────
 echo -e "${CYAN}→ Stopping dashboard server...${NC}"
+if [ -f "$HOME/.coworkguard/server.pid" ]; then
+  kill "$(cat "$HOME/.coworkguard/server.pid")" 2>/dev/null || true
+  rm "$HOME/.coworkguard/server.pid"
+fi
 pkill -f "server.py" 2>/dev/null || true
 echo -e "${GREEN}✓ Dashboard stopped${NC}"
+
+# ── Stop skill scanner ────────────────────────────────────────────────
+echo -e "${CYAN}→ Stopping skill scanner...${NC}"
+if [ -f "$HOME/.coworkguard/skill_scanner.pid" ]; then
+  kill "$(cat "$HOME/.coworkguard/skill_scanner.pid")" 2>/dev/null || true
+  rm "$HOME/.coworkguard/skill_scanner.pid"
+fi
+pkill -f "skill_scanner.py" 2>/dev/null || true
+echo -e "${GREEN}✓ Skill scanner stopped${NC}"
 
 # ── Done ─────────────────────────────────────────────────────────────
 echo ""

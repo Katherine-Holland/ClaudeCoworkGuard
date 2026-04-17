@@ -1,6 +1,6 @@
 #!/bin/bash
 # CoworkGuard — One-time installer
-# © 2026 Katherine Holland. MIT + Commons Clause.
+# © 2026 Katherine Weston. MIT + Commons Clause.
 # Run once: curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash
 
 set -e

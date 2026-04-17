@@ -2,7 +2,7 @@
 name = "coworkguard"
 version = "1.0.0"
 description = "CoworkGuard — Privacy protection for AI agents"
-authors = ["Katherine Holland"]
+authors = ["Katherine Weston"]
 license = "MIT"
 repository = "https://github.com/Katherine-Holland/ClaudeCoworkGuard"
 edition = "2021"

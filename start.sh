@@ -1,6 +1,6 @@
 #!/bin/bash
 # CoworkGuard — Start
-# © 2026 Katherine Holland. MIT + Commons Clause.
+# © 2026 Katherine Weston. MIT + Commons Clause.
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
 BOLD='\033[1m'
@@ -32,17 +32,29 @@ if lsof -i :8080 &>/dev/null; then
   echo ""
 fi
 
-# ── Start mitmproxy with CoworkGuard certificate ──────────────────────
+# ── Start mitmdump (headless proxy) ──────────────────────────────────
 echo -e "${CYAN}→ Starting proxy scanner...${NC}"
-osascript -e "tell application \"Terminal\" to do script \"cd '$INSTALL_DIR' && mitmproxy -s proxy.py --listen-port 8080\"" &>/dev/null
+nohup mitmdump -s "$INSTALL_DIR/proxy.py" --listen-port 8080 --quiet \
+  > "$HOME/.coworkguard/proxy.log" 2>&1 &
+echo $! > "$HOME/.coworkguard/proxy.pid"
 sleep 2
 echo -e "${GREEN}✓ Proxy scanner running on port 8080${NC}"
 
 # ── Start dashboard server ────────────────────────────────────────────
 echo -e "${CYAN}→ Starting dashboard server...${NC}"
-osascript -e "tell application \"Terminal\" to do script \"cd '$INSTALL_DIR' && python3 server.py\"" &>/dev/null
+nohup python3 "$INSTALL_DIR/server.py" \
+  > "$HOME/.coworkguard/server.log" 2>&1 &
+echo $! > "$HOME/.coworkguard/server.pid"
 sleep 2
 echo -e "${GREEN}✓ Dashboard running at http://localhost:7070${NC}"
+
+# ── Start skill scanner (watch mode) ─────────────────────────────────
+echo -e "${CYAN}→ Starting skill scanner...${NC}"
+nohup python3 "$INSTALL_DIR/skill_scanner.py" \
+  > "$HOME/.coworkguard/skill_scanner.log" 2>&1 &
+echo $! > "$HOME/.coworkguard/skill_scanner.pid"
+sleep 1
+echo -e "${GREEN}✓ Skill scanner watching for new AI agent skills${NC}"
 
 # ── Enable system proxy ───────────────────────────────────────────────
 echo -e "${CYAN}→ Enabling system proxy...${NC}"

@@ -84,7 +84,7 @@ fn disable_proxy() {
 
 fn find_install_dir() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
-    PathBuf::from(home).join("ClaudeCoworkGuard")
+    PathBuf::from(home).join("CoworkGuard")
 }
 
 fn kill_port(port: u16) {
