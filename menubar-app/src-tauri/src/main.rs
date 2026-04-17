@@ -83,21 +83,21 @@ fn disable_proxy() {
 }
 
 fn find_install_dir() -> PathBuf {
-    // 1. When running as a bundled .app, Python files are in Contents/Resources/
-    if let Ok(exe) = std::env::current_exe() {
-        let bundle_resources = exe
-            .parent().unwrap_or(&exe)   // MacOS/
-            .parent().unwrap_or(&exe)   // Contents/
-            .join("Resources");
-        if bundle_resources.join("proxy.py").exists() {
-            return bundle_resources;
-        }
-    }
-
-    // 2. Development / git clone locations
     let home = std::env::var("HOME").unwrap_or_default();
     let home_path = std::path::Path::new(&home);
 
+    // Check bundle resources first (production DMG install)
+    if let Ok(exe) = std::env::current_exe() {
+        let bundle = exe
+            .parent().unwrap_or(&exe)
+            .parent().unwrap_or(&exe)
+            .join("Resources");
+        if bundle.join("proxy.py").exists() {
+            return bundle;
+        }
+    }
+
+    // Check both possible repo clone locations
     for dir in &["ClaudeCoworkGuard", "CoworkGuard"] {
         let p = home_path.join(dir);
         if p.join("proxy.py").exists() {
@@ -105,7 +105,7 @@ fn find_install_dir() -> PathBuf {
         }
     }
 
-    // 3. Final fallback
+    // Final fallback
     home_path.join("ClaudeCoworkGuard")
 }
 
