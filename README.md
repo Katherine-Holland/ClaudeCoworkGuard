@@ -175,7 +175,7 @@ coworkguard/
 ├── domains.json            # Shared sensitive domains list
 ├── README.md
 ├── tests/
-│   ├── test_scanner.py     # 71 tests for scanner.py
+│   ├── test_coworkguard.py # 71 tests for scanner.py
 │   └── test_skill_scanner.py # 56 tests for skill_scanner.py
 ├── docs/                   # GitHub Pages — public site
 │   ├── index.html          # Landing page
@@ -210,7 +210,7 @@ Download `CoworkGuard_1.0.0_aarch64.dmg` from the [latest release](https://githu
 
 That's it. No terminal required.
 
-Then install the Chrome extension from the [Chrome Web Store](https://chrome.google.com/webstore/detail/coworkguard).
+Then install the Chrome extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg).
 
 ### Option 2 — Terminal installer
 

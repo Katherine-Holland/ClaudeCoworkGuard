@@ -1,5 +1,5 @@
 // CoworkGuard — macOS Menubar App
-// © 2026 Katherine Holland. MIT + Commons Clause.
+// © 2026 Katherine Weston. MIT + Commons Clause.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
