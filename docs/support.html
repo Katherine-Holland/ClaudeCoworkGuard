@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>CoworkGuard — Support</title>
 <meta name="description" content="Get help with CoworkGuard. Setup guides, troubleshooting, and contact information."/>
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAVUlEQVR4nO3OQQ4AEAxEUUdxLqd3E7YiEVptWfxJZv1fSoxNqyU37wMAAAAAAAAA/gZ4Qo7CXghx3BKhjt9CTMJahHlcgnCL7yAh4RUiPD4insWZxToZVJO4j0hzDwAAAABJRU5ErkJggg=="/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
 <style>
@@ -158,10 +157,8 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
       <div class="step-body">
         <div class="step-title">Install the app</div>
         <div class="step-desc">Open the .dmg file and drag CoworkGuard to your Applications folder. Then open it — a shield icon appears in your menubar.<br/><br/>
-        <strong>First time only — if macOS says "CoworkGuard is damaged":</strong><br/>
-        This is a Gatekeeper security check. Open Terminal and run:
-        <pre>xattr -cr /Applications/CoworkGuard.app</pre>
-        Then open CoworkGuard normally. This only needs to be done once.</div>
+        <strong>Note:</strong> CoworkGuard is code signed and notarised — it should open cleanly with no Gatekeeper warning. If you downloaded an older version and see a "damaged" warning, open Terminal and run:
+        <pre>xattr -cr /Applications/CoworkGuard.app</pre></div>
       </div>
     </div>
     <div class="step">
@@ -182,7 +179,7 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
       <div class="step-n">05</div>
       <div class="step-body">
         <div class="step-title">Install the Chrome extension</div>
-        <div class="step-desc">Install CoworkGuard from the <a href="https://chrome.google.com/webstore/detail/coworkguard">Chrome Web Store</a>. The toolbar icon shows protection status and recent events immediately.</div>
+        <div class="step-desc">Install CoworkGuard from the <a href="https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg">Chrome Web Store</a>. The toolbar icon shows protection status and recent events immediately.</div>
       </div>
     </div>
   </div>
@@ -236,7 +233,11 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
     </div>
     <div class="faq-item">
       <div class="faq-q">Which macOS versions are supported?</div>
-      <div class="faq-a">CoworkGuard works on macOS 12 (Monterey) and later. The proxy requires Python 3.9+. The Chrome extension requires Chrome 116+. Windows support is planned — the proxy runs cross-platform but Cowork itself is currently macOS only.</div>
+      <div class="faq-a">CoworkGuard works on macOS 12 (Monterey) and later. The proxy requires Python 3.9+. The Chrome extension requires Chrome 116+. Windows support is planned — the Python proxy and scanner run cross-platform but the native menubar app is currently macOS only.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What is the skill scanner?</div>
+      <div class="faq-a">The skill scanner runs automatically when you start protection. It watches your filesystem for new AI agent skill files — Cowork skills, OpenClaw skills, and MCP configs — and scans them for security risks before they execute. It detects obfuscated code, unauthorised network calls, credential harvesting, and excessive permission requests. Findings are logged to <code>~/.coworkguard/logs/skill_scan_YYYYMMDD.jsonl</code> and shown in the Skills tab of the dashboard. Use Quiet Mode in the menubar to suppress macOS notifications while still logging findings.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q">Is the source code available?</div>
@@ -249,7 +250,7 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
     <h2>Still need help?</h2>
     <p>If you have found a bug, have a feature request, or need help with setup, please open an issue on GitHub. Include your macOS version, Python version, and a description of what you are seeing.</p>
     <p>For security disclosures, please open a private GitHub issue rather than a public one.</p>
-    <a class="contact-link" href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/issues/new" target="_blank" rel="noopener noreferrer">Open an issue on GitHub</a>
+    <a class="contact-link" href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/issues/new">Open an issue on GitHub</a>
   </div>
 </div>
 

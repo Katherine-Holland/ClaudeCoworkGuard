@@ -21,13 +21,13 @@ include this Commons Clause License Condition notice.
 
 Software: CoworkGuard
 License: MIT
-Licensor: [Katherine Weston]
+Licensor: Katherine Weston
 
 ---
 
 MIT License
 
-Copyright (c) 2026 [Katherine Weston]
+Copyright (c) 2026 Katherine Weston
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -52,21 +52,21 @@ SOFTWARE.
 WHAT THIS MEANS IN PLAIN ENGLISH
 ─────────────────────────────────
 
-✅ You CAN:
+You CAN:
    - Use CoworkGuard personally on your own machine
    - Study, modify, and fork the code for personal or internal use
    - Contribute improvements back via pull request
    - Share it with colleagues for non-commercial internal use
 
-❌ You CANNOT:
+You CANNOT:
    - Sell CoworkGuard or a product substantially based on it
    - Offer CoworkGuard as a hosted or managed service for payment
    - Bundle it into a commercial product without a separate commercial license
    - Use it in a consulting engagement where clients pay for the functionality
 
-💼 Commercial use:
+Commercial use:
    For commercial licensing, acquisition inquiries, or enterprise agreements,
-   contact: [littlerobinagency@gmail.com]
+   contact: littlerobinagency@gmail.com
 
 This license structure (Commons Clause + MIT) is used by projects including
 Redis, MongoDB, and CockroachDB to allow open development while protecting

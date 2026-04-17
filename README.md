@@ -330,14 +330,8 @@ Add your own in the Settings panel.
 - [ ] `.pkg` installer
 
 ### CoworkGuard Shield (v2) — enterprise
-Shield extends protection from the network layer to the endpoint layer, catching supply chain and runtime attack classes that a network proxy cannot address.
-
-- [ ] **Runtime behaviour monitoring** — macOS Endpoint Security Framework integration monitoring filesystem access, child process creation, and network connections by AI agent processes
-- [ ] **MCP server vetting** — scan MCP server configurations before activation, monitor MCP network traffic, alert on permission escalation
-- [ ] **Company skill sharing protection** — scan Anthropic Cowork company skills before distribution to employees, establish behaviour baselines, detect deviations
-- [ ] **Skill supply chain integrity** — verify skill manifests, detect privilege escalation, alert when a skill requests more access than declared
-- [ ] **SIEM integration** — Splunk, Datadog, Elastic
-- [ ] **Centralised team dashboard** — organisation-wide visibility across all protected machines
+CoworkGuard Shield (v2) extends protection from the network layer to the endpoint layer — runtime behaviour monitoring, MCP server vetting, and centralised team visibility. Enterprise pricing. 
+Contact littlerobinagency@gmail.com for early access.
 
 ---
 
@@ -353,9 +347,9 @@ For security disclosures, please open a private GitHub issue.
 
 **MIT with Commons Clause** — © 2026 Katherine Weston. All rights reserved.
 
-- ✅ Free for personal and internal non-commercial use
-- ✅ Fork and modify for personal use
-- ❌ Cannot be sold, hosted as a service, or bundled into a commercial product without a separate license
+- CoworkGuard is free for personal and internal non-commercial use
+- You can fork and modify for personal use
+- Cowork Guard cannot be sold, hosted as a service, or bundled into a commercial product without a separate license.
 
 For commercial licensing or acquisition enquiries: littlerobinagency@gmail.com
 
