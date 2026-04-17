@@ -21,10 +21,9 @@ struct AppState {
 }
 
 fn find_mitmproxy() -> String {
-    // Use mitmdump (headless) not mitmproxy (requires a TTY and suspends without one)
     let candidates = [
-        "/opt/homebrew/bin/mitmdump",       // Apple Silicon — Homebrew (check first)
-        "/usr/local/bin/mitmdump",          // Intel Mac — Homebrew
+        "/opt/homebrew/bin/mitmdump",
+        "/usr/local/bin/mitmdump",
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmdump",
         "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmdump",
     ];
@@ -38,11 +37,11 @@ fn find_mitmproxy() -> String {
 
 fn find_python() -> String {
     let candidates = [
-        "/opt/homebrew/bin/python3",        // Apple Silicon — Homebrew (check first)
-        "/usr/local/bin/python3",           // Intel Mac — Homebrew
+        "/opt/homebrew/bin/python3",
+        "/usr/local/bin/python3",
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
         "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
-        "/usr/bin/python3",                 // Last resort — system Python
+        "/usr/bin/python3",
     ];
     for path in &candidates {
         if std::path::Path::new(path).exists() {
@@ -83,29 +82,23 @@ fn disable_proxy() {
 }
 
 fn find_install_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    let home_path = std::path::Path::new(&home);
-
-    // Check bundle resources first (production DMG install)
     if let Ok(exe) = std::env::current_exe() {
-        let bundle = exe
+        let bundle_resources = exe
             .parent().unwrap_or(&exe)
             .parent().unwrap_or(&exe)
             .join("Resources");
-        if bundle.join("proxy.py").exists() {
-            return bundle;
+        if bundle_resources.join("proxy.py").exists() {
+            return bundle_resources;
         }
     }
-
-    // Check both possible repo clone locations
+    let home = std::env::var("HOME").unwrap_or_default();
+    let home_path = std::path::Path::new(&home);
     for dir in &["ClaudeCoworkGuard", "CoworkGuard"] {
         let p = home_path.join(dir);
         if p.join("proxy.py").exists() {
             return p;
         }
     }
-
-    // Final fallback
     home_path.join("ClaudeCoworkGuard")
 }
 
@@ -123,67 +116,46 @@ fn kill_port(port: u16) {
 
 fn start_coworkguard(app: &AppHandle) {
     let dir = find_install_dir();
-
-    // Validate install directory before doing anything
     if !dir.join("proxy.py").exists() {
         eprintln!("[CoworkGuard] proxy.py not found in {:?}", dir);
         if let Some(tray) = app.tray_by_id("main") {
-            let _ = tray.set_tooltip(Some(
-                "CoworkGuard: Installation not found — please reinstall."
-            ));
+            let _ = tray.set_tooltip(Some("CoworkGuard: Installation not found — please reinstall."));
         }
         return;
     }
-
     let mitmproxy_bin = find_mitmproxy();
     let python_bin = find_python();
     let app_handle = app.clone();
-
-    // Move all blocking work to a background thread so the menu stays responsive
     std::thread::spawn(move || {
         let state = app_handle.state::<AppState>();
-
-        // Clear any stale processes on our ports
         kill_port(8080);
         kill_port(7070);
         std::thread::sleep(std::time::Duration::from_millis(500));
-
         let proxy = Command::new(&mitmproxy_bin)
             .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
             .current_dir(&dir)
             .spawn();
-
         match proxy {
             Ok(child) => { *state.proxy_process.lock().unwrap() = Some(child); }
-            Err(e) => {
-                eprintln!("[CoworkGuard] mitmdump failed: {}", e);
-                return;
-            }
+            Err(e) => { eprintln!("[CoworkGuard] mitmdump failed: {}", e); return; }
         }
-
         std::thread::sleep(std::time::Duration::from_secs(2));
-
         let server = Command::new(&python_bin)
             .args(["server.py"])
             .current_dir(&dir)
             .spawn();
-
         match server {
             Ok(child) => { *state.server_process.lock().unwrap() = Some(child); }
             Err(e) => eprintln!("[CoworkGuard] server.py failed: {}", e),
         }
-
-        // Start skill scanner in watch mode
         let skill_scanner = Command::new(&python_bin)
             .args(["skill_scanner.py"])
             .current_dir(&dir)
             .spawn();
-
         match skill_scanner {
             Ok(child) => { *state.skill_scanner_process.lock().unwrap() = Some(child); }
             Err(e) => eprintln!("[CoworkGuard] skill_scanner.py failed: {}", e),
         }
-
         enable_proxy();
         *state.is_running.lock().unwrap() = true;
         let _ = rebuild_menu(&app_handle, true);
@@ -192,26 +164,17 @@ fn start_coworkguard(app: &AppHandle) {
 
 fn stop_coworkguard(app: &AppHandle) {
     let state = app.state::<AppState>();
-
-    // Disable system proxy first — most important, restores internet
     disable_proxy();
-
-    // Kill tracked child processes
     if let Some(mut c) = state.proxy_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.server_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.skill_scanner_process.lock().unwrap().take() { let _ = c.kill(); }
-
-    // Belt and braces — kill by name too in case child handle is stale
     let _ = Command::new("pkill").args(["-f", "mitmdump"]).output();
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
     let _ = Command::new("pkill").args(["-f", "skill_scanner.py"]).output();
-
-    // Final cleanup — kill anything still holding our ports
     std::thread::sleep(std::time::Duration::from_millis(500));
     kill_port(8080);
     kill_port(7070);
-
     *state.is_running.lock().unwrap() = false;
     let _ = rebuild_menu(app, false);
     eprintln!("[CoworkGuard] Stopped cleanly");
@@ -221,18 +184,16 @@ fn build_menu(app: &AppHandle, running: bool, quiet: bool) -> tauri::Result<Menu
     let toggle_label = if running { "Stop Protection" } else { "Start Protection" };
     let status_label = if running { "● PROTECTION ON" } else { "○ Protection off" };
     let quiet_label  = if quiet { "✓ Quiet Mode — notifications off" } else { "Quiet Mode" };
-
-    let menu    = Menu::new(app)?;
-    let status  = MenuItem::new(app, status_label, false, None::<&str>)?;
-    let sep1    = PredefinedMenuItem::separator(app)?;
-    let toggle  = MenuItem::with_id(app, "toggle",    toggle_label,        true, None::<&str>)?;
-    let dash    = MenuItem::with_id(app, "dashboard", "Open Dashboard →",  true, None::<&str>)?;
-    let sep2    = PredefinedMenuItem::separator(app)?;
-    let quiet_item = MenuItem::with_id(app, "quiet",  quiet_label,         true, None::<&str>)?;
-    let sep3    = PredefinedMenuItem::separator(app)?;
-    let about   = MenuItem::with_id(app, "about",     "About CoworkGuard", true, None::<&str>)?;
-    let quit    = MenuItem::with_id(app, "quit",      "Quit",              true, None::<&str>)?;
-
+    let menu       = Menu::new(app)?;
+    let status     = MenuItem::new(app, status_label, false, None::<&str>)?;
+    let sep1       = PredefinedMenuItem::separator(app)?;
+    let toggle     = MenuItem::with_id(app, "toggle",    toggle_label,        true, None::<&str>)?;
+    let dash       = MenuItem::with_id(app, "dashboard", "Open Dashboard →",  true, None::<&str>)?;
+    let sep2       = PredefinedMenuItem::separator(app)?;
+    let quiet_item = MenuItem::with_id(app, "quiet",     quiet_label,         true, None::<&str>)?;
+    let sep3       = PredefinedMenuItem::separator(app)?;
+    let about      = MenuItem::with_id(app, "about",     "About CoworkGuard", true, None::<&str>)?;
+    let quit       = MenuItem::with_id(app, "quit",      "Quit",              true, None::<&str>)?;
     menu.append(&status)?;
     menu.append(&sep1)?;
     menu.append(&toggle)?;
@@ -285,16 +246,12 @@ fn main() {
             quiet_mode:             Mutex::new(false),
         })
         .setup(|app| {
-            // Hide from Dock — menubar only
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-
             let menu = build_menu(app.handle(), false, false)?;
-
             let icon = tauri::image::Image::from_bytes(
                 include_bytes!("../icons/tray-icon.png")
             )?;
-
             TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .icon_as_template(true)
@@ -306,9 +263,7 @@ fn main() {
                             let running = *app.state::<AppState>().is_running.lock().unwrap();
                             if running { stop_coworkguard(app); } else { start_coworkguard(app); }
                         }
-                        "dashboard" => {
-                            let _ = open::that("http://localhost:7070");
-                        }
+                        "dashboard" => { let _ = open::that("http://localhost:7070"); }
                         "quiet" => {
                             let state = app.state::<AppState>();
                             let new_quiet = {
@@ -318,7 +273,6 @@ fn main() {
                             };
                             let is_running = *state.is_running.lock().unwrap();
                             let _ = rebuild_menu(app, is_running);
-                            // Persist to settings.json — read existing first to preserve other settings
                             let settings_dir = std::path::Path::new(
                                 &std::env::var("HOME").unwrap_or_default()
                             ).join(".coworkguard");
@@ -341,25 +295,17 @@ fn main() {
                             };
                             let _ = std::fs::write(settings_path, content);
                         }
-                        "about" => {
-                            let _ = open::that("https://coworkguard.com");
-                        }
-                        "quit" => {
-                            stop_coworkguard(app);
-                            std::process::exit(0);
-                        }
+                        "about" => { let _ = open::that("https://coworkguard.com"); }
+                        "quit" => { stop_coworkguard(app); std::process::exit(0); }
                         _ => {}
                     }
                 })
                 .build(app)?;
-
-            // Check for broken proxy state on startup
             let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(3));
                 check_startup(&handle);
             });
-
             Ok(())
         })
         .run(tauri::generate_context!())
