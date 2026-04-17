@@ -298,13 +298,29 @@ fn main() {
                             };
                             let is_running = *state.is_running.lock().unwrap();
                             let _ = rebuild_menu(app, is_running);
-                            // Persist to settings.json so skill_scanner.py respects it
+                            // Persist to settings.json — read existing first to preserve other settings
                             let settings_dir = std::path::Path::new(
                                 &std::env::var("HOME").unwrap_or_default()
                             ).join(".coworkguard");
                             let _ = std::fs::create_dir_all(&settings_dir);
                             let settings_path = settings_dir.join("settings.json");
-                            let content = format!("{{\"quiet_mode\":{}}}", new_quiet);
+                            // Read existing settings, update quiet_mode, write back
+                            let existing = std::fs::read_to_string(&settings_path).unwrap_or_default();
+                            let content = if existing.trim().starts_with('{') {
+                                // Merge: remove existing quiet_mode key and append updated value
+                                let stripped = existing.trim()
+                                    .trim_start_matches('{').trim_end_matches('}');
+                                let cleaned: String = stripped.split(',')
+                                    .filter(|s| !s.contains("\"quiet_mode\""))
+                                    .collect::<Vec<_>>().join(",");
+                                if cleaned.trim().is_empty() {
+                                    format!("{{\"quiet_mode\":{}}}", new_quiet)
+                                } else {
+                                    format!("{{{},\"quiet_mode\":{}}}", cleaned.trim().trim_matches(','), new_quiet)
+                                }
+                            } else {
+                                format!("{{\"quiet_mode\":{}}}", new_quiet)
+                            };
                             let _ = std::fs::write(settings_path, content);
                         }
                         "about" => {

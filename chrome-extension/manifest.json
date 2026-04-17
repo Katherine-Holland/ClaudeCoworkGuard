@@ -3,7 +3,6 @@
   "name": "CoworkGuard",
   "version": "1.0.0",
   "description": "Monitors and guards against sensitive data exposure when Claude Cowork is active.",
-  "homepage_url": "https://www.coworkguard.com",
   "permissions": [
     "tabs",
     "activeTab",
@@ -12,19 +11,25 @@
     "notifications"
   ],
   "host_permissions": [
-    "https://api.anthropic.com/*"
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.mistral.ai/*",
+    "https://api.cohere.com/*",
+    "https://api.groq.com/*",
+    "https://api.x.ai/*",
+    "https://api.perplexity.ai/*",
+    "https://api.cursor.sh/*",
+    "https://copilot-proxy.githubusercontent.com/*"
   ],
+  "homepage_url": "https://coworkguard.com",
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
       "run_at": "document_start"
     }
   ],

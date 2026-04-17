@@ -1,5 +1,5 @@
 """
-Copyright (c) 2026 [YOUR NAME]. All rights reserved.
+Copyright (c) 2026 Katherine Weston. All rights reserved.
 Licensed under MIT with Commons Clause — see LICENSE for details.
 Commercial use prohibited without a separate commercial license.
 

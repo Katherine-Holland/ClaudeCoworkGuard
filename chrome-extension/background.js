@@ -174,7 +174,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
       type: "API_REQUEST",
       url: details.url,
       method: details.method,
-      proxyAction: guardHeader?.value || "NO_PROXY",
+      action: guardHeader?.value || "NO_PROXY",
       proxyRunning: !!guardHeader,
       timestamp: new Date().toISOString(),
     });
