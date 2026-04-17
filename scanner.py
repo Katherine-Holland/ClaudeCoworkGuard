@@ -415,12 +415,12 @@ if __name__ == "__main__":
 
     result = scanner.scan(test_payload)
     print(f"\n{'='*50}")
-    print(f"CoworkGuard Scan Result")
+    print("CoworkGuard Scan Result")
     print(f"{'='*50}")
     print(f"Action:   {result.action}")
     print(f"Blocked:  {result.blocked}")
     print(f"Findings: {len(result.findings)}")
     print(f"Hash:     {result.payload_hash}")
-    print(f"\nFindings:")
+    print("\nFindings:")
     for f in result.findings:
         print(f"  [{f.severity:8}] {f.pattern_name:20} → {f.match_preview}")

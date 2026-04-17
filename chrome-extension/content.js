@@ -6,11 +6,11 @@
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "COWORKGUARD_DOMAIN_WARNING") {
-    injectWarningBanner(msg.domain, msg.url);
+    injectWarningBanner(msg.domain);
   }
 });
 
-function injectWarningBanner(domain, url) {
+function injectWarningBanner(domain) {
   // Don't inject twice
   if (document.getElementById("coworkguard-banner")) return;
 

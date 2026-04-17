@@ -10,7 +10,6 @@ On-demand: python3 skill_scanner.py /path/to/skill
 """
 
 import re
-import os
 import sys
 import json
 import time
@@ -654,7 +653,7 @@ class SkillWatcher:
 def print_result(result: SkillScanResult):
     """Pretty-print a scan result to stdout."""
     print(f"\n{'═'*60}")
-    print(f"CoworkGuard Skill Scanner")
+    print("CoworkGuard Skill Scanner")
     print(f"{'═'*60}")
     print(f"File:       {result.file_path}")
     print(f"Type:       {result.skill_type}")
@@ -664,12 +663,12 @@ def print_result(result: SkillScanResult):
     print(f"Hash:       {result.file_hash}")
 
     if result.findings:
-        print(f"\nFindings:")
+        print("\nFindings:")
         for f in result.findings:
             blocked_tag = " [BLOCKED]" if f.blocked else ""
             print(f"  [{f.severity:8}] line {f.line_number:4} — {f.pattern_name:20} → {f.match_preview}{blocked_tag}")
     else:
-        print(f"\n✓ No security issues detected")
+        print("\n✓ No security issues detected")
     print(f"{'═'*60}\n")
 
 

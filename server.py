@@ -15,9 +15,6 @@ Runs on http://localhost:7070
 """
 
 import json
-import os
-import glob
-import subprocess
 from pathlib import Path
 from datetime import datetime
 
@@ -196,7 +193,8 @@ def setup():
 @app.route("/api/setup/generate-cert", methods=["POST"])
 def generate_cert():
     """Run mitmdump briefly to generate the mitmproxy CA certificate."""
-    import subprocess, time
+    import subprocess
+    import time
     try:
         p = subprocess.Popen(
             ["mitmdump", "--listen-port", "18765", "--quiet"],
