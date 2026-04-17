@@ -23,10 +23,10 @@ struct AppState {
 fn find_mitmproxy() -> String {
     // Use mitmdump (headless) not mitmproxy (requires a TTY and suspends without one)
     let candidates = [
-        "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmdump",
+        "/opt/homebrew/bin/mitmdump",       // Apple Silicon — Homebrew (check first)
+        "/usr/local/bin/mitmdump",          // Intel Mac — Homebrew
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmdump",
-        "/usr/local/bin/mitmdump",
-        "/opt/homebrew/bin/mitmdump",
+        "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmdump",
     ];
     for path in &candidates {
         if std::path::Path::new(path).exists() {
@@ -38,11 +38,11 @@ fn find_mitmproxy() -> String {
 
 fn find_python() -> String {
     let candidates = [
-        "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
+        "/opt/homebrew/bin/python3",        // Apple Silicon — Homebrew (check first)
+        "/usr/local/bin/python3",           // Intel Mac — Homebrew
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
-        "/usr/local/bin/python3",
-        "/opt/homebrew/bin/python3",
-        "/usr/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
+        "/usr/bin/python3",                 // Last resort — system Python
     ];
     for path in &candidates {
         if std::path::Path::new(path).exists() {
@@ -83,12 +83,33 @@ fn disable_proxy() {
 }
 
 fn find_install_dir() -> PathBuf {
+    // 1. When running as a bundled .app, Python files are in Contents/Resources/
+    if let Ok(exe) = std::env::current_exe() {
+        let bundle_resources = exe
+            .parent().unwrap_or(&exe)   // MacOS/
+            .parent().unwrap_or(&exe)   // Contents/
+            .join("Resources");
+        if bundle_resources.join("proxy.py").exists() {
+            return bundle_resources;
+        }
+    }
+
+    // 2. Development / git clone locations
     let home = std::env::var("HOME").unwrap_or_default();
-    PathBuf::from(home).join("CoworkGuard")
+    let home_path = std::path::Path::new(&home);
+
+    for dir in &["ClaudeCoworkGuard", "CoworkGuard"] {
+        let p = home_path.join(dir);
+        if p.join("proxy.py").exists() {
+            return p;
+        }
+    }
+
+    // 3. Final fallback
+    home_path.join("ClaudeCoworkGuard")
 }
 
 fn kill_port(port: u16) {
-    // Find and kill any process using the given port
     let output = Command::new("lsof")
         .args(["-ti", &format!(":{}", port)])
         .output();
@@ -106,10 +127,9 @@ fn start_coworkguard(app: &AppHandle) {
     // Validate install directory before doing anything
     if !dir.join("proxy.py").exists() {
         eprintln!("[CoworkGuard] proxy.py not found in {:?}", dir);
-        // Show user-facing error via tray tooltip
         if let Some(tray) = app.tray_by_id("main") {
             let _ = tray.set_tooltip(Some(
-                "CoworkGuard: Installation not found. Expected ~/ClaudeCoworkGuard — please reinstall."
+                "CoworkGuard: Installation not found — please reinstall."
             ));
         }
         return;
@@ -304,10 +324,8 @@ fn main() {
                             ).join(".coworkguard");
                             let _ = std::fs::create_dir_all(&settings_dir);
                             let settings_path = settings_dir.join("settings.json");
-                            // Read existing settings, update quiet_mode, write back
                             let existing = std::fs::read_to_string(&settings_path).unwrap_or_default();
                             let content = if existing.trim().starts_with('{') {
-                                // Merge: remove existing quiet_mode key and append updated value
                                 let stripped = existing.trim()
                                     .trim_start_matches('{').trim_end_matches('}');
                                 let cleaned: String = stripped.split(',')
@@ -324,7 +342,7 @@ fn main() {
                             let _ = std::fs::write(settings_path, content);
                         }
                         "about" => {
-                            let _ = open::that("https://katherine-holland.github.io/ClaudeCoworkGuard");
+                            let _ = open::that("https://coworkguard.com");
                         }
                         "quit" => {
                             stop_coworkguard(app);
