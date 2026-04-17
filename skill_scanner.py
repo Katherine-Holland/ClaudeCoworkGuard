@@ -38,6 +38,7 @@ log = logging.getLogger("skill_scanner")
 # Keeps FETCH_EXTERNAL allowlist in sync with proxy.py and background.js
 # ─────────────────────────────────────────────
 
+
 def _load_ai_api_domains() -> list:
     """Load monitored AI API hostnames from shared domains.json."""
     domains_file = Path(__file__).parent / "domains.json"
@@ -56,6 +57,7 @@ def _load_ai_api_domains() -> list:
         "api.perplexity.ai", "api.cursor.sh",
         "copilot-proxy.githubusercontent.com",
     ]
+
 
 # Build negative lookahead from domains list — keeps patterns in sync with domains.json
 _AI_DOMAINS = _load_ai_api_domains()
@@ -115,8 +117,8 @@ SKILL_PATTERNS = {
 
     # ── Persistence mechanisms ────────────────────────────────────────────
     # Anchored to actual code — not just the word in comments/docs
-    "LAUNCHAGENT":      r"(?i)(?:cp|copy|install|write|create|plist)\s[^\n]*LaunchAgents|LaunchAgents[^\n]*(?:cp|copy|install|write|create|plist)|launchctl\s+(?:load|submit|start)|systemctl\s+(?:enable|start)\s",
-    "STARTUP_ENTRY":    r"(?i)HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run|echo\s[^\n]*>>\s*~?/\.(?:bashrc|zshrc|profile)|append.*(?:bashrc|zshrc|profile)",
+    "LAUNCHAGENT":      r"(?i)(?:cp|copy|install|write|create|plist)\s[^\n]*LaunchAgents|LaunchAgents[^\n]*(?:cp|copy|install|write|create|plist)|launchctl\s+(?:load|submit|start)|systemctl\s+(?:enable|start)\s",  # noqa: E501
+    "STARTUP_ENTRY":    r"(?i)HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run|echo\s[^\n]*>>\s*~?/\.(?:bashrc|zshrc|profile)|append.*(?:bashrc|zshrc|profile)",  # noqa: E501
 }
 
 # Severity for skill-specific patterns
@@ -192,10 +194,12 @@ HIGH_TRAFFIC_DIRS = {
 
 LOG_DIR = Path.home() / ".coworkguard" / "logs"
 
+
 def get_log_path() -> Path:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     date = datetime.now().strftime("%Y%m%d")
     return LOG_DIR / f"skill_scan_{date}.jsonl"
+
 
 def write_log(entry: dict):
     with open(get_log_path(), "a") as f:
@@ -205,6 +209,7 @@ def write_log(entry: dict):
 # Data classes
 # ─────────────────────────────────────────────
 
+
 @dataclass
 class SkillFinding:
     pattern_name: str
@@ -212,6 +217,7 @@ class SkillFinding:
     match_preview: str
     line_number: int
     blocked: bool = False
+
 
 @dataclass
 class SkillScanResult:
@@ -261,6 +267,7 @@ class SkillScanResult:
 # Skill type detection
 # ─────────────────────────────────────────────
 
+
 def detect_skill_type(path: Path, content: str) -> str:
     path_str = str(path).lower()
     if ".openclaw" in path_str or "openclaw" in path_str or "clawhub" in path_str:
@@ -278,6 +285,7 @@ def detect_skill_type(path: Path, content: str) -> str:
 # ─────────────────────────────────────────────
 # Scanner
 # ─────────────────────────────────────────────
+
 
 class SkillScanner:
     # Max findings per pattern — prevents score inflation from repeated matches
@@ -372,6 +380,7 @@ class SkillScanner:
 # macOS notification
 # ─────────────────────────────────────────────
 
+
 def notify(title: str, message: str):
     if platform.system() != "Darwin":
         log.info(f"NOTIFY: {title} — {message}")
@@ -381,6 +390,7 @@ def notify(title: str, message: str):
         subprocess.run(["osascript", "-e", script], check=False, timeout=5)
     except Exception:
         pass
+
 
 def is_quiet_mode() -> bool:
     """Check if quiet mode is enabled in CoworkGuard settings."""
@@ -393,6 +403,7 @@ def is_quiet_mode() -> bool:
         except Exception:
             pass
     return False
+
 
 def notify_finding(result: SkillScanResult):
     # Respect quiet mode — log but don't notify
@@ -424,6 +435,7 @@ def notify_finding(result: SkillScanResult):
 # ─────────────────────────────────────────────
 # File filter — decides if a file is a skill
 # ─────────────────────────────────────────────
+
 
 def is_skill_file(path: Path, in_high_traffic_dir: bool = False) -> bool:
     """Returns True if the file looks like a skill that should be scanned."""
@@ -471,6 +483,7 @@ def is_skill_file(path: Path, in_high_traffic_dir: bool = False) -> bool:
 # ─────────────────────────────────────────────
 # Watch mode
 # ─────────────────────────────────────────────
+
 
 class SkillWatcher:
     CACHE_FILE = Path.home() / ".coworkguard" / "scan_cache.json"
@@ -637,6 +650,7 @@ class SkillWatcher:
 # CLI
 # ─────────────────────────────────────────────
 
+
 def print_result(result: SkillScanResult):
     """Pretty-print a scan result to stdout."""
     print(f"\n{'═'*60}")
@@ -657,6 +671,7 @@ def print_result(result: SkillScanResult):
     else:
         print(f"\n✓ No security issues detected")
     print(f"{'═'*60}\n")
+
 
 def main():
     if len(sys.argv) < 2:
@@ -693,6 +708,7 @@ def main():
         else:
             print(f"Error: {target} not found")
             sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

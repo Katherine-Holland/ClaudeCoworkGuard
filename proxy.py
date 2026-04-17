@@ -105,6 +105,7 @@ def matched_host(pretty_host: str):
             return host
     return None
 
+
 def host_label(host: str) -> str:
     return HOST_LABELS.get(host, host)
 

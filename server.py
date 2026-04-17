@@ -39,7 +39,7 @@ CORS(app, origins=[
     "http://localhost:3000",   # dev convenience
 ])
 
-LOG_DIR  = Path.home() / ".coworkguard" / "logs"
+LOG_DIR = Path.home() / ".coworkguard" / "logs"
 SETTINGS = Path.home() / ".coworkguard" / "settings.json"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -57,6 +57,7 @@ DEFAULT_SETTINGS = {
     "custom_blocked_domains": [],
 }
 
+
 def load_settings():
     if SETTINGS.exists():
         try:
@@ -68,6 +69,7 @@ def load_settings():
             pass
     return DEFAULT_SETTINGS.copy()
 
+
 def save_settings(data):
     SETTINGS.parent.mkdir(parents=True, exist_ok=True)
     merged = {**DEFAULT_SETTINGS, **data}
@@ -78,6 +80,8 @@ def save_settings(data):
 # ─────────────────────────────────────────────
 # Process detection
 # ─────────────────────────────────────────────
+
+
 def detect_cowork():
     """Detect if Claude desktop / Cowork is running."""
     if not HAS_PSUTIL:
@@ -86,12 +90,13 @@ def detect_cowork():
     for proc in psutil.process_iter(["name", "cmdline"]):
         try:
             name = proc.info["name"] or ""
-            cmd  = " ".join(proc.info["cmdline"] or [])
+            cmd = " ".join(proc.info["cmdline"] or [])
             if any(t.lower() in name.lower() or t.lower() in cmd.lower() for t in targets):
                 return {"active": True, "pid": proc.pid, "name": name}
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
     return {"active": False}
+
 
 def detect_proxy():
     """Check if mitmproxy is listening on the configured port."""
@@ -108,6 +113,8 @@ def detect_proxy():
 # ─────────────────────────────────────────────
 # Log reading
 # ─────────────────────────────────────────────
+
+
 def read_logs(limit=200):
     """Read all JSONL audit log files, newest entries first."""
     entries = []
@@ -130,12 +137,14 @@ def read_logs(limit=200):
             pass
     return entries[:limit]
 
+
 def compute_stats(entries):
     blocked = sum(1 for e in entries if e.get("action") == "BLOCKED")
     flagged = sum(1 for e in entries if e.get("action") == "FLAGGED")
-    clean   = sum(1 for e in entries if e.get("action") == "CLEAN")
+    clean = sum(1 for e in entries if e.get("action") == "CLEAN")
     domains = sum(1 for e in entries if e.get("type") == "DOMAIN_WARNING")
     return {"blocked": blocked, "flagged": flagged, "clean": clean, "domainWarnings": domains}
+
 
 def compute_pattern_counts(entries):
     counts = {}
@@ -144,6 +153,7 @@ def compute_pattern_counts(entries):
             t = f.get("type", "UNKNOWN")
             counts[t] = counts.get(t, 0) + 1
     return dict(sorted(counts.items(), key=lambda x: -x[1]))
+
 
 def compute_chart_data(entries):
     """
@@ -154,8 +164,8 @@ def compute_chart_data(entries):
     buckets = defaultdict(lambda: {"bytes": 0, "blocked": 0, "flagged": 0, "clean": 0})
     for e in entries:
         try:
-            ts   = datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
-            key  = ts.strftime("%Y-%m-%dT%H:00")
+            ts = datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
+            key = ts.strftime("%Y-%m-%dT%H:00")
             size = e.get("payload_size_bytes", 0)
             buckets[key]["bytes"] += size
             action = e.get("action", "CLEAN")
@@ -171,6 +181,7 @@ def compute_chart_data(entries):
 # Routes
 # ─────────────────────────────────────────────
 
+
 @app.route("/setup")
 def setup():
     # setup.html is optional — only present after first-run wizard is needed
@@ -180,6 +191,7 @@ def setup():
     # If setup.html not present, redirect to main dashboard
     from flask import redirect
     return redirect("/")
+
 
 @app.route("/api/setup/generate-cert", methods=["POST"])
 def generate_cert():
@@ -202,6 +214,7 @@ def generate_cert():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
+
 @app.route("/api/setup/trust-cert", methods=["POST"])
 def trust_cert():
     """Attempt to auto-trust the mitmproxy certificate via macOS security command."""
@@ -223,6 +236,7 @@ def trust_cert():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
+
 @app.route("/api/setup/open-keychain", methods=["POST"])
 def open_keychain():
     """Open the mitmproxy certificate in Keychain Access."""
@@ -232,6 +246,7 @@ def open_keychain():
         subprocess.Popen(["open", str(cert)])
         return jsonify({"ok": True})
     return jsonify({"ok": False, "error": "Certificate not found — complete step 1 first"})
+
 
 @app.route("/api/domains")
 def get_domains():
@@ -250,6 +265,7 @@ def get_domains():
             pass
     return jsonify({"sensitive_domains": []})
 
+
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -259,6 +275,7 @@ def status():
         "server":    "ok",
         "timestamp": datetime.utcnow().isoformat() + "Z",
     })
+
 
 @app.route("/api/logs")
 def logs():
@@ -276,6 +293,7 @@ def logs():
         "chartData":     compute_chart_data(entries),
         "total":         len(entries),
     })
+
 
 @app.route("/api/skill-scans")
 def skill_scans():
@@ -316,9 +334,11 @@ def skill_scans():
         "total": len(entries),
     })
 
+
 @app.route("/api/settings", methods=["GET"])
 def get_settings():
     return jsonify(load_settings())
+
 
 @app.route("/api/settings", methods=["POST"])
 def post_settings():
@@ -373,11 +393,13 @@ def post_settings():
     sig.touch()
     return jsonify({"ok": True, "settings": saved})
 
+
 @app.route("/api/clear", methods=["POST"])
 def clear_logs():
     for lf in LOG_DIR.glob("audit_*.jsonl"):
         lf.unlink(missing_ok=True)
     return jsonify({"ok": True})
+
 
 @app.route("/")
 def index():
@@ -385,6 +407,7 @@ def index():
     if dashboard.exists():
         return dashboard.read_text()
     return "<p>Dashboard not found — place dashboard.html next to server.py</p>", 404
+
 
 if __name__ == "__main__":
     print("\n🛡️  CoworkGuard Server running at http://localhost:7070\n")

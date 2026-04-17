@@ -17,6 +17,8 @@ from pathlib import Path
 # Same list is used by the Chrome extension (background.js)
 # Edit domains.json to add custom domains — both layers update automatically
 # ─────────────────────────────────────────────
+
+
 def _load_domains():
     domains_file = Path(__file__).parent / "domains.json"
     if domains_file.exists():
@@ -36,6 +38,7 @@ def _load_domains():
         "salesforce.com", "hubspot.com",
     ]
 
+
 SENSITIVE_DOMAINS = _load_domains()
 
 # ─────────────────────────────────────────────
@@ -48,11 +51,11 @@ PATTERNS = {
     "EMAIL":            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
     "PHONE_US":         r"\b(\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b",
     "DOB":              r"\b(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01])/\d{4}\b",
-    "CREDIT_CARD":      r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b",
-    "IP_ADDRESS":       r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b",
+    "CREDIT_CARD":      r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b",  # noqa: E501
+    "IP_ADDRESS":       r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b",  # noqa: E501
     # Passport — requires document/travel context nearby to reduce false positives
     # on product codes, order IDs etc. that match the raw character class
-    "PASSPORT":         r"(?i)(?:passport|travel\s*doc(?:ument)?|pass(?:port)?\s*(?:no|num|number|#)?)\s*(?:is|:|\s)\s*[A-Z]{1,2}[0-9]{6,9}\b",
+    "PASSPORT":         r"(?i)(?:passport|travel\s*doc(?:ument)?|pass(?:port)?\s*(?:no|num|number|#)?)\s*(?:is|:|\s)\s*[A-Z]{1,2}[0-9]{6,9}\b",  # noqa: E501
 
     # ── Cloud provider credentials ────────────────────────────────────────
     "AWS_KEY":          r"AKIA[0-9A-Z]{16}",
@@ -115,9 +118,9 @@ PATTERNS = {
     "DATADOG_KEY":      r"(?i)dd.{0,10}(api|app).{0,5}key.{0,5}['\"][a-zA-Z0-9]{40}['\"]",
 
     # ── Internal / Corporate ──────────────────────────────────────────────
-    "INTERNAL_URL":     r"https?://(?:localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)[^\s]*",
+    "INTERNAL_URL":     r"https?://(?:localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)[^\s]*",  # noqa: E501
     "VPN_HOSTNAME":     r"https?://[a-zA-Z0-9\-]+\.(?:internal|corp|intranet|local|lan)[^\s]*",
-    "ENV_FILE":         r"(?i)(DB_PASSWORD|DATABASE_URL|SECRET_KEY|API_KEY|PRIVATE_KEY|ACCESS_TOKEN|AUTH_TOKEN)\s*=\s*\S+",
+    "ENV_FILE":         r"(?i)(DB_PASSWORD|DATABASE_URL|SECRET_KEY|API_KEY|PRIVATE_KEY|ACCESS_TOKEN|AUTH_TOKEN)\s*=\s*\S+",  # noqa: E501
     "CONNECTION_STR":   r"(?i)(mongodb(\+srv)?|postgresql|mysql|redis|amqp|mssql|sqlite)://[^\s\"']+",
     # MCP config credential exposure (supply chain attack vector)
     "MCP_CREDENTIAL":   r'"env"\s*:\s*\{[^}]*"[A-Z_]*(KEY|SECRET|TOKEN|PASSWORD)[A-Z_]*"\s*:\s*"[^"]{8,}"',
@@ -158,6 +161,7 @@ SEVERITY = {
 # Data classes
 # ─────────────────────────────────────────────
 
+
 @dataclass
 class Finding:
     pattern_name: str
@@ -165,6 +169,7 @@ class Finding:
     match_preview: str      # Redacted preview — never logs raw match
     char_position: int
     blocked: bool = False
+
 
 @dataclass
 class ScanResult:
