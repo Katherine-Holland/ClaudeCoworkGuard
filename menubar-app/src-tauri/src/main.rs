@@ -114,6 +114,44 @@ fn kill_port(port: u16) {
     }
 }
 
+
+fn install_dependencies(python_bin: &str, dir: &std::path::Path) -> bool {
+    // Run pip install -r requirements.txt before starting any Python process.
+    // This ensures flask, flask-cors, mitmproxy, watchdog are present on the
+    // Python that the app will actually use — not just whichever python3 is on PATH.
+    let req = dir.join("requirements.txt");
+    if !req.exists() {
+        eprintln!("[CoworkGuard] requirements.txt not found — skipping dep check");
+        return true; // Don't block startup if requirements.txt is missing
+    }
+    eprintln!("[CoworkGuard] Installing dependencies from requirements.txt...");
+    let result = Command::new(python_bin)
+        .args(["-m", "pip", "install", "-r", req.to_str().unwrap_or("requirements.txt"),
+               "--quiet", "--disable-pip-version-check"])
+        .output();
+    match result {
+        Ok(out) => {
+            if out.status.success() {
+                eprintln!("[CoworkGuard] Dependencies installed OK");
+                true
+            } else {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                eprintln!("[CoworkGuard] pip install failed: {}", stderr);
+                // Try with --break-system-packages for Homebrew/system Python
+                let result2 = Command::new(python_bin)
+                    .args(["-m", "pip", "install", "-r", req.to_str().unwrap_or("requirements.txt"),
+                           "--quiet", "--disable-pip-version-check", "--break-system-packages"])
+                    .output();
+                result2.map(|o| o.status.success()).unwrap_or(false)
+            }
+        }
+        Err(e) => {
+            eprintln!("[CoworkGuard] pip not available: {}", e);
+            false // Don't block — let server.py fail with a clear error
+        }
+    }
+}
+
 fn start_coworkguard(app: &AppHandle) {
     let dir = find_install_dir();
     if !dir.join("proxy.py").exists() {
@@ -131,6 +169,9 @@ fn start_coworkguard(app: &AppHandle) {
         kill_port(8080);
         kill_port(7070);
         std::thread::sleep(std::time::Duration::from_millis(500));
+
+        // Install/verify Python dependencies before launching any Python process
+        install_dependencies(&python_bin, &dir);
         let proxy = Command::new(&mitmproxy_bin)
             .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
             .current_dir(&dir)

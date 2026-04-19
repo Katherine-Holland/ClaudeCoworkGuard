@@ -140,7 +140,7 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
   <p>CoworkGuard has two components — the Chrome extension (domain warnings and popup) and the local proxy stack (payload scanning and dashboard). The extension works immediately after install. The proxy requires a one-time setup.</p>
 
   <h2 style="font-size:17px;margin:28px 0 14px">Prerequisites</h2>
-  <p>macOS 12 (Monterey) or later, and Python 3.11+ with mitmproxy installed. If you use the menubar app, the setup wizard handles the certificate — no terminal needed for that step.</p>
+  <p>macOS 12 (Monterey) or later, Python 3.11+, and the following packages installed:</p><pre style="margin:10px 0">pip install -r requirements.txt</pre><p style="font-size:13px;color:var(--muted2)">This installs mitmproxy, flask, flask-cors, psutil, and watchdog. If you use the menubar app, the setup wizard handles the certificate — no terminal needed for that step.</p>
 
   <!-- Option 1 — Menubar App -->
   <h2 style="font-size:17px;margin:28px 0 14px">Option 1 — macOS Menubar App (recommended)</h2>

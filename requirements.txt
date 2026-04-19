@@ -1,0 +1,14 @@
+# CoworkGuard — Python dependencies
+# Install with: pip install -r requirements.txt
+#
+# mitmproxy     — HTTP proxy and payload interceptor (also installs mitmdump)
+# flask         — Local dashboard API server (server.py)
+# flask-cors    — CORS headers for localhost API
+# psutil        — Process detection (is Claude running?)
+# watchdog      — Filesystem watch mode for skill scanner (optional — falls back to polling)
+ 
+mitmproxy>=10.0
+flask>=3.0
+flask-cors>=4.0
+psutil>=5.9
+watchdog>=4.0

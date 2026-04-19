@@ -190,6 +190,39 @@ def setup():
     return redirect("/")
 
 
+
+@app.route("/api/setup/install-deps", methods=["POST"])
+def install_deps():
+    """Install Python dependencies from requirements.txt."""
+    import subprocess
+    import sys
+    req = Path(__file__).parent / "requirements.txt"
+    if not req.exists():
+        return jsonify({"ok": False, "error": "requirements.txt not found"})
+    try:
+        # Try standard install first
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", str(req),
+             "--quiet", "--disable-pip-version-check"],
+            capture_output=True, timeout=120
+        )
+        if result.returncode == 0:
+            return jsonify({"ok": True})
+        # Try with --break-system-packages for Homebrew/system Python
+        result2 = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", str(req),
+             "--quiet", "--disable-pip-version-check", "--break-system-packages"],
+            capture_output=True, timeout=120
+        )
+        if result2.returncode == 0:
+            return jsonify({"ok": True})
+        stderr = result2.stderr.decode("utf-8", errors="replace")[:300]
+        return jsonify({"ok": False, "error": stderr or "pip install failed"})
+    except subprocess.TimeoutExpired:
+        return jsonify({"ok": False, "error": "Installation timed out — try manually: pip install -r requirements.txt"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
 @app.route("/api/setup/generate-cert", methods=["POST"])
 def generate_cert():
     """Run mitmdump briefly to generate the mitmproxy CA certificate."""

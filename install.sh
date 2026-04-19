@@ -70,7 +70,7 @@ fi
 
 # ── Install Python dependencies ───────────────────────────────────────
 echo -e "${CYAN}→ Installing dependencies (this may take a minute)...${NC}"
-pip3 install mitmproxy flask flask-cors psutil --quiet --disable-pip-version-check
+pip3 install -r "$INSTALL_DIR/requirements.txt" --quiet --disable-pip-version-check
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
 # ── Generate CoworkGuard certificate ─────────────────────────────────
