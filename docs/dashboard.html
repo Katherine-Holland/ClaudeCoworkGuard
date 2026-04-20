@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CoworkGuard Shield — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#07090d;--card:#0e1318;--card2:#121820;--border:#1c2a38;--border2:#243040;
+  --blue:#2563eb;--blue2:#3b82f6;--blue-dim:rgba(37,99,235,.1);--blue-border:rgba(37,99,235,.25);
+  --orange:#e05a20;--orange2:#f07040;
+  --success:#3dd68c;--danger:#f05060;--warn:#f0a030;
+  --muted:#4e6278;--muted2:#687d90;--text:#b8c8d8;--heading:#e8f0f8;
+  --mono:"DM Mono",monospace;--ui:"DM Sans",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);-webkit-font-smoothing:antialiased;min-height:100vh}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:48px;width:100%;max-width:440px}
+.login-logo-name{font-size:20px;font-weight:600;color:var(--heading);margin-bottom:32px}
+.login-logo-name em{font-style:normal;color:var(--orange2)}
+.login-logo-name sup{font-size:11px;color:var(--blue2);vertical-align:super}
+.login-title{font-size:24px;font-weight:300;color:var(--heading);margin-bottom:8px;letter-spacing:-.5px}
+.login-sub{font-size:14px;color:var(--muted2);margin-bottom:32px;line-height:1.6}
+.field-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;display:block}
+.field-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:8px;font-family:var(--mono);font-size:13px;transition:border-color .2s;outline:none}
+.field-input:focus{border-color:var(--blue)}
+.login-btn{width:100%;margin-top:16px;padding:13px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--ui);transition:background .2s}
+.login-btn:hover{background:var(--blue2)}
+.login-error{color:var(--danger);font-family:var(--mono);font-size:11px;margin-top:10px;display:none}
+#app{display:none;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:220px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.sidebar-logo-name{font-size:15px;font-weight:600;color:var(--heading)}
+.sidebar-logo-name em{font-style:normal;color:var(--orange2)}
+.sidebar-logo-name sup{font-size:10px;color:var(--blue2);vertical-align:super}
+.sidebar-org{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-nav{flex:1;padding:12px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:all .15s;font-size:13px;color:var(--muted2);border-left:2px solid transparent}
+.nav-item:hover{color:var(--heading);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--blue2);border-left-color:var(--blue);background:var(--blue-dim)}
+.nav-item-badge{margin-left:auto;background:var(--warn);color:#07090d;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:100px;font-weight:600}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border)}
+.logout-btn{font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;transition:color .2s}
+.logout-btn:hover{color:var(--danger)}
+.main{margin-left:220px;padding:32px;min-height:100vh}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:24px;font-weight:600;color:var(--heading);letter-spacing:-.4px;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--muted2);margin-bottom:28px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.blocked::after{background:var(--danger)}
+.stat-card.flagged::after{background:var(--warn)}
+.stat-card.skills::after{background:var(--blue)}
+.stat-card.machines::after{background:var(--success)}
+.stat-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.stat-value{font-size:36px;font-weight:700;line-height:1;margin-bottom:4px}
+.stat-card.blocked .stat-value{color:var(--danger)}
+.stat-card.flagged .stat-value{color:var(--warn)}
+.stat-card.skills .stat-value{color:var(--blue2)}
+.stat-card.machines .stat-value{color:var(--success)}
+.stat-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.panel-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--heading)}
+.panel-action{font-family:var(--mono);font-size:11px;color:var(--blue2);cursor:pointer}
+.feed-item{display:flex;align-items:flex-start;gap:14px;padding:14px 20px;border-bottom:1px solid rgba(28,42,56,.6);transition:background .15s}
+.feed-item:hover{background:rgba(255,255,255,.02)}
+.feed-item:last-child{border-bottom:none}
+.feed-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.feed-dot.blocked{background:var(--danger)}
+.feed-dot.flagged{background:var(--warn)}
+.feed-dot.quarantined{background:var(--blue2)}
+.feed-dot.clean{background:var(--success)}
+.feed-body{flex:1;min-width:0}
+.feed-title{font-size:13px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-meta{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;gap:12px}
+.feed-time{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);flex-shrink:0}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.05em;white-space:nowrap;font-family:var(--mono)}
+.badge.BLOCKED{background:rgba(240,80,96,.15);color:var(--danger);border:1px solid rgba(240,80,96,.25)}
+.badge.FLAGGED{background:rgba(240,160,48,.1);color:var(--warn);border:1px solid rgba(240,160,48,.2)}
+.badge.QUARANTINED,.badge.PENDING{background:var(--blue-dim);color:var(--blue2);border:1px solid var(--blue-border)}
+.badge.CLEAN,.badge.APPROVED{background:rgba(61,214,140,.08);color:var(--success);border:1px solid rgba(61,214,140,.2)}
+.empty{padding:48px 20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px}
+.skill-row{display:grid;grid-template-columns:1fr 80px 90px 90px 140px;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(28,42,56,.5);font-size:12px}
+.skill-row:last-child{border-bottom:none}
+.skill-row.header{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:rgba(0,0,0,.2);padding:8px 20px}
+.skill-name{color:var(--text);font-family:var(--mono);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skill-type-badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;text-align:center}
+.skill-type-badge.COWORK{background:rgba(224,90,32,.1);color:var(--orange2);border:1px solid rgba(224,90,32,.2)}
+.skill-type-badge.MCP{background:rgba(99,102,241,.1);color:#a5b4fc;border:1px solid rgba(99,102,241,.2)}
+.skill-type-badge.OPENCLAW{background:rgba(99,179,237,.1);color:#90cdf4;border:1px solid rgba(99,179,237,.2)}
+.skill-type-badge.UNKNOWN{background:rgba(74,98,120,.1);color:var(--muted2);border:1px solid var(--border)}
+.risk-bar{display:flex;align-items:center;gap:6px}
+.risk-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.risk-fill{height:100%;border-radius:2px}
+.risk-num{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:24px}
+.action-btns{display:flex;gap:6px}
+.btn-approve{padding:4px 10px;border-radius:4px;font-size:10px;font-family:var(--mono);cursor:pointer;border:1px solid rgba(61,214,140,.3);background:rgba(61,214,140,.08);color:var(--success);transition:all .15s}
+.btn-approve:hover{background:rgba(61,214,140,.15)}
+.btn-block{padding:4px 10px;border-radius:4px;font-size:10px;font-family:var(--mono);cursor:pointer;border:1px solid rgba(240,80,96,.25);background:rgba(240,80,96,.08);color:var(--danger);transition:all .15s}
+.btn-block:hover{background:rgba(240,80,96,.15)}
+.settings-title{font-size:14px;font-weight:600;color:var(--heading);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.setting-row{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(28,42,56,.4);gap:20px}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13px;font-weight:500;color:var(--heading);margin-bottom:3px}
+.setting-desc{font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.5}
+.setting-input{width:300px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:6px;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s}
+.setting-input:focus{border-color:var(--blue)}
+.save-btn{padding:8px 20px;background:var(--blue);color:white;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--ui)}
+.save-msg{font-family:var(--mono);font-size:11px;color:var(--success);opacity:0;transition:opacity .3s;margin-left:10px}
+.save-msg.show{opacity:1}
+.loading{padding:48px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo-name">Cowork<em>Guard</em> <sup>SHIELD</sup></div>
+    <div class="login-title">Security dashboard</div>
+    <div class="login-sub">Enter your organisation's licence key to access the Shield dashboard.</div>
+    <label class="field-label">Licence key</label>
+    <input class="field-input" id="licence-input" type="password" placeholder="cg_live_..." autocomplete="off"/>
+    <button class="login-btn" onclick="login()">Access Dashboard</button>
+    <div class="login-error" id="login-error">Invalid licence key — please check and try again.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-name">Cowork<em>Guard</em> <sup>SHIELD</sup></div>
+      <div class="sidebar-org" id="org-name">Loading...</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('activity',this)">Activity</div>
+      <div class="nav-item" onclick="showPage('registry',this)">
+        Skill Registry
+        <span class="nav-item-badge" id="pending-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('settings',this)">Settings</div>
+      <div class="nav-item" onclick="exportCSV()">Export CSV</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="logout-btn" onclick="logout()">Sign out</div>
+    </div>
+  </div>
+
+  <main class="main">
+
+    <div class="page active" id="page-activity">
+      <div class="page-title">Activity</div>
+      <div class="page-sub">Last 30 days across your team</div>
+      <div class="stats-row">
+        <div class="stat-card blocked"><div class="stat-label">Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">Critical findings</div></div>
+        <div class="stat-card flagged"><div class="stat-label">Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">High findings</div></div>
+        <div class="stat-card skills"><div class="stat-label">Skills pending</div><div class="stat-value" id="stat-pending">–</div><div class="stat-sub">Awaiting review</div></div>
+        <div class="stat-card machines"><div class="stat-label">Machines</div><div class="stat-value" id="stat-machines">–</div><div class="stat-sub">Active this period</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent events</span>
+          <span class="panel-action" onclick="loadActivity()">Refresh</span>
+        </div>
+        <div id="activity-feed"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-registry">
+      <div class="page-title">Skill Registry</div>
+      <div class="page-sub">Approve or block skills detected on your team's machines</div>
+      <div class="panel" id="pending-panel">
+        <div class="panel-header">
+          <span class="panel-title">Pending approval</span>
+          <span id="pending-count" style="font-family:var(--mono);font-size:11px;color:var(--warn)"></span>
+        </div>
+        <div id="pending-list"><div class="loading">Loading...</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">All skills</span>
+          <span class="panel-action" onclick="loadRegistry()">Refresh</span>
+        </div>
+        <div class="skill-row header"><span>Skill</span><span>Type</span><span>Risk</span><span>Status</span><span>Actions</span></div>
+        <div id="registry-list"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Configure alerts for your organisation</div>
+      <div class="panel" style="padding:28px">
+        <div class="settings-title">Slack alerts</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Slack webhook URL</div>
+            <div class="setting-desc">Alerts fire when a skill is quarantined or a critical payload is blocked.</div>
+          </div>
+          <input class="setting-input" id="slack-webhook" placeholder="https://hooks.slack.com/services/..."/>
+        </div>
+        <div class="settings-title" style="margin-top:24px">Generic webhook</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Webhook URL</div>
+            <div class="setting-desc">POST alerts to PagerDuty, Teams, or your own endpoint.</div>
+          </div>
+          <input class="setting-input" id="webhook-url" placeholder="https://your-endpoint.com/webhook"/>
+        </div>
+        <div style="display:flex;align-items:center;margin-top:20px;gap:12px">
+          <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+          <span class="save-msg" id="settings-save-msg">✓ Saved</span>
+          <button style="padding:8px 16px;background:transparent;border:1px solid var(--border);color:var(--muted2);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--ui)" onclick="testAlert()">Send test alert</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = 'https://coworkguard-shield.onrender.com';
+let KEY = '';
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function login() {
+  const k = document.getElementById('licence-input').value.trim();
+  if (!k) return;
+  try {
+    const r = await fetch(API+'/api/v1/licence/activate',{method:'POST',headers:{'X-CoworkGuard-Licence':k}});
+    const d = await r.json();
+    if (d.ok) {
+      KEY = k;
+      localStorage.setItem('shield_key', k);
+      document.getElementById('org-name').textContent = d.org?.name || 'Your organisation';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadActivity(); loadRegistry();
+    } else { document.getElementById('login-error').style.display = 'block'; }
+  } catch { document.getElementById('login-error').style.display = 'block'; }
+}
+
+function logout() {
+  localStorage.removeItem('shield_key');
+  KEY = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+async function loadActivity() {
+  try {
+    const [dr, er] = await Promise.all([
+      fetch(API+'/api/v1/dashboard',{headers:{'X-CoworkGuard-Licence':KEY}}),
+      fetch(API+'/api/v1/events?limit=50',{headers:{'X-CoworkGuard-Licence':KEY}})
+    ]);
+    const d = await dr.json(), e = await er.json();
+    document.getElementById('stat-blocked').textContent = d.stats?.blocked ?? '–';
+    document.getElementById('stat-flagged').textContent = d.stats?.flagged ?? '–';
+    document.getElementById('stat-pending').textContent = d.registry?.pending ?? '–';
+    document.getElementById('stat-machines').textContent = Object.keys(d.machines||{}).length;
+    const badge = document.getElementById('pending-badge');
+    const p = d.registry?.pending || 0;
+    badge.textContent = p; badge.style.display = p > 0 ? 'inline' : 'none';
+    const events = e.events || [];
+    const feed = document.getElementById('activity-feed');
+    if (!events.length) { feed.innerHTML = '<div class="empty">No events yet — start protection on a developer machine.</div>'; return; }
+    feed.innerHTML = events.map(ev => {
+      const action = ev.action || 'UNKNOWN';
+      const dot = action==='BLOCKED'?'blocked':action==='FLAGGED'?'flagged':action==='QUARANTINED'?'quarantined':'clean';
+      const time = new Date(ev.timestamp).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const title = ev.skill_name ? `Skill: ${esc(ev.skill_name)}` : ev.finding_type ? `${esc(ev.finding_type)} detected` : esc(ev.event_type);
+      return `<div class="feed-item"><div class="feed-dot ${dot}"></div><div class="feed-body"><div class="feed-title">${title}</div><div class="feed-meta"><span class="badge ${action}">${action}</span>${ev.machine_name?`<span>${esc(ev.machine_name)}</span>`:''}</div></div><div class="feed-time">${time}</div></div>`;
+    }).join('');
+  } catch(e) { document.getElementById('activity-feed').innerHTML = '<div class="empty">Could not load activity.</div>'; }
+}
+
+async function loadRegistry() {
+  try {
+    const r = await fetch(API+'/api/v1/registry',{headers:{'X-CoworkGuard-Licence':KEY}});
+    const d = await r.json();
+    const pending = (d.registry||[]).filter(s=>s.status==='pending');
+    document.getElementById('pending-count').textContent = pending.length ? `${pending.length} awaiting review` : '';
+    document.getElementById('pending-list').innerHTML = !pending.length
+      ? '<div class="empty">No skills pending review ✓</div>'
+      : `<div class="skill-row header"><span>Skill</span><span>Type</span><span>Risk</span><span>Status</span><span>Actions</span></div>${pending.map(s=>skillRow(s,true)).join('')}`;
+    document.getElementById('registry-list').innerHTML = !(d.registry||[]).length
+      ? '<div class="empty">No skills in registry yet</div>'
+      : (d.registry||[]).map(s=>skillRow(s,s.status==='pending')).join('');
+  } catch(e) { document.getElementById('registry-list').innerHTML = '<div class="empty">Could not load registry.</div>'; }
+}
+
+function skillRow(s, showActions) {
+  const rc = s.risk_score>=70?'#f05060':s.risk_score>=40?'#f0a030':'#3dd68c';
+  return `<div class="skill-row">
+    <span class="skill-name" title="${esc(s.name)}">${esc(s.name)}</span>
+    <span class="skill-type-badge ${s.skill_type||'UNKNOWN'}">${esc(s.skill_type||'–')}</span>
+    <div class="risk-bar"><div class="risk-track"><div class="risk-fill" style="width:${s.risk_score}%;background:${rc}"></div></div><span class="risk-num">${s.risk_score}</span></div>
+    <span class="badge ${(s.status||'').toUpperCase()}">${(s.status||'–').toUpperCase()}</span>
+    <div class="action-btns">${showActions
+      ? `<button class="btn-approve" onclick="reviewSkill('${s.id}','approve')">Approve</button><button class="btn-block" onclick="reviewSkill('${s.id}','block')">Block</button>`
+      : `<span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Reviewed</span>`}</div>
+  </div>`;
+}
+
+async function reviewSkill(id, action) {
+  await fetch(`${API}/api/v1/registry/${id}/${action}`,{method:'POST',headers:{'X-CoworkGuard-Licence':KEY,'Content-Type':'application/json'},body:'{}'});
+  loadRegistry(); loadActivity();
+}
+
+async function saveSettings() {
+  await fetch(API+'/api/v1/alerts/config',{method:'POST',headers:{'X-CoworkGuard-Licence':KEY,'Content-Type':'application/json'},body:JSON.stringify({slack_webhook:document.getElementById('slack-webhook').value.trim(),webhook_url:document.getElementById('webhook-url').value.trim()})});
+  const m = document.getElementById('settings-save-msg');
+  m.classList.add('show'); setTimeout(()=>m.classList.remove('show'),2500);
+}
+
+async function testAlert() {
+  await fetch(API+'/api/v1/alerts/test',{method:'POST',headers:{'X-CoworkGuard-Licence':KEY}});
+  alert('Test alert sent.');
+}
+
+function exportCSV() { window.open(`${API}/api/v1/export/csv?days=30`,'_blank'); }
+
+document.getElementById('licence-input').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+const stored = localStorage.getItem('shield_key');
+if (stored) { document.getElementById('licence-input').value = stored; login(); }
+</script>
+</body>
+</html>
