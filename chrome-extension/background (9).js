@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Katherine Holland. All rights reserved.
+ * Copyright (c) 2026 Katherine Weston. All rights reserved.
  * Licensed under MIT with Commons Clause — see LICENSE for details.
  * Commercial use prohibited without a separate commercial license.
  *
@@ -58,11 +58,22 @@ let sessionStats = { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 };
 async function detectClaudeSession() {
   try {
     const tabs = await chrome.tabs.query({});
-    const claudeTab = tabs.find(
-      (t) =>
-        t.url?.includes("claude.ai") ||
-        t.url?.includes("cowork") ||
-        t.title?.toLowerCase().includes("claude")
+    // Detect any active AI provider session — not just Claude
+    const AI_SESSION_URLS = [
+      "claude.ai", "cowork",
+      "chat.openai.com", "chatgpt.com",
+      "perplexity.ai",
+      "gemini.google.com",
+      "cursor.sh",
+      "github.com/copilot",
+      "mistral.ai",
+      "groq.com",
+    ];
+    const claudeTab = tabs.find(t =>
+      AI_SESSION_URLS.some(u => t.url?.includes(u)) ||
+      t.title?.toLowerCase().includes("claude") ||
+      t.title?.toLowerCase().includes("chatgpt") ||
+      t.title?.toLowerCase().includes("copilot")
     );
     claudeSessionActive = !!claudeTab;
     chrome.storage.local.set({ claudeSessionActive, proxyActive, sessionStats });
@@ -233,7 +244,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
   if (notifId === 'first-run' && btnIdx === 0) {
     chrome.tabs.create({
-      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg'
+      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1'
     });
   }
 });

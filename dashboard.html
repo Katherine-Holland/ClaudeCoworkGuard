@@ -197,7 +197,7 @@
       <div style="font-size:13px;font-weight:600;color:#f0a030;margin-bottom:4px">⚠️ Finish your installation — proxy not running</div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted2)">You have domain warnings but payload scanning is off. Download the macOS app to get full protection — one click to start and stop, no terminal needed.</div>
     </div>
-    <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg"
+    <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1"
        style="display:inline-flex;align-items:center;gap:8px;background:#e05a20;color:white;text-decoration:none;font-size:12px;font-weight:500;padding:10px 20px;border-radius:7px;white-space:nowrap;box-shadow:0 2px 12px rgba(224,90,32,.3);flex-shrink:0;font-family:var(--font-ui)">
       ⬇&nbsp; Finish Installation
     </a>
@@ -540,8 +540,8 @@ function updateProxyPanel(status, settings) {
 
 function updateCoworkStatus(cowork) {
   const pill=document.getElementById('cowork-status'), text=document.getElementById('status-text');
-  if (cowork?.active) { pill.className='status-pill active'; text.textContent='CLAUDE SESSION ACTIVE'; }
-  else { pill.className='status-pill inactive'; text.textContent='NO CLAUDE SESSION'; }
+  if (cowork?.active) { pill.className='status-pill active'; text.textContent='AI SESSION ACTIVE'; }
+  else { pill.className='status-pill inactive'; text.textContent='NO AI SESSION'; }
 }
 
 // ── Modal ──
