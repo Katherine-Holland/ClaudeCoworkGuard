@@ -312,22 +312,22 @@ body.annual .price-yearly{display:block}
     <p class="section-lead">Any team where a developer accidentally sending credentials or PII to an AI API is a serious incident.</p>
     <div class="vertical-grid">
       <div class="vertical-card">
-        <div class="vertical-icon"></div>
+        <div class="vertical-icon">⚖️</div>
         <div class="vertical-name">Legal</div>
         <div class="vertical-desc">Client privilege, case data, and PII must never reach an external AI endpoint without consent.</div>
       </div>
       <div class="vertical-card">
-        <div class="vertical-icon"></div>
+        <div class="vertical-icon">🏦</div>
         <div class="vertical-name">Finance</div>
         <div class="vertical-desc">Trading data, account numbers, and customer PII are heavily regulated. AI tools add a new exfiltration vector.</div>
       </div>
       <div class="vertical-card">
-        <div class="vertical-icon"></div>
+        <div class="vertical-icon">🏥</div>
         <div class="vertical-name">Healthcare</div>
         <div class="vertical-desc">HIPAA compliance requires knowing exactly what patient data reaches external systems — including AI APIs.</div>
       </div>
       <div class="vertical-card">
-        <div class="vertical-icon"></div>
+        <div class="vertical-icon">💻</div>
         <div class="vertical-name">Software</div>
         <div class="vertical-desc">API keys, database credentials, and proprietary code are at risk when developers use AI coding tools without governance.</div>
       </div>
@@ -375,7 +375,7 @@ body.annual .price-yearly{display:block}
           <div class="pf"><span class="pf-mark">✓</span><span class="pf-text">Team policy management</span></div>
           <div class="pf"><span class="pf-mark">✓</span><span class="pf-text">Up to 10 developer seats</span></div>
         </div>
-        <a class="price-btn blue" href="mailto:littlerobinagency@gmail.com?subject=CoworkGuard Shield Team">Get started →</a>
+        <a class="price-btn blue" id="btn-team" href="https://buy.stripe.com/3cI14n062eZqbmxcKfeAg03">Get started →</a>
         <div class="seats-note">Setup takes under 10 minutes · Cancel anytime</div>
       </div>
 
@@ -403,7 +403,7 @@ body.annual .price-yearly{display:block}
           <div class="pf"><span class="pf-mark">✓</span><span class="pf-text">Priority support + SLA</span></div>
           <div class="pf"><span class="pf-mark">✓</span><span class="pf-text">Custom compliance templates</span></div>
         </div>
-        <a class="price-btn ghost" href="mailto:littlerobinagency@gmail.com?subject=CoworkGuard Shield Enterprise">Contact us →</a>
+        <a class="price-btn ghost" id="btn-enterprise" href="https://buy.stripe.com/14A4gz6uq6sU0HT7pVeAg01">Contact us →</a>
         <div class="seats-note">Custom onboarding · Invoice billing available</div>
       </div>
     </div>
@@ -415,7 +415,7 @@ body.annual .price-yearly{display:block}
   <h2>Give your security team<br/><strong>AI governance.</strong></h2>
   <p>CoworkGuard Shield adds the control layer that AI agent tools don't provide — without asking developers to change how they work.</p>
   <div class="hero-actions">
-    <a class="btn-primary" href="mailto:littlerobinagency@gmail.com?subject=CoworkGuard Shield Team">Get Shield — from £49/month</a>
+    <a class="btn-primary" href="https://buy.stripe.com/3cI14n062eZqbmxcKfeAg03">Get Shield — from £49/month</a>
     <a class="btn-ghost" href="index.html">Free individual version →</a>
   </div>
 </section>
@@ -435,6 +435,16 @@ function setBilling(type) {
   document.body.classList.toggle('annual', type === 'annual');
   document.getElementById('toggle-monthly').classList.toggle('active', type === 'monthly');
   document.getElementById('toggle-annual').classList.toggle('active', type === 'annual');
+  // Swap payment links based on billing period
+  const teamBtn = document.getElementById('btn-team');
+  const entBtn = document.getElementById('btn-enterprise');
+  if (type === 'annual') {
+    if (teamBtn) teamBtn.href = 'https://buy.stripe.com/14A6oHdWS18A76h6lReAg04';
+    if (entBtn) entBtn.href = 'https://buy.stripe.com/3cI9AT0627wY8al5hNeAg02';
+  } else {
+    if (teamBtn) teamBtn.href = 'https://buy.stripe.com/3cI14n062eZqbmxcKfeAg03';
+    if (entBtn) entBtn.href = 'https://buy.stripe.com/14A4gz6uq6sU0HT7pVeAg01';
+  }
 }
 </script>
 </body>

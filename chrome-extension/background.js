@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Katherine Weston. All rights reserved.
+ * Copyright (c) 2026 Katherine Holland. All rights reserved.
  * Licensed under MIT with Commons Clause — see LICENSE for details.
  * Commercial use prohibited without a separate commercial license.
  *
@@ -132,7 +132,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       type: "basic",
       iconUrl: "icons/icon48.png",
       title: "⚠️ CoworkGuard Warning",
-      message: `A Claude session is active and you've navigated to ${matched}. Page content may be sent to Claude.`,
+      message: `An AI session is active and you've navigated to ${matched}. Page content may be sent to Claude.`,
       priority: 2,
     });
 
@@ -244,7 +244,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
   if (notifId === 'first-run' && btnIdx === 0) {
     chrome.tabs.create({
-      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1'
+      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg'
     });
   }
 });
