@@ -56,8 +56,7 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 .badge{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:500;letter-spacing:.04em;white-space:nowrap}
 .badge.BLOCKED{background:rgba(240,80,96,.12);color:#f05060;border:1px solid rgba(240,80,96,.25)}
 .badge.FLAGGED{background:rgba(240,160,48,.1);color:#f0c060;border:1px solid rgba(240,160,48,.22)}
-.badge.NO_PROXY{background:rgba(74,98,120,.1);color:var(--muted2);border:1px solid var(--border)}
-  .badge.CLEAN  {background:rgba(61,214,140,.07);color:#3dd68c;border:1px solid rgba(61,214,140,.2)}
+.badge.CLEAN  {background:rgba(61,214,140,.07);color:#3dd68c;border:1px solid rgba(61,214,140,.2)}
 .badge.WARNING{background:rgba(224,90,32,.1);color:var(--accent2);border:1px solid rgba(224,90,32,.25)}
 .event-detail{color:var(--muted2);font-size:10px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empty{padding:20px 14px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px}
@@ -86,7 +85,7 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 <!-- Shown when Claude session detected but proxy not running -->
 <div class="partial-banner" id="partial-banner">
   <div style="margin-bottom:6px">Payload scanning is off.</div>
-  <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg" style="display:inline-flex;align-items:center;gap:6px;background:#e05a20;color:white;text-decoration:none;font-size:10px;font-weight:500;padding:6px 12px;border-radius:5px;margin-top:2px">
+  <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1" style="display:inline-flex;align-items:center;gap:6px;background:#e05a20;color:white;text-decoration:none;font-size:10px;font-weight:500;padding:6px 12px;border-radius:5px;margin-top:2px">
     ⬇ Finish Installation
   </a>
 </div>
@@ -101,13 +100,13 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 <div id="skill-alert" style="display:none;background:rgba(240,80,96,.07);border-bottom:1px solid rgba(240,80,96,.18);padding:8px 14px;font-size:10px;font-family:var(--mono)">
   <div style="display:flex;align-items:center;justify-content:space-between">
     <span style="color:#f08090;font-weight:500" id="skill-alert-text">Skill scanner findings</span>
-    <span style="color:var(--muted);cursor:pointer" onclick="showSkillsTab()">View →</span>
+    <span style="color:var(--muted);cursor:pointer" id="btn-show-skills">View →</span>
   </div>
 </div>
 
 <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;padding-right:14px">
   <span>Recent Events</span>
-  <span id="tab-toggle" style="font-size:9px;color:var(--accent2);cursor:pointer;letter-spacing:.06em" onclick="toggleTab()">SKILLS</span>
+  <span id="tab-toggle" style="font-size:9px;color:var(--accent2);cursor:pointer;letter-spacing:.06em" id="tab-toggle">SKILLS</span>
 </div>
 <div class="event-list" id="event-list">
   <div class="empty">No events yet</div>
@@ -117,146 +116,11 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 </div>
 
 <div class="footer">
-  <button class="footer-btn primary" onclick="openDashboard()">Open Dashboard</button>
-  <button class="footer-btn" onclick="openSkillsTab()">Skills</button>
-  <button class="footer-btn" onclick="clearData()">Clear</button>
+  <button class="footer-btn primary" id="btn-dashboard">Open Dashboard</button>
+  <button class="footer-btn" id="btn-skills">Skills</button>
+  <button class="footer-btn" id="btn-clear">Clear</button>
 </div>
 
-<script>
-let showingSkills = false;
-
-function openDashboard() {
-  chrome.tabs.create({ url: 'http://localhost:7070' });
-  window.close();
-}
-
-function openSkillsTab() {
-  chrome.tabs.create({ url: 'http://localhost:7070#skills' });
-  window.close();
-}
-
-function showSkillsTab() {
-  showingSkills = true;
-  document.getElementById('event-list').style.display = 'none';
-  document.getElementById('skill-list').style.display = 'block';
-  document.getElementById('tab-toggle').textContent = 'EVENTS';
-}
-
-function toggleTab() {
-  showingSkills = !showingSkills;
-  document.getElementById('event-list').style.display = showingSkills ? 'none' : 'block';
-  document.getElementById('skill-list').style.display = showingSkills ? 'block' : 'none';
-  document.getElementById('tab-toggle').textContent = showingSkills ? 'EVENTS' : 'SKILLS';
-}
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-async function clearData() {
-  await chrome.runtime.sendMessage({ type: 'CLEAR_LOG' });
-  document.getElementById('s-blocked').textContent = '0';
-  document.getElementById('s-flagged').textContent = '0';
-  document.getElementById('s-clean').textContent   = '0';
-  document.getElementById('event-list').innerHTML  = '<div class="empty">Cleared</div>';
-}
-
-async function loadSkillScans() {
-  try {
-    const res = await fetch('http://localhost:7070/api/skill-scans?limit=50');
-    if (!res.ok) return;
-    const data = await res.json();
-    const scans = (data.scans || []).filter(s => s.action !== 'CLEAN').slice(0, 8);
-    const allScans = data.scans || [];
-
-    // Show alert banner if any blocked/flagged skill scans
-    const notable = allScans.filter(s => s.action !== 'CLEAN');
-    const blocked = notable.filter(s => s.action === 'BLOCKED').length;
-    const alert = document.getElementById('skill-alert');
-    const alertText = document.getElementById('skill-alert-text');
-    if (notable.length > 0) {
-      alert.style.display = 'block';
-      alertText.textContent = blocked > 0
-        ? `${blocked} skill${blocked>1?'s':''} blocked — supply chain risk`
-        : `${notable.length} skill${notable.length>1?'s':''} flagged for review`;
-    }
-
-    // Populate skills list
-    const list = document.getElementById('skill-list');
-    if (!scans.length) {
-      list.innerHTML = '<div class="empty">No skill findings</div>';
-      return;
-    }
-    list.innerHTML = scans.map(s => {
-      const ts = new Date(s.timestamp).toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit'});
-      const filename = esc(s.file_path.split('/').pop());
-      const topFinding = s.findings?.[0]?.type || '';
-      const detail = topFinding ? `${esc(s.skill_type)} — ${esc(topFinding)}` : esc(s.skill_type);
-      return `<div class="event-item">
-        <span class="badge ${esc(s.action)}">${esc(s.action)}</span>
-        <span class="event-detail" title="${esc(s.file_path)}">${filename} ${detail}</span>
-        <span style="color:var(--muted);font-size:10px;white-space:nowrap">${ts}</span>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    // Server not available — silently skip skill data
-  }
-}
-
-async function load() {
-  chrome.runtime.sendMessage({ type: 'GET_STATUS' }, resp => {
-    if (!resp) return;
-
-    const pill    = document.getElementById('status-pill');
-    const text    = document.getElementById('status-text');
-    const banner  = document.getElementById('partial-banner');
-    const { claudeSessionActive, proxyActive, sessionStats: s } = resp;
-
-    if (claudeSessionActive && proxyActive) {
-      pill.className = 'pill full';
-      text.textContent = 'FULL PROTECTION';
-      banner.style.display = 'none';
-    } else if (claudeSessionActive && !proxyActive) {
-      pill.className = 'pill partial';
-      text.textContent = 'PARTIAL PROTECTION';
-      banner.style.display = 'block';
-    } else if (!claudeSessionActive) {
-      pill.className = 'pill inactive';
-      text.textContent = 'NO CLAUDE SESSION';
-      banner.style.display = 'none';
-    } else {
-      pill.className = 'pill unknown';
-      text.textContent = 'CHECKING';
-    }
-
-    document.getElementById('s-blocked').textContent = s?.blocked ?? '0';
-    document.getElementById('s-flagged').textContent = s?.flagged ?? '0';
-    document.getElementById('s-clean').textContent   = s?.clean   ?? '0';
-  });
-
-  chrome.storage.local.get(['auditLog'], result => {
-    const log  = result.auditLog || [];
-    const list = document.getElementById('event-list');
-    if (!log.length) { list.innerHTML = '<div class="empty">No events yet</div>'; return; }
-    list.innerHTML = log.slice(0, 8).map(e => {
-      const action = e.action || 'UNKNOWN';
-      const ts     = new Date(e.timestamp).toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit'});
-      const detail = e.type === 'DOMAIN_WARNING'
-        ? `Domain: ${e.domain || '–'}`
-        : (e.findings?.length ? e.findings.map(f=>f.type).join(', ') : 'Clean');
-      return `<div class="event-item">
-        <span class="badge ${action}">${action}</span>
-        <span class="event-detail">${detail}</span>
-        <span style="color:var(--muted);font-size:10px;white-space:nowrap">${ts}</span>
-      </div>`;
-    }).join('');
-  });
-
-  // Load skill scan data from local server
-  await loadSkillScans();
-}
-
-load();
-</script>
+<script src="popup.js"></script>
 </body>
 </html>

@@ -244,7 +244,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
   if (notifId === 'first-run' && btnIdx === 0) {
     chrome.tabs.create({
-      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.0_aarch64.dmg'
+      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1'
     });
   }
 });
