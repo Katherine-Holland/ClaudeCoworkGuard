@@ -7,6 +7,7 @@
  * Monitors tab navigation and API requests, enforces domain blocklist,
  * communicates with local proxy audit log.
  */
+
 // ─────────────────────────────────────────────
 // Sensitive domain list — loaded from shared domains.json
 // Single source of truth with scanner.py
