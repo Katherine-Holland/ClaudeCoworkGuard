@@ -43,7 +43,7 @@ async function clearData() {
 
 async function loadSkillScans() {
   try {
-    const res = await fetch('http://localhost:7070/api/skill-scans?limit=50');
+    const res = await fetch('http://localhost:7070/api/skill-scans?limit=50', { signal: AbortSignal.timeout(2000) });
     if (!res.ok) return;
     const data = await res.json();
     const scans = (data.scans || []).filter(s => s.action !== 'CLEAN').slice(0, 8);
@@ -121,7 +121,7 @@ async function load() {
       const ts     = new Date(e.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
       const detail = e.type === 'DOMAIN_WARNING'
         ? `Domain: ${e.domain || '–'}`
-        : (e.findings?.length ? e.findings.map(f => f.type).join(', ') : 'Clean');
+        : (e.findings?.length ? esc(e.findings.map(f => f.type).join(', ')) : 'Clean');
       return `<div class="event-item">
         <span class="badge ${action}">${action}</span>
         <span class="event-detail">${detail}</span>
