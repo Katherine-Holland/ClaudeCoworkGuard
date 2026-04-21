@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────
 let SENSITIVE_DOMAINS = [
   "console.aws.amazon.com", "app.datadoghq.com", "grafana.",
-  "jenkins.", "gitlab.", "github.com", "bitbucket.",
+  "jenkins.", "gitlab.", "github.com/settings", "github.com/orgs", "github.com/enterprises", "bitbucket.",
   "jira.", "confluence.", "notion.so", "linear.app",
   "stripe.com/dashboard", "twilio.com/console",
   "mail.google.com", "outlook.live.com", "outlook.office",
@@ -55,20 +55,21 @@ let sessionStats = { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 };
 // Note: does NOT detect the Claude desktop app — that requires
 // the local server.py (psutil process detection) to be running.
 // ─────────────────────────────────────────────
+// AI provider URLs — defined once at module scope
+const AI_SESSION_URLS = [
+  "claude.ai", "cowork",
+  "chat.openai.com", "chatgpt.com",
+  "perplexity.ai",
+  "gemini.google.com",
+  "cursor.sh",
+  "github.com/copilot",
+  "mistral.ai",
+  "groq.com",
+];
+
 async function detectClaudeSession() {
   try {
     const tabs = await chrome.tabs.query({});
-    // Detect any active AI provider session — not just Claude
-    const AI_SESSION_URLS = [
-      "claude.ai", "cowork",
-      "chat.openai.com", "chatgpt.com",
-      "perplexity.ai",
-      "gemini.google.com",
-      "cursor.sh",
-      "github.com/copilot",
-      "mistral.ai",
-      "groq.com",
-    ];
     const claudeTab = tabs.find(t =>
       AI_SESSION_URLS.some(u => t.url?.includes(u)) ||
       t.title?.toLowerCase().includes("claude") ||
@@ -76,7 +77,7 @@ async function detectClaudeSession() {
       t.title?.toLowerCase().includes("copilot")
     );
     claudeSessionActive = !!claudeTab;
-    chrome.storage.local.set({ claudeSessionActive, proxyActive, sessionStats });
+    chrome.storage.local.set({ claudeSessionActive, sessionStats });
     updateIcon();
   } catch (e) {
     console.error("[CoworkGuard] Detection error:", e);
@@ -105,7 +106,17 @@ function updateIcon() {
 // Domain guard — warns when navigating to sensitive pages
 // ─────────────────────────────────────────────
 function isSensitiveDomain(url) {
-  return SENSITIVE_DOMAINS.find((d) => url.includes(d));
+  try {
+    const { hostname } = new URL(url);
+    return SENSITIVE_DOMAINS.find(d => {
+      // For short/generic entries like "hr." and "payroll." match as subdomain prefix
+      if (d.endsWith('.')) {
+        return hostname.startsWith(d) || hostname.includes('.' + d.slice(0, -1) + '.');
+      }
+      // For full hostnames match exactly or as subdomain
+      return hostname === d || hostname.endsWith('.' + d) || url.includes(d);
+    });
+  } catch { return null; }
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
