@@ -38,7 +38,7 @@ function injectWarningBanner(domain) {
         <div>
           <strong style="color:#ff6666;">CoworkGuard Warning</strong>
           <span style="color:#ffaaaa;margin-left:8px;">
-            Claude Cowork is active — page content on <strong>${domain}</strong> may be sent to Claude
+            CoworkGuard: AI session active — content on <strong>${domain}</strong> may be visible to your AI tool
           </span>
         </div>
       </div>
@@ -65,8 +65,8 @@ function injectWarningBanner(domain) {
 
   document.documentElement.prepend(banner);
 
-  // Auto-dismiss after 15 seconds
-  setTimeout(() => banner.remove(), 15000);
+  // Auto-dismiss after 10 seconds
+  setTimeout(() => banner.remove(), 10000);
 }
 
 //Copyright (c) 2026 Katherine Weston. All rights reserved.
