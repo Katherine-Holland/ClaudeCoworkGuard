@@ -45,13 +45,8 @@ let proxyActive = false;          // CoworkGuard proxy is running and scanning
 let sessionStats = { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 };
 
 // ─────────────────────────────────────────────
-// Claude session detection
-// Detects if any Claude-related tab is open in the browser.
-// Note: this triggers on any claude.ai tab including the standard
-// chat interface — not just Cowork. This is intentional for v1.0
-// as CoworkGuard now covers all AI agents, not just Cowork.
-// A future improvement would be to detect the specific Cowork
-// interface vs standard Claude chat and adjust warning severity.
+// Session detection
+// Detects if any AI-related tab is open in the browser.
 // Note: does NOT detect the Claude desktop app — that requires
 // the local server.py (psutil process detection) to be running.
 // ─────────────────────────────────────────────
@@ -108,13 +103,19 @@ function updateIcon() {
 function isSensitiveDomain(url) {
   try {
     const { hostname } = new URL(url);
+    const parts = hostname.split('.');
     return SENSITIVE_DOMAINS.find(d => {
-      // For short/generic entries like "hr." and "payroll." match as subdomain prefix
       if (d.endsWith('.')) {
-        return hostname.startsWith(d) || hostname.includes('.' + d.slice(0, -1) + '.');
+        // Subdomain-prefix entries e.g. "hr." — match any hostname whose
+        // leftmost label equals the prefix, avoiding partial-word matches.
+        // "hr." matches hr.acme.com and sub.hr.acme.com but NOT xhr.acme.com.
+        const label = d.slice(0, -1);
+        return parts[0] === label || parts.includes(label);
       }
-      // For full hostnames match exactly or as subdomain
-      return hostname === d || hostname.endsWith('.' + d) || url.includes(d);
+      // Path-qualified entries e.g. "stripe.com/dashboard" — use url.includes
+      if (d.includes('/')) return url.includes(d);
+      // Plain hostname entries — exact match or subdomain
+      return hostname === d || hostname.endsWith('.' + d);
     });
   } catch { return null; }
 }
@@ -143,7 +144,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       type: "basic",
       iconUrl: "icons/icon48.png",
       title: "⚠️ CoworkGuard Warning",
-      message: `An AI session is active and you've navigated to ${matched}. Page content may be sent to Claude.`,
+      message: `An AI session is active and you've navigated to ${matched}. Page content may be sent to connected AI providers.`,
       priority: 2,
     });
 
@@ -207,12 +208,16 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
 // ─────────────────────────────────────────────
 // Audit log (stored locally in chrome.storage)
+// A queue serializes writes so concurrent calls don't race and drop entries.
 // ─────────────────────────────────────────────
-async function logEvent(event) {
-  const { auditLog = [] } = await chrome.storage.local.get("auditLog");
-  auditLog.unshift(event);
-  if (auditLog.length > 500) auditLog.splice(500);
-  chrome.storage.local.set({ auditLog });
+let _logQueue = Promise.resolve();
+function logEvent(event) {
+  _logQueue = _logQueue.then(async () => {
+    const { auditLog = [] } = await chrome.storage.local.get("auditLog");
+    auditLog.unshift(event);
+    if (auditLog.length > 500) auditLog.splice(500);
+    await chrome.storage.local.set({ auditLog });
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -223,10 +228,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ claudeSessionActive, proxyActive, sessionStats });
   }
   if (msg.type === "CLEAR_LOG") {
-    chrome.storage.local.set({
-      auditLog: [],
-      sessionStats: { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 }
-    });
+    sessionStats = { blocked: 0, flagged: 0, clean: 0, domainWarnings: 0 };
+    chrome.storage.local.set({ auditLog: [], sessionStats });
     sendResponse({ ok: true });
   }
   return true;
@@ -255,7 +258,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
   if (notifId === 'first-run' && btnIdx === 0) {
     chrome.tabs.create({
-      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.2'
+      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1'
     });
   }
 });
