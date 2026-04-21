@@ -43,7 +43,7 @@ async function clearData() {
 
 async function loadSkillScans() {
   try {
-    const res = await fetch('http://localhost:7070/api/skill-scans?limit=50');
+    const res = await fetch('http://localhost:7070/api/skill-scans?limit=50', { signal: AbortSignal.timeout(2000) });
     if (!res.ok) return;
     const data = await res.json();
     const scans = (data.scans || []).filter(s => s.action !== 'CLEAN').slice(0, 8);

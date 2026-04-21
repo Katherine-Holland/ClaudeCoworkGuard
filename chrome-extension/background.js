@@ -244,7 +244,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
   if (notifId === 'first-run' && btnIdx === 0) {
     chrome.tabs.create({
-      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.1'
+      url: 'https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.2'
     });
   }
 });
