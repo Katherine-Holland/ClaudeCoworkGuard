@@ -236,7 +236,7 @@
       </div>
       <div class="log-col-header"><span>Timestamp</span><span>Action</span><span>Type</span><span>Detail</span></div>
       <div class="event-log" id="event-log">
-        <div class="empty-state"><div class="empty-icon">⏳</div><div>Connecting to local server…<br><span style="font-size:11px;color:var(--muted)">Run: python3 server.py</span></div></div>
+        <div class="empty-state"><div class="empty-icon">🛡️</div><div>Loading…</div></div>
       </div>
     </div>
 
@@ -481,8 +481,10 @@ function renderLog() {
   const filtered = currentFilter === 'ALL' ? allEvents : allEvents.filter(e => e.action===currentFilter||e.type===currentFilter);
   if (!filtered.length) {
     const msg = !serverAvailable
-      ? '<div class="empty-icon">🔌</div><div>Server offline — run <code style="color:var(--accent)">python3 server.py</code></div>'
-      : '<div class="empty-icon">🔍</div><div>No events match this filter</div>';
+      ? '<div class="empty-icon">🔌</div><div>Server offline — make sure CoworkGuard is running</div>'
+      : currentFilter === 'ALL'
+        ? '<div class="empty-icon">🛡️</div><div>No events yet — protection is active and scanning</div>'
+        : '<div class="empty-icon">🔍</div><div>No events match this filter</div>';
     log.innerHTML = `<div class="empty-state">${msg}</div>`; return;
   }
   log.innerHTML = filtered.map((e,i) => {
