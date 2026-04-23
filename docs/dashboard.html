@@ -103,6 +103,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);-webkit-font-s
 .btn-approve:hover{background:rgba(61,214,140,.15)}
 .btn-block{padding:4px 10px;border-radius:4px;font-size:10px;font-family:var(--mono);cursor:pointer;border:1px solid rgba(240,80,96,.25);background:rgba(240,80,96,.08);color:var(--danger);transition:all .15s}
 .btn-block:hover{background:rgba(240,80,96,.15)}
+.skill-detail{padding:10px 20px 14px;background:rgba(0,0,0,.15);border-top:1px solid rgba(28,42,56,.5);font-size:11px;font-family:var(--mono)}
+.skill-detail-row{display:flex;gap:8px;margin-bottom:6px;align-items:flex-start}
+.skill-detail-label{color:var(--muted);min-width:80px;flex-shrink:0}
+.skill-detail-val{color:var(--text)}
+.finding-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;margin:2px 2px 2px 0}
+.finding-pill.CRITICAL{background:rgba(240,80,96,.12);color:var(--danger);border:1px solid rgba(240,80,96,.2)}
+.finding-pill.HIGH{background:rgba(240,160,48,.1);color:var(--warn);border:1px solid rgba(240,160,48,.18)}
+.finding-pill.MEDIUM{background:rgba(74,98,120,.1);color:var(--muted2);border:1px solid var(--border)}
 .settings-title{font-size:14px;font-weight:600;color:var(--heading);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .setting-row{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(28,42,56,.4);gap:20px}
 .setting-row:last-child{border-bottom:none}
@@ -302,14 +310,29 @@ async function loadRegistry() {
 
 function skillRow(s, showActions) {
   const rc = s.risk_score>=70?'#f05060':s.risk_score>=40?'#f0a030':'#3dd68c';
-  return `<div class="skill-row">
-    <span class="skill-name" title="${esc(s.name)}">${esc(s.name)}</span>
-    <span class="skill-type-badge ${s.skill_type||'UNKNOWN'}">${esc(s.skill_type||'–')}</span>
-    <div class="risk-bar"><div class="risk-track"><div class="risk-fill" style="width:${s.risk_score}%;background:${rc}"></div></div><span class="risk-num">${s.risk_score}</span></div>
-    <span class="badge ${(s.status||'').toUpperCase()}">${(s.status||'–').toUpperCase()}</span>
-    <div class="action-btns">${showActions
-      ? `<button class="btn-approve" onclick="reviewSkill('${s.id}','approve')">Approve</button><button class="btn-block" onclick="reviewSkill('${s.id}','block')">Block</button>`
-      : `<span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Reviewed</span>`}</div>
+  const findings = Array.isArray(s.findings) ? s.findings : [];
+  const findingPills = findings.length
+    ? findings.map(f=>`<span class="finding-pill ${esc(f.severity||'MEDIUM')}">${esc(f.type||f.pattern_name||'Unknown')} <span style="opacity:.6">L${f.line||'?'}</span></span>`).join('')
+    : '<span style="color:var(--success);font-size:10px">✓ No findings</span>';
+  const machine = esc(s.added_by || 'unknown machine');
+  const reviewedBy = s.reviewed_by ? `<div class="skill-detail-row"><span class="skill-detail-label">Reviewed by</span><span class="skill-detail-val">${esc(s.reviewed_by)}</span></div>` : '';
+  const hash = s.file_hash ? `<div class="skill-detail-row"><span class="skill-detail-label">Hash</span><span class="skill-detail-val" style="font-size:10px;color:var(--muted)">${esc(s.file_hash)}</span></div>` : '';
+
+  return `<div class="skill-row" style="flex-direction:column;align-items:stretch;padding:0">
+    <div style="display:grid;grid-template-columns:1fr 80px 90px 90px 140px;align-items:center;gap:12px;padding:12px 20px">
+      <span class="skill-name" title="${esc(s.name)}">${esc(s.name)}</span>
+      <span class="skill-type-badge ${s.skill_type||'UNKNOWN'}">${esc(s.skill_type||'–')}</span>
+      <div class="risk-bar"><div class="risk-track"><div class="risk-fill" style="width:${s.risk_score}%;background:${rc}"></div></div><span class="risk-num">${s.risk_score}</span></div>
+      <span class="badge ${(s.status||'').toUpperCase()}">${(s.status||'–').toUpperCase()}</span>
+      <div class="action-btns">${showActions
+        ? `<button class="btn-approve" onclick="reviewSkill('${s.id}','approve')">Approve</button><button class="btn-block" onclick="reviewSkill('${s.id}','block')">Block</button>`
+        : `<span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Reviewed</span>`}</div>
+    </div>
+    <div class="skill-detail">
+      <div class="skill-detail-row"><span class="skill-detail-label">Machine</span><span class="skill-detail-val">${machine}</span></div>
+      <div class="skill-detail-row"><span class="skill-detail-label">Findings</span><span class="skill-detail-val">${findingPills}</span></div>
+      ${hash}${reviewedBy}
+    </div>
   </div>`;
 }
 
