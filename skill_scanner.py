@@ -203,6 +203,92 @@ def get_log_path() -> Path:
 def write_log(entry: dict):
     with open(get_log_path(), "a") as f:
         f.write(json.dumps(entry) + "\n")
+# ─────────────────────────────────────────────
+# CoworkGuard Shield integration (optional)
+# Only active when shield_licence_key is set in settings.json
+# ─────────────────────────────────────────────
+
+def _load_shield_config() -> dict:
+    """Load Shield licence key and endpoint from settings.json."""
+    settings_file = Path.home() / ".coworkguard" / "settings.json"
+    if settings_file.exists():
+        try:
+            with open(settings_file) as f:
+                s = json.load(f)
+                return {
+                    "licence_key": s.get("shield_licence_key", ""),
+                    "endpoint": s.get("shield_endpoint", "https://coworkguard-shield.onrender.com"),
+                }
+        except Exception:
+            pass
+    return {"licence_key": "", "endpoint": ""}
+
+
+def _get_machine_id() -> str:
+    """Return a stable anonymous machine identifier."""
+    id_file = Path.home() / ".coworkguard" / "machine_id"
+    if id_file.exists():
+        return id_file.read_text().strip()
+    import uuid
+    mid = str(uuid.uuid4())[:16]
+    id_file.parent.mkdir(parents=True, exist_ok=True)
+    id_file.write_text(mid)
+    return mid
+
+
+def _report_to_shield(result: SkillScanResult):
+    """
+    Optionally ship a skill scan result to CoworkGuard Shield.
+    Only called when shield_licence_key is present in settings.json.
+    Fires in a background thread — never blocks the scanner.
+    Raw file content is never sent. Hashes, metadata, and finding types only.
+    """
+    import threading
+    import urllib.request
+
+    config = _load_shield_config()
+    if not config["licence_key"]:
+        return  # Shield not configured — skip silently
+
+    def _send():
+        try:
+            payload = json.dumps({
+                "name": Path(result.file_path).name,
+                "hash": result.file_hash,
+                "skill_type": result.skill_type,
+                "machine_id": _get_machine_id(),
+                "machine_name": platform.node(),
+                "risk_score": result.risk_score,
+                "findings": [
+                    {"type": f.pattern_name, "severity": f.severity, "line": f.line_number}
+                    for f in result.findings
+                ],
+            }).encode()
+
+            req = urllib.request.Request(
+                f"{config['endpoint']}/api/v1/registry/check",
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-CoworkGuard-Licence": config["licence_key"],
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                status = data.get("status", "unknown")
+                if status == "blocked":
+                    log.warning(f"[Shield] Skill blocked by org policy: {Path(result.file_path).name}")
+                elif status == "pending":
+                    log.info(f"[Shield] Skill quarantined pending review: {Path(result.file_path).name}")
+                elif status == "approved":
+                    log.info(f"[Shield] Skill approved in org registry: {Path(result.file_path).name}")
+        except Exception as e:
+            log.debug(f"[Shield] Could not reach Shield API: {e}")
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
 
 # ─────────────────────────────────────────────
 # Data classes
@@ -536,6 +622,7 @@ class SkillWatcher:
 
         # Always write to audit log
         write_log(result.to_jsonl())
+        _report_to_shield(result)  # Shield integration — no-op if not configured
 
         if result.action == "CLEAN":
             log.info(f"✓ CLEAN — {path.name} (risk score: {result.risk_score})")
