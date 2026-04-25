@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CoworkGuard",
-  "version": "1.0.3",
-  "description": "Monitors and guards against sensitive data exposure when Claude Cowork is active.",
+  "version": "1.0.4",
+  "description": "Local firewall for AI agents- monitors outbound API requests. Blocks sensitive data before it leaves your machine.",
   "permissions": [
     "tabs",
     "activeTab",
