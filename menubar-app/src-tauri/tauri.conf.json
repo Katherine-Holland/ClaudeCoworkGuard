@@ -41,14 +41,17 @@
       "signingIdentity": "Developer ID Application: Kathy Weston (R7Z3X3LDRF)",
       "entitlements": null
     },
-    "resources": {
-      "../../scanner.py": "scanner.py",
-      "../../skill_scanner.py": "skill_scanner.py",
-      "../../proxy.py": "proxy.py",
-      "../../server.py": "server.py",
-      "../../dashboard.html": "dashboard.html",
-      "../../domains.json": "domains.json"
-    },
+  "resources": {
+    "../../scanner.py": "scanner.py",
+    "../../skill_scanner.py": "skill_scanner.py",
+    "../../proxy.py": "proxy.py",
+    "../../server.py": "server.py",
+    "../../dashboard.html": "dashboard.html",
+    "../../domains.json": "domains.json",
+    "../../clipboard_monitor.py": "clipboard_monitor.py",
+    "../../file_write_monitor.py": "file_write_monitor.py",
+    "../../COWORKGUARD_TOOL_SPEC.md": "COWORKGUARD_TOOL_SPEC.md"
+  },
     "shortDescription": "Privacy protection for AI agents",
     "targets": "all"
   }

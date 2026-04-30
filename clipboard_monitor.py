@@ -13,6 +13,7 @@ Polls every 2 seconds using pbpaste (macOS built-in, no extra deps).
 
 import json
 import subprocess
+import sys
 import time
 import hashlib
 import logging
@@ -20,6 +21,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from scanner import CoworkScanner
+
+if sys.platform != "darwin":
+    print(f"[CoworkGuard] clipboard_monitor is macOS-only (running on {sys.platform}) — exiting.")
+    sys.exit(0)
 
 # ─────────────────────────────────────────────
 # Config

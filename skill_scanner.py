@@ -9,6 +9,8 @@ On-demand: python3 skill_scanner.py /path/to/skill
 © 2026 Katherine Weston. All Rights Reserved.
 """
 
+from __future__ import annotations
+
 import re
 import sys
 import json

@@ -85,10 +85,11 @@ LOG_DIR = Path.home() / ".coworkguard" / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
 
-# Tune these to your risk tolerance
+# Initialized with safe defaults; block thresholds are refreshed from
+# settings.json on every request so dashboard changes take effect immediately.
 scanner = CoworkScanner(
-    block_on_critical=True,   # Block SSNs, raw private keys, CC numbers
-    block_on_high=False,      # Flag but don't block JWTs, bearer tokens etc
+    block_on_critical=True,
+    block_on_high=False,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [CoworkGuard] %(message)s")
@@ -186,10 +187,15 @@ def request(flow: http.HTTPFlow):
     if not raw_body:
         return
 
+    # Reload settings on every request so dashboard changes take effect
+    # without restarting the proxy.
+    settings = load_settings()
+    scanner.block_on_critical = settings.get("block_on_critical", True)
+    scanner.block_on_high     = settings.get("block_on_high", False)
+
     # ── Folder allowlist check ──
     # If user has configured allowed_folders, check payload for paths
     # originating outside those folders before the request leaves the machine.
-    settings = load_settings()
     allowed_folders = settings.get("allowed_folders", [])
     if allowed_folders:
         try:

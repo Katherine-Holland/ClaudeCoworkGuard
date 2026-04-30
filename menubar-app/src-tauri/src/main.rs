@@ -344,21 +344,14 @@ fn main() {
                             let _ = std::fs::create_dir_all(&settings_dir);
                             let settings_path = settings_dir.join("settings.json");
                             let existing = std::fs::read_to_string(&settings_path).unwrap_or_default();
-                            let content = if existing.trim().starts_with('{') {
-                                let stripped = existing.trim()
-                                    .trim_start_matches('{').trim_end_matches('}');
-                                let cleaned: String = stripped.split(',')
-                                    .filter(|s| !s.contains("\"quiet_mode\""))
-                                    .collect::<Vec<_>>().join(",");
-                                if cleaned.trim().is_empty() {
-                                    format!("{{\"quiet_mode\":{}}}", new_quiet)
-                                } else {
-                                    format!("{{{},\"quiet_mode\":{}}}", cleaned.trim().trim_matches(','), new_quiet)
-                                }
-                            } else {
-                                format!("{{\"quiet_mode\":{}}}", new_quiet)
-                            };
-                            let _ = std::fs::write(settings_path, content);
+                            let mut obj: serde_json::Value = serde_json::from_str(&existing)
+                                .unwrap_or_else(|_| serde_json::json!({}));
+                            if let Some(map) = obj.as_object_mut() {
+                                map.insert("quiet_mode".to_string(), serde_json::Value::Bool(new_quiet));
+                            }
+                            if let Ok(content) = serde_json::to_string_pretty(&obj) {
+                                let _ = std::fs::write(settings_path, content);
+                            }
                         }
                         "about" => { let _ = open::that("https://coworkguard.com"); }
                         "quit" => { stop_coworkguard(app); std::process::exit(0); }

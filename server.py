@@ -16,7 +16,7 @@ Runs on http://localhost:7070
 
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -351,7 +351,7 @@ def status():
         "proxy":     detect_proxy(),
         "settings":  load_settings(),
         "server":    "ok",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     })
 
 
@@ -510,7 +510,7 @@ def ble_status():
     settings = load_settings()
     entries = read_logs(limit=50)
     recent = [e for e in entries if e.get("timestamp", "") > (
-        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")[:16]  # last ~60s approx
+        datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")[:16]  # last ~60s approx
     )]
     critical = any(e.get("action") == "BLOCKED" for e in recent)
     flagged  = any(e.get("action") == "FLAGGED" for e in recent)
