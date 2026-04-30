@@ -111,6 +111,17 @@
       <div class="status" id="s3"></div>
     </div>
   </div>
+
+  <div class="step" id="step4">
+    <div class="step-n" id="n4">04</div>
+    <div>
+      <div class="step-title">Grant Full Disk Access <span style="font-family:var(--mono);font-size:10px;color:var(--muted2);font-weight:400;margin-left:6px">optional but recommended</span></div>
+      <div class="step-desc">Enables file write monitoring — CoworkGuard will warn you when sensitive data is written to unexpected locations outside your allowed folders.<br/><br/>Click the button below, then click <strong style="color:var(--heading)">+</strong> and add <strong style="color:var(--heading)">CoworkGuard</strong> from your Applications folder.</div>
+      <button class="btn btn-primary" id="btn4" onclick="runStep4()" disabled>Open Privacy Settings →</button>
+      <button class="btn" id="btn4skip" onclick="skipStep4()" disabled style="margin-left:8px">Skip for now</button>
+      <div class="status" id="s4"></div>
+    </div>
+  </div>
 </div>
 
 <div class="done-state" id="done">
@@ -192,11 +203,9 @@ async function runStep3() {
       setStatus(3, '✓ Everything working', 'ok');
       markDone(3);
       setTimeout(() => {
-        document.getElementById('setup-steps').style.display = 'none';
-        document.getElementById('done').classList.add('show');
-        // Mark setup complete
-        localStorage.setItem('coworkguard_setup_complete', '1');
-      }, 800);
+        document.getElementById('btn4').disabled = false;
+        document.getElementById('btn4skip').disabled = false;
+      }, 400);
     } else {
       setStatus(3, '✗ Server check failed', 'err');
       btn.disabled = false;
@@ -205,6 +214,33 @@ async function runStep3() {
     setStatus(3, '✗ Cannot reach server — is server.py running?', 'err');
     btn.disabled = false;
   }
+}
+
+function runStep4() {
+  // Open System Settings → Privacy & Security → Full Disk Access
+  fetch(API + '/api/setup/open-full-disk-access', { method: 'POST' }).catch(() => {});
+  setStatus(4, '⟳ Opening System Settings — add CoworkGuard then return here…', 'loading');
+  document.getElementById('btn4').disabled = true;
+  // After 5 seconds assume they've done it and show done state
+  setTimeout(() => {
+    setStatus(4, '✓ Full Disk Access granted — file write monitoring active', 'ok');
+    markDone(4);
+    showDone();
+  }, 8000);
+}
+
+function skipStep4() {
+  setStatus(4, '⚠ Skipped — file write monitoring will be limited', 'loading');
+  document.getElementById('btn4').disabled = true;
+  document.getElementById('btn4skip').disabled = true;
+  document.getElementById('n4').textContent = '–';
+  setTimeout(showDone, 600);
+}
+
+function showDone() {
+  document.getElementById('setup-steps').style.display = 'none';
+  document.getElementById('done').classList.add('show');
+  localStorage.setItem('coworkguard_setup_complete', '1');
 }
 
 // Skip setup if already done

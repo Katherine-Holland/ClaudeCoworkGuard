@@ -490,6 +490,20 @@ def post_settings():
 
 
 
+
+@app.route("/api/setup/open-full-disk-access", methods=["POST"])
+def open_full_disk_access():
+    """Open System Settings to Full Disk Access so user can grant permission."""
+    import subprocess
+    try:
+        subprocess.Popen([
+            "open",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+        ])
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/ble-status")
 def ble_status():
     """Lightweight status endpoint for physical alert devices (ESP32 etc)."""
