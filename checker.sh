@@ -31,7 +31,7 @@ fi
 
 # ── Proxy is on but mitmproxy is not running — notify user ───────────
 # Use AppleScript to show a friendly dialog (better than osascript notification)
-osascript << 'APPLESCRIPT'
+osascript << APPLESCRIPT
 set response to button returned of (display dialog "Your internet may not be working properly.
 
 CoworkGuard's protection was left on when your Mac last restarted, but the scanner isn't running.
@@ -48,7 +48,7 @@ if response is "Start CoworkGuard" then
     do script "echo '🛡️ Starting CoworkGuard...' && ~/CoworkGuard/start.sh"
   end tell
 else if response is "Turn Off Protection" then
-  do shell script "networksetup -setwebproxystate Wi-Fi off; networksetup -setsecurewebproxystate Wi-Fi off"
+  do shell script "networksetup -setwebproxystate '$NETWORK_SERVICE' off; networksetup -setsecurewebproxystate '$NETWORK_SERVICE' off"
   display notification "Your internet connection has been restored. Run ~/CoworkGuard/start.sh whenever you want protection back on." with title "🛡️ CoworkGuard" subtitle "Protection turned off"
 end if
 APPLESCRIPT

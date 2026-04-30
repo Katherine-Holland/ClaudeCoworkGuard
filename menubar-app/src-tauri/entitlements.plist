@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Required for mitmproxy (port 8080) and Flask server (port 7070) -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+
+    <!-- Required for outbound connections and opening URLs via open::that -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- Required to spawn mitmdump, python3, and other child processes -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+
+    <!-- Hardened runtime — required for notarization -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+</dict>
+</plist>
