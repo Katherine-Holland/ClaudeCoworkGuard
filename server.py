@@ -52,6 +52,8 @@ DEFAULT_SETTINGS = {
     "alert_on_domain": True,
     "custom_patterns": [],
     "custom_blocked_domains": [],
+    "allowed_folders": [],          # folders AI tools are allowed to read from
+    "quiet_mode": False,
 }
 
 
@@ -73,6 +75,51 @@ def save_settings(data):
     with open(SETTINGS, "w") as f:
         json.dump(merged, f, indent=2)
     return merged
+
+
+# ─────────────────────────────────────────────
+# Folder allowlist — exit point check
+# ─────────────────────────────────────────────
+
+def is_path_allowed(path_str: str, allowed_folders: list) -> bool:
+    """
+    Check if a file path falls within the user's allowed folders.
+    Returns True if allowed_folders is empty (no restriction set).
+    Returns True if the path is within any allowed folder.
+    Returns False if allowed_folders is set and path is outside all of them.
+    """
+    if not allowed_folders:
+        return True  # no restriction configured — allow all
+    try:
+        p = Path(path_str).expanduser().resolve()
+        for folder in allowed_folders:
+            allowed = Path(folder).expanduser().resolve()
+            try:
+                p.relative_to(allowed)
+                return True
+            except ValueError:
+                continue
+        return False
+    except Exception:
+        return True  # if we can't parse the path, don't block
+
+
+def check_payload_folders(payload: dict, allowed_folders: list) -> list:
+    """
+    Scan a payload dict for file paths and check them against the allowlist.
+    Returns a list of blocked paths (empty if all clear).
+    """
+    if not allowed_folders:
+        return []
+    blocked = []
+    payload_str = json.dumps(payload)
+    import re
+    # Match common path patterns
+    paths = re.findall(r'(?:\/[\w\/.~-]+|~\/[\w\/.~-]+)', payload_str)
+    for path in paths:
+        if len(path) > 3 and not is_path_allowed(path, allowed_folders):
+            blocked.append(path)
+    return blocked
 
 # ─────────────────────────────────────────────
 # Process detection
@@ -419,10 +466,64 @@ def post_settings():
             ]
             validated["custom_blocked_domains"] = safe
 
+    if "allowed_folders" in data:
+        folders = data["allowed_folders"]
+        if isinstance(folders, list):
+            safe = []
+            for f in folders:
+                if isinstance(f, str) and f.strip():
+                    # Expand and validate the path exists
+                    try:
+                        p = Path(f.strip()).expanduser()
+                        safe.append(str(p)[:500])
+                    except Exception:
+                        pass
+            validated["allowed_folders"] = safe
+
+    if "quiet_mode" in data:
+        validated["quiet_mode"] = bool(data["quiet_mode"])
+
     saved = save_settings(validated)
     sig = Path.home() / ".coworkguard" / ".settings_updated"
     sig.touch()
     return jsonify({"ok": True, "settings": saved})
+
+
+
+@app.route("/api/ble-status")
+def ble_status():
+    """Lightweight status endpoint for physical alert devices (ESP32 etc)."""
+    settings = load_settings()
+    entries = read_logs(limit=50)
+    recent = [e for e in entries if e.get("timestamp", "") > (
+        datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")[:16]  # last ~60s approx
+    )]
+    critical = any(e.get("action") == "BLOCKED" for e in recent)
+    flagged  = any(e.get("action") == "FLAGGED" for e in recent)
+    proxy    = detect_proxy().get("running", False)
+
+    if critical:
+        return jsonify({"status": "BLOCKED", "colour": "red",   "flash": True})
+    elif flagged:
+        return jsonify({"status": "FLAGGED", "colour": "amber", "flash": False})
+    elif proxy:
+        return jsonify({"status": "CLEAN",   "colour": "green", "flash": False})
+    else:
+        return jsonify({"status": "OFF",     "colour": "off",   "flash": False})
+
+
+@app.route("/api/folder-check", methods=["POST"])
+def folder_check():
+    """Check if a payload contains paths outside the allowed folders."""
+    settings = load_settings()
+    allowed = settings.get("allowed_folders", [])
+    payload = request.get_json(force=True) or {}
+    blocked_paths = check_payload_folders(payload, allowed)
+    return jsonify({
+        "ok": len(blocked_paths) == 0,
+        "blocked_paths": blocked_paths,
+        "allowed_folders": allowed,
+    })
 
 
 @app.route("/api/clear", methods=["POST"])

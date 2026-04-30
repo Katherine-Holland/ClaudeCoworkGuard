@@ -137,6 +137,15 @@
   .save-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:16px 20px;border-top:1px solid var(--border);background:rgba(0,0,0,.2)}
   .save-msg{font-family:var(--font-mono);font-size:11px;color:var(--success);opacity:0;transition:opacity .3s}
   .save-msg.show{opacity:1}
+  .folder-list{display:flex;flex-direction:column;gap:8px;margin-top:12px;min-height:40px}
+  .folder-item{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--text)}
+  .folder-item-path{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .folder-remove{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;transition:color .15s;flex-shrink:0}
+  .folder-remove:hover{color:var(--danger)}
+  .folder-add-row{display:flex;gap:8px;margin-top:10px}
+  .folder-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:var(--font-mono);font-size:11px;outline:none;transition:border-color .2s}
+  .folder-input:focus{border-color:var(--accent)}
+  .folder-empty{color:var(--muted);font-family:var(--font-mono);font-size:11px;padding:8px 0}
   .textarea-field{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-mono);font-size:11px;padding:10px 12px;resize:vertical;min-height:80px;margin-top:8px;transition:border-color .2s}
   .textarea-field:focus{outline:none;border-color:var(--accent)}
 
@@ -383,6 +392,23 @@
     </div>
 
     <div class="settings-card">
+      <div class="panel-header"><span class="panel-title">Folder Access Control</span></div>
+      <div class="settings-body">
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start">
+          <div class="setting-label" style="margin-bottom:4px">Allowed Folders</div>
+          <div class="setting-desc">AI tools can only send data from these folders via API calls. Content from all other folders is blocked at exit. Leave empty to allow all folders.</div>
+          <div class="folder-list" id="folder-list"></div>
+          <div class="folder-add-row">
+            <input class="folder-input" id="folder-input" placeholder="~/projects or /Users/you/work" type="text"/>
+            <button class="btn primary" onclick="addFolder()">Add</button>
+            <button class="btn" onclick="browseFolderHint()">?</button>
+          </div>
+        </div>
+      </div>
+      <div class="save-bar"><span class="save-msg" id="save-msg-4">✓ Saved</span><button class="btn primary" onclick="saveFolders()">Save Changes</button></div>
+    </div>
+
+    <div class="settings-card">
       <div class="panel-header"><span class="panel-title">About CoworkGuard</span></div>
       <div class="settings-body">
         <div class="setting-row"><div class="setting-info"><div class="setting-label">Version</div></div><span style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">1.0.0</span></div>
@@ -583,6 +609,59 @@ function closeModal(e) {
 }
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
+
+// ── Folder Access Control ──
+let allowedFolders = [];
+
+function renderFolderList() {
+  const list = document.getElementById('folder-list');
+  if (!list) return;
+  if (!allowedFolders.length) {
+    list.innerHTML = '<div class="folder-empty">No folders set — all folders allowed. Add a folder to restrict access.</div>';
+    return;
+  }
+  list.innerHTML = allowedFolders.map((f, i) => `
+    <div class="folder-item">
+      <span class="folder-item-path" title="${esc(f)}">${esc(f)}</span>
+      <button class="folder-remove" onclick="removeFolder(${i})" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function addFolder() {
+  const input = document.getElementById('folder-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!allowedFolders.includes(val)) {
+    allowedFolders.push(val);
+    renderFolderList();
+  }
+  input.value = '';
+}
+
+function removeFolder(idx) {
+  allowedFolders.splice(idx, 1);
+  renderFolderList();
+}
+
+function browseFolderHint() {
+  alert('Type a folder path like ~/projects or /Users/yourname/work\n\nUse ~ for your home directory.\n\nExample: ~/Documents/client-work');
+}
+
+async function saveFolders() {
+  try {
+    const r = await fetch(API+'/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({ allowed_folders: allowedFolders }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const d = await r.json();
+    currentSettings = d.settings;
+    const msg = document.getElementById('save-msg-4');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2500);
+  } catch(e) { alert('Could not save — is server.py running?'); }
+}
+
 // ── Settings ──
 function loadSettingsIntoForm() {
   const s = currentSettings; if (!Object.keys(s).length) return;
@@ -594,6 +673,8 @@ function loadSettingsIntoForm() {
   document.getElementById('s-max-logs').value         = s.max_log_entries||1000;
   document.getElementById('s-custom-patterns').value  = (s.custom_patterns||[]).join('\n');
   document.getElementById('s-custom-domains').value   = (s.custom_blocked_domains||[]).join('\n');
+  allowedFolders = s.allowed_folders || [];
+  renderFolderList();
 }
 
 async function saveSettings(msgId) {

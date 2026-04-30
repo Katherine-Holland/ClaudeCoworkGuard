@@ -38,6 +38,7 @@ from pathlib import Path
 from mitmproxy import http
 
 from scanner import CoworkScanner, ScanResult
+from server import load_settings, check_payload_folders
 
 # ─────────────────────────────────────────────
 # AI API endpoints to monitor
@@ -185,8 +186,50 @@ def request(flow: http.HTTPFlow):
     if not raw_body:
         return
 
+    # ── Folder allowlist check ──
+    # If user has configured allowed_folders, check payload for paths
+    # originating outside those folders before the request leaves the machine.
+    settings = load_settings()
+    allowed_folders = settings.get("allowed_folders", [])
+    if allowed_folders:
+        try:
+            payload_dict = json.loads(raw_body)
+            blocked_paths = check_payload_folders(payload_dict, allowed_folders)
+            if blocked_paths:
+                body = json.dumps({
+                    "error": {
+                        "type": "coworkguard_folder_policy",
+                        "message": f"CoworkGuard blocked this request — content from outside allowed folders detected",
+                        "blocked_paths": blocked_paths[:5],  # cap list length
+                        "allowed_folders": allowed_folders,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                })
+                flow.response = http.Response.make(
+                    403, body,
+                    {"Content-Type": "application/json", "X-CoworkGuard": "FOLDER_BLOCKED"}
+                )
+                log.warning(
+                    f"FOLDER_BLOCKED [{provider}] {url} — paths outside allowed folders: "
+                    f"{blocked_paths[:3]}"
+                )
+                # Write to audit log
+                from dataclasses import field as dc_field
+                import hashlib
+                fake_result = ScanResult(
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    payload_hash=hashlib.sha256(raw_body).hexdigest()[:16],
+                    payload_size_bytes=len(raw_body),
+                    blocked=True,
+                    action="BLOCKED",
+                )
+                write_audit(fake_result, url, method, provider)
+                return
+        except Exception:
+            pass  # if we can't parse JSON, fall through to normal scan
+
     # Run scan
-    result = scanner.scan_json_payload(raw_body)
+    result = scanner.scan_json_payload(raw_body, url=url)
 
     # Always write to audit log
     write_audit(result, url, method, provider)
