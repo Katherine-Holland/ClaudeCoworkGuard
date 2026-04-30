@@ -26,6 +26,8 @@ fn find_mitmproxy() -> String {
     let candidates = [
         "/opt/homebrew/bin/mitmdump",
         "/usr/local/bin/mitmdump",
+        "/Library/Frameworks/Python.framework/Versions/3.14/bin/mitmdump",
+        "/Library/Frameworks/Python.framework/Versions/3.13/bin/mitmdump",
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmdump",
         "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmdump",
     ];
@@ -41,6 +43,8 @@ fn find_python() -> String {
     let candidates = [
         "/opt/homebrew/bin/python3",
         "/usr/local/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
         "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
         "/usr/bin/python3",
