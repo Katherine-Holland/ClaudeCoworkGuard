@@ -41,7 +41,7 @@ This isn't a theoretical risk. Prompt injection, data exfiltration via hidden do
 
 | Feature | Description |
 |---|---|
-| **Payload scanner** | 48 patterns detecting PII, secrets, and internal data in every outbound request |
+| **Payload scanner** | 76 patterns detecting PII, secrets, and internal data in every outbound request |
 | **Active blocking** | Configurable by severity — CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
 | **Skill scanner** | Watch mode scanner for Cowork, OpenClaw, and MCP skills — detects supply chain attacks, obfuscated payloads, and excessive permissions before a skill executes |
 | **Domain guard** | In-page warning banner + Chrome notification when a Claude session is active and you navigate to a sensitive domain |
@@ -50,6 +50,10 @@ This isn't a theoretical risk. Prompt injection, data exfiltration via hidden do
 | **Payload trend chart** | 24-hour bar chart showing data volume sent per hour, colour-coded by worst action |
 | **Settings panel** | Toggle block levels, add custom patterns and domains — no config file editing required |
 | **Menubar app** | Native macOS menubar app — start/stop protection with one click, no terminal required |
+| **Clipboard monitoring** | Warns when sensitive data (API keys, SSNs) detected in clipboard |
+| **File write monitoring** | Warns when AI tools write sensitive data outside your allowed folders |
+| **Folder access control** | Define which folders AI tools are allowed to read from — content from all others blocked at exit |
+| **Physical alert (ESP32)** | LED strip on your desk lights up red when a critical payload is blocked |
 | **Zero cloud dependency** | Everything runs locally. No accounts, no telemetry, no data leaves your machine |
 
 ---
@@ -118,7 +122,7 @@ Browser / AI Agent Tools
          ▼
  ┌──────────────┐      ┌─────────────────────────────────┐
  │  mitmdump    │─────▶│  scanner.py  (Detection engine) │
- │  proxy.py    │      │  • 48 severity-scored patterns   │
+ │  proxy.py    │      │  • 76 severity-scored patterns   │
  └──────────────┘      │  • Payload hash (never raw)      │
          │              │  • Redacted finding previews     │
          │              └─────────────────────────────────┘
@@ -144,10 +148,12 @@ Browser / AI Agent Tools
  │  28 patterns · macOS notifications · JSONL audit log │
  └──────────────────────────────────────────────────────┘
 
- ┌──────────────────────────────────────┐
- │  CoworkGuard.app (macOS menubar)     │
- │  One-click start/stop · No terminal  │
- └──────────────────────────────────────┘
+ ┌──────────────────────────────────────────────────────┐
+ │  CoworkGuard.app (macOS menubar)                     │
+ │  One-click start/stop · No terminal                  │
+ │  Spawns: proxy · server · skill_scanner              │
+ │          clipboard_monitor · file_write_monitor      │
+ └──────────────────────────────────────────────────────┘
 
  Chrome Extension (parallel layer)
  ┌────────────────────────────────────────────┐
@@ -171,12 +177,16 @@ coworkguard/
 ├── skill_scanner.py        # Skill supply chain scanner — watch mode
 ├── proxy.py                # mitmproxy interceptor script
 ├── server.py               # Local Flask API server for dashboard
+├── clipboard_monitor.py    # Clipboard monitoring — warns on sensitive clipboard content
+├── file_write_monitor.py   # File write monitoring — warns on writes outside allowed folders
 ├── dashboard.html          # Audit dashboard UI
 ├── domains.json            # Shared sensitive domains list
+├── COWORKGUARD_TOOL_SPEC.md # MCP tool scope specification
 ├── README.md
 ├── tests/
 │   ├── test_coworkguard.py # 71 tests for scanner.py
 │   └── test_skill_scanner.py # 56 tests for skill_scanner.py
+│   └── (127 tests total passing)
 ├── docs/                   # GitHub Pages — public site
 │   ├── index.html          # Landing page
 │   ├── privacy.html        # Privacy policy
@@ -201,7 +211,12 @@ coworkguard/
 
 ### Option 1 — macOS Menubar App (recommended)
 
-Download `CoworkGuard_1.0.0_aarch64.dmg` from the [latest release](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases).
+Download the DMG for your Mac from the [latest release](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases):
+
+| Mac | Download |
+|-----|----------|
+| Apple Silicon (M1/M2/M3) | `CoworkGuard_1.0.1_aarch64.dmg` |
+| Intel + Apple Silicon | `CoworkGuard_1.0.1_universal.dmg` |
 
 1. Open the `.dmg` and drag CoworkGuard to Applications
 2. Open CoworkGuard — a shield icon appears in your menubar
@@ -260,6 +275,8 @@ All settings are available through the dashboard at `http://localhost:7070` — 
 | Max Log Entries | 1000 | Audit log rotation limit |
 | Custom Patterns | — | Your own regex patterns, applied at MEDIUM severity |
 | Custom Domains | — | Additional domains to monitor |
+| Allowed Folders | — | Folders AI tools are permitted to read from. Content from all other folders blocked at exit |
+| Quiet Mode | ❌ Off | Suppress all notifications — log findings silently |
 
 ---
 
@@ -317,10 +334,17 @@ Add your own in the Settings panel.
 ## Roadmap
 
 ### Immediate
-- [ ] Chrome Web Store approval — resubmitted
+- [x] Chrome Web Store — v1.0.3 published
+- [x] Universal DMG — Intel + Apple Silicon
 
 ### Post-launch (v1.x)
 - [x] **Skill scanner** — ✅ shipped — watch mode, 28 patterns, 56 tests passing
+- [x] Clipboard monitoring — warns on sensitive clipboard content
+- [x] File write monitoring — warns on writes outside allowed folders
+- [x] Folder access control — allowlist at folder level
+- [x] Physical alert (ESP32 + LED strip) — desk LEDs flash red on critical block
+- [x] CoworkGuard MCP Tool Spec — scope declaration for tool authors
+- [ ] Confirm-before-send — hold request, user decides allow/block/always allow
 - [ ] Mac App Store distribution (menubar app)
 - [ ] Windows support
 - [ ] Firefox extension
