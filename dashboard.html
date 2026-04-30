@@ -98,6 +98,7 @@
   .badge.HIGH{background:rgba(255,152,0,.15);color:#ffb74d;border:1px solid rgba(255,152,0,.4)}
   .badge.MEDIUM{background:rgba(255,235,59,.08);color:#fff176;border:1px solid rgba(255,235,59,.3)}
   .badge.CLIPBOARD{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.25)}
+  .badge.FILEWRITE{background:rgba(234,179,8,.1);color:#fbbf24;border:1px solid rgba(234,179,8,.25)}
   .event-type{color:var(--muted);font-size:11px}
   .event-detail{color:var(--text);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .finding-tag{display:inline-block;background:rgba(224,90,32,.08);border:1px solid rgba(224,90,32,.2);color:var(--accent2);padding:1px 6px;border-radius:3px;font-size:10px;margin-right:4px}
@@ -243,6 +244,7 @@
         <button class="filter-btn" onclick="setFilter('FLAGGED',this)">Flagged</button>
         <button class="filter-btn" onclick="setFilter('DOMAIN_WARNING',this)">Domain Warnings</button>
         <button class="filter-btn" onclick="setFilter('CLIPBOARD_WARNING',this)">Clipboard</button>
+        <button class="filter-btn" onclick="setFilter('FILE_WRITE_WARNING',this)">File Writes</button>
         <button class="filter-btn" onclick="setFilter('CLEAN',this)">Clean</button>
       </div>
       <div class="log-col-header"><span>Timestamp</span><span>Action</span><span>Type</span><span>Detail</span></div>
@@ -519,12 +521,14 @@ function renderLog() {
     const ts = new Date(e.timestamp);
     const time = ts.toLocaleTimeString('en-US',{hour12:false});
     const date = ts.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':esc(e.action||'UNKNOWN');
-    const type   = e.type==='DOMAIN_WARNING'?'DOMAIN':e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':'API';
+    const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILEWRITE':esc(e.action||'UNKNOWN');
+    const type   = e.type==='DOMAIN_WARNING'?'DOMAIN':e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILE':'API';
     let detail = e.type==='DOMAIN_WARNING'
       ? `⚠️ Navigated to <strong style="color:var(--warn)">${esc(e.domain||e.url)}</strong> while AI agent active`
       : e.type==='CLIPBOARD_WARNING'
         ? `📋 Clipboard contains sensitive data: ${e.findings?.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')||'unknown'}`
+      : e.type==='FILE_WRITE_WARNING'
+        ? `📄 File written outside allowed folders: <strong style="color:var(--warn)">${esc((e.url||'').split('/').pop())}</strong>${e.findings?.length?` — ${e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')}`:''}`
       : e.findings?.length
         ? e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')
         : `<span style="color:var(--muted)">No sensitive data detected</span>`;

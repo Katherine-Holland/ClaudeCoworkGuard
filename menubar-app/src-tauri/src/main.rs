@@ -17,6 +17,7 @@ struct AppState {
     server_process:             Mutex<Option<Child>>,
     skill_scanner_process:      Mutex<Option<Child>>,
     clipboard_monitor_process:  Mutex<Option<Child>>,
+    file_write_monitor_process: Mutex<Option<Child>>,
     is_running:                 Mutex<bool>,
     quiet_mode:                 Mutex<bool>,
 }
@@ -206,6 +207,14 @@ fn start_coworkguard(app: &AppHandle) {
             Ok(child) => { *state.clipboard_monitor_process.lock().unwrap() = Some(child); }
             Err(e) => eprintln!("[CoworkGuard] clipboard_monitor.py failed: {}", e),
         }
+        let file_write_monitor = Command::new(&python_bin)
+            .args(["file_write_monitor.py"])
+            .current_dir(&dir)
+            .spawn();
+        match file_write_monitor {
+            Ok(child) => { *state.file_write_monitor_process.lock().unwrap() = Some(child); }
+            Err(e) => eprintln!("[CoworkGuard] file_write_monitor.py failed: {}", e),
+        }
         enable_proxy();
         *state.is_running.lock().unwrap() = true;
         let _ = rebuild_menu(&app_handle, true);
@@ -219,11 +228,13 @@ fn stop_coworkguard(app: &AppHandle) {
     if let Some(mut c) = state.server_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.skill_scanner_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.clipboard_monitor_process.lock().unwrap().take() { let _ = c.kill(); }
+    if let Some(mut c) = state.file_write_monitor_process.lock().unwrap().take() { let _ = c.kill(); }
     let _ = Command::new("pkill").args(["-f", "mitmdump"]).output();
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
     let _ = Command::new("pkill").args(["-f", "skill_scanner.py"]).output();
     let _ = Command::new("pkill").args(["-f", "clipboard_monitor.py"]).output();
+    let _ = Command::new("pkill").args(["-f", "file_write_monitor.py"]).output();
     std::thread::sleep(std::time::Duration::from_millis(500));
     kill_port(8080);
     kill_port(7070);
@@ -295,6 +306,7 @@ fn main() {
             server_process:             Mutex::new(None),
             skill_scanner_process:      Mutex::new(None),
             clipboard_monitor_process:  Mutex::new(None),
+            file_write_monitor_process: Mutex::new(None),
             is_running:                 Mutex::new(false),
             quiet_mode:                 Mutex::new(false),
         })
