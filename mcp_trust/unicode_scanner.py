@@ -60,6 +60,11 @@ HOMOGLYPHS = {
     '\u03bf': 'o', '\u03b1': 'a', '\u03b5': 'e',
     '\uff41': 'a', '\uff45': 'e', '\uff4f': 'o',
     '\uff52': 'r', '\uff53': 's',
+    '\u0399': 'i',  # Greek capital Iota
+    '\u0391': 'a',  # Greek capital Alpha
+    '\u039f': 'o',  # Greek capital Omicron
+    '\u0395': 'e',  # Greek capital Epsilon
+    '\u0392': 'b',  # Greek capital Beta
 }
 
 INJECTION_KEYWORDS = [
@@ -173,7 +178,7 @@ class UnicodeHiddenTextScanner:
             reasons.add(REASON_INSTRUCTION_OVERRIDE)
 
         ws_count = self._count_suspicious_whitespace(text)
-        if ws_count > 3:
+        if ws_count > 1:
             findings.append(Finding(
                 pattern_name="SUSPICIOUS_WHITESPACE",
                 severity=SEVERITY_MEDIUM,
