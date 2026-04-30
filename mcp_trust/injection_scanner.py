@@ -119,7 +119,7 @@ INJECTION_PATTERNS = [
     # Trying to make the LLM call other tools
     {
         "name": "TOOL_CALL_COERCE",
-        "pattern": r"(?i)(you\s+must|you\s+should|immediately|next)\s+(call|invoke|run|execute|use)\s+(the\s+|this\s+)?(tool|function|api|command)",
+        "pattern": r"(?i)(you\s+must|you\s+should|immediately)(\s+\w+){0,3}\s+(call|invoke|run|execute|use)(\s+\w+){0,3}\s+(tool|function|api|command)",
         "severity": SEVERITY_HIGH,
         "reason": REASON_TOOL_CHAINING,
         "description": "Tool chaining coercion",
@@ -142,7 +142,7 @@ INJECTION_PATTERNS = [
     # ── Exfiltration instructions (CRITICAL) ──
     {
         "name": "EXFIL_SEND",
-        "pattern": r"(?i)(send|forward|transmit|upload|post|submit)\s+(this|the|all|these|everything|the\s+above|the\s+following)\s+(to|via|using|through)",
+        "pattern": r"(?i)(send|forward|transmit|upload|post|submit)\s+(all\s+of\s+)?(this|the|all|these|everything)\s+(to|via|using|through)",
         "severity": SEVERITY_CRITICAL,
         "reason": REASON_EXFILTRATION_ATTEMPT,
         "description": "Exfiltration instruction — send to",
