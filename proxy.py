@@ -40,6 +40,15 @@ from mitmproxy import http
 from scanner import CoworkScanner, ScanResult
 from server import load_settings, check_payload_folders
 
+# MCP Trust Gateway — scans tool responses before they reach the LLM
+try:
+    from mcp_trust.policy_engine import PolicyEngine
+    _policy_engine = PolicyEngine()
+    MCP_TRUST_AVAILABLE = True
+except ImportError:
+    MCP_TRUST_AVAILABLE = False
+    log_placeholder = None
+
 # ─────────────────────────────────────────────
 # AI API endpoints to monitor
 # ─────────────────────────────────────────────
@@ -66,6 +75,21 @@ AI_HOSTS = [
     # xAI / Grok
     "api.x.ai",
 ]
+
+# MCP HTTP/SSE tool server patterns — intercept tool responses
+MCP_TOOL_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+]
+
+def is_mcp_tool_host(host: str) -> bool:
+    """Return True if this looks like a local MCP tool server."""
+    for h in MCP_TOOL_HOSTS:
+        if h in host:
+            return True
+    return False
+
 
 # Label map for cleaner log output
 HOST_LABELS = {
@@ -261,12 +285,111 @@ def request(flow: http.HTTPFlow):
         flow.request.headers["X-CoworkGuard-Provider"] = provider
 
 
+def write_mcp_audit(decision, url: str, tool_name: str):
+    """Write MCP trust gateway decision to audit log."""
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "MCP_TOOL_RESPONSE",
+        "url": url,
+        "tool_name": tool_name,
+        "action": decision.recommended_action,
+        "blocked": decision.is_blocked,
+        "payload_hash": decision.merged.results[0].payload_hash if decision.merged.results else "",
+        "finding_count": len(decision.merged.all_findings),
+        "reasons": decision.merged.all_reasons,
+        "findings": [
+            {
+                "type": f.pattern_name,
+                "severity": f.severity,
+                "preview": f.match_preview,
+                "blocked": f.blocked,
+            }
+            for f in decision.merged.all_findings
+        ],
+    }
+    with open(LOG_FILE, "a") as fh:
+        fh.write(json.dumps(entry) + "\n")
+
+
 def response(flow: http.HTTPFlow):
-    """Tag responses so the dashboard knows which were intercepted."""
-    if not matched_host(flow.request.pretty_host):
+    """
+    Intercept responses:
+    1. Tag AI API responses with CoworkGuard action headers
+    2. Scan MCP tool responses through the policy engine before
+       they can reach the LLM context
+    """
+    host = flow.request.pretty_host
+
+    # ── AI API responses — tag headers ──
+    if matched_host(host):
+        action = flow.request.headers.get("X-CoworkGuard-Action", "UNKNOWN")
+        provider = flow.request.headers.get("X-CoworkGuard-Provider", "Unknown")
+        flow.response.headers["X-CoworkGuard-Intercepted"] = "true"
+        flow.response.headers["X-CoworkGuard-Action"] = action
+        flow.response.headers["X-CoworkGuard-Provider"] = provider
         return
-    action = flow.request.headers.get("X-CoworkGuard-Action", "UNKNOWN")
-    provider = flow.request.headers.get("X-CoworkGuard-Provider", "Unknown")
-    flow.response.headers["X-CoworkGuard-Intercepted"] = "true"
-    flow.response.headers["X-CoworkGuard-Action"] = action
-    flow.response.headers["X-CoworkGuard-Provider"] = provider
+
+    # ── MCP tool responses — scan through policy engine ──
+    if not MCP_TRUST_AVAILABLE:
+        return
+    if not is_mcp_tool_host(host):
+        return
+    if flow.response.status_code not in (200, 201):
+        return
+
+    raw_body = flow.response.content
+    if not raw_body:
+        return
+
+    try:
+        body_text = raw_body.decode("utf-8", errors="replace")
+    except Exception:
+        return
+
+    # Extract tool name from request path or headers
+    tool_name = flow.request.path.strip("/").split("/")[-1] or "unknown_tool"
+    tool_server = f"http://{host}"
+
+    # Extract tool metadata from request if available
+    tool_description = ""
+    tool_schema = None
+    try:
+        req_body = json.loads(flow.request.content or b"{}")
+        tool_description = req_body.get("description", "")
+        tool_schema = req_body.get("inputSchema") or req_body.get("schema")
+    except Exception:
+        pass
+
+    # Run through policy engine
+    decision = _policy_engine.evaluate(
+        tool_output=body_text,
+        tool_name=tool_name,
+        tool_description=tool_description,
+        tool_schema=tool_schema,
+        tool_server=tool_server,
+    )
+
+    # Write to audit log
+    write_mcp_audit(decision, flow.request.pretty_url, tool_name)
+
+    # Take action
+    if decision.is_blocked or decision.is_quarantined:
+        log.warning(
+            f"MCP_BLOCKED [{tool_name}] {flow.request.pretty_url} — "
+            f"{decision.merged.all_reasons}"
+        )
+        flow.response = http.Response.make(
+            403,
+            decision.safe_response or "{}",
+            {"Content-Type": "application/json", "X-CoworkGuard": "MCP_BLOCKED"}
+        )
+    elif decision.requires_confirmation:
+        log.info(
+            f"MCP_CONFIRM [{tool_name}] {flow.request.pretty_url} — "
+            f"held for user review"
+        )
+        # Tag response — dashboard will show confirm UI
+        flow.response.headers["X-CoworkGuard-MCP"] = "CONFIRM"
+        flow.response.headers["X-CoworkGuard-MCP-Message"] = decision.user_message[:200]
+    else:
+        flow.response.headers["X-CoworkGuard-MCP"] = "CLEAN"
