@@ -351,6 +351,6 @@ if __name__ == "__main__":
         print(f"  Reasons:  {decision.merged.all_reasons}")
         if decision.user_message:
             print(f"  Message:  {decision.user_message[:80]}...")
-        print(f"  Findings: {decision.merged.finding_count}")
+        print(f"  Findings: {len(decision.merged.all_findings)}")
 
     tmp.unlink(missing_ok=True)
