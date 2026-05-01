@@ -30,10 +30,13 @@ Usage:
 Then set your system proxy to 127.0.0.1:8080
 """
 
+import hashlib
 import json
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Dict, Optional
 
 from mitmproxy import http
 
@@ -76,19 +79,19 @@ AI_HOSTS = [
     "api.x.ai",
 ]
 
-# MCP HTTP/SSE tool server patterns — intercept tool responses
-MCP_TOOL_HOSTS = [
+# MCP HTTP/SSE tool server patterns — intercept tool responses.
+# Use exact hostname matching (not substring) to prevent bypass via
+# hostnames like "notlocalhost.com" or "localhost.evil.com".
+MCP_TOOL_HOSTS = {
     "localhost",
     "127.0.0.1",
-    "0.0.0.0",
-]
+}
 
 def is_mcp_tool_host(host: str) -> bool:
-    """Return True if this looks like a local MCP tool server."""
-    for h in MCP_TOOL_HOSTS:
-        if h in host:
-            return True
-    return False
+    """Return True if this is a local MCP tool server (exact host match)."""
+    # Strip port if present
+    bare = host.split(":")[0].lower()
+    return bare in MCP_TOOL_HOSTS
 
 
 # Label map for cleaner log output
@@ -107,14 +110,27 @@ HOST_LABELS = {
 
 LOG_DIR = Path.home() / ".coworkguard" / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOG_FILE = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+
+def _log_file() -> Path:
+    """Return today's audit log path — computed at write time so the proxy
+    never writes to a stale previous-day file after midnight."""
+    return LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
 
 # Initialized with safe defaults; block thresholds are refreshed from
 # settings.json on every request so dashboard changes take effect immediately.
+# A lock guards the two mutable attributes against concurrent mitmproxy threads.
 scanner = CoworkScanner(
     block_on_critical=True,
     block_on_high=False,
 )
+_scanner_lock = threading.Lock()
+
+# Cache of tool metadata from MCP tools/list responses, keyed by server host.
+# Populated when we see a tools/list response; consumed when evaluating
+# tool/call responses from the same server.
+# { "host": { "tool_name": {"description": str, "inputSchema": dict} } }
+_tool_metadata_cache: Dict[str, Dict] = {}
+_cache_lock = threading.Lock()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [CoworkGuard] %(message)s")
 log = logging.getLogger("coworkguard")
@@ -161,7 +177,7 @@ def write_audit(result: ScanResult, url: str, method: str, ai_provider: str):
             for f in result.findings
         ],
     }
-    with open(LOG_FILE, "a") as fh:
+    with open(_log_file(), "a") as fh:
         fh.write(json.dumps(entry) + "\n")
 
 
@@ -212,10 +228,11 @@ def request(flow: http.HTTPFlow):
         return
 
     # Reload settings on every request so dashboard changes take effect
-    # without restarting the proxy.
+    # without restarting the proxy. Lock guards concurrent attribute mutation.
     settings = load_settings()
-    scanner.block_on_critical = settings.get("block_on_critical", True)
-    scanner.block_on_high     = settings.get("block_on_high", False)
+    with _scanner_lock:
+        scanner.block_on_critical = settings.get("block_on_critical", True)
+        scanner.block_on_high     = settings.get("block_on_high", False)
 
     # ── Folder allowlist check ──
     # If user has configured allowed_folders, check payload for paths
@@ -244,8 +261,6 @@ def request(flow: http.HTTPFlow):
                     f"{blocked_paths[:3]}"
                 )
                 # Write to audit log
-                from dataclasses import field as dc_field
-                import hashlib
                 fake_result = ScanResult(
                     timestamp=datetime.now(timezone.utc).isoformat(),
                     payload_hash=hashlib.sha256(raw_body).hexdigest()[:16],
@@ -307,7 +322,7 @@ def write_mcp_audit(decision, url: str, tool_name: str):
             for f in decision.merged.all_findings
         ],
     }
-    with open(LOG_FILE, "a") as fh:
+    with open(_log_file(), "a") as fh:
         fh.write(json.dumps(entry) + "\n")
 
 
@@ -343,26 +358,80 @@ def response(flow: http.HTTPFlow):
 
     try:
         body_text = raw_body.decode("utf-8", errors="replace")
+        resp_json = json.loads(body_text)
     except Exception:
         return
 
-    # Extract tool name from request path or headers
-    tool_name = flow.request.path.strip("/").split("/")[-1] or "unknown_tool"
     tool_server = f"http://{host}"
+    path = flow.request.path
 
-    # Extract tool metadata from request if available
-    tool_description = ""
-    tool_schema = None
+    # ── Cache tools/list responses ──
+    # MCP tools/list returns {"tools": [{"name":..., "description":..., "inputSchema":...}]}
+    # Store per server so we can look up metadata when tool/call responses arrive.
+    if "tools/list" in path or (
+        isinstance(resp_json, dict) and "tools" in resp_json
+        and isinstance(resp_json.get("tools"), list)
+        and resp_json["tools"]
+        and "name" in resp_json["tools"][0]
+    ):
+        tools_list = resp_json.get("tools", [])
+        if tools_list:
+            with _cache_lock:
+                _tool_metadata_cache[host] = {
+                    t["name"]: {
+                        "description": t.get("description", ""),
+                        "inputSchema": t.get("inputSchema"),
+                    }
+                    for t in tools_list
+                    if isinstance(t, dict) and "name" in t
+                }
+            log.info(f"MCP_CACHE [{host}] cached metadata for {len(tools_list)} tool(s)")
+        return  # tools/list itself is not a tool output — nothing to scan
+
+    # ── Resolve tool name and metadata ──
+    # Try JSON-RPC 2.0 result format: {"result": {"content": [...]}, "id": ...}
+    # or plain {"content": [...]} for simpler servers.
+    tool_name = "unknown_tool"
     try:
         req_body = json.loads(flow.request.content or b"{}")
-        tool_description = req_body.get("description", "")
-        tool_schema = req_body.get("inputSchema") or req_body.get("schema")
+        # JSON-RPC 2.0: method="tools/call", params={"name": "tool_name", ...}
+        params = req_body.get("params", {})
+        if isinstance(params, dict) and "name" in params:
+            tool_name = params["name"]
+        else:
+            # Fall back to last path segment
+            tool_name = path.strip("/").split("/")[-1] or "unknown_tool"
+    except Exception:
+        tool_name = path.strip("/").split("/")[-1] or "unknown_tool"
+
+    # Look up description and schema from cached tools/list data
+    tool_description = ""
+    tool_schema = None
+    with _cache_lock:
+        server_cache = _tool_metadata_cache.get(host, {})
+        if tool_name in server_cache:
+            tool_description = server_cache[tool_name].get("description", "")
+            tool_schema = server_cache[tool_name].get("inputSchema")
+
+    # Extract the actual text content from the tool response
+    # JSON-RPC 2.0 wraps it: {"result": {"content": [{"type":"text","text":"..."}]}}
+    tool_output = body_text
+    try:
+        result_obj = resp_json.get("result", resp_json)
+        content_blocks = result_obj.get("content", [])
+        if content_blocks and isinstance(content_blocks, list):
+            text_parts = [
+                b.get("text", "") for b in content_blocks
+                if isinstance(b, dict) and b.get("type") == "text"
+            ]
+            if text_parts:
+                tool_output = "\n".join(text_parts)
     except Exception:
         pass
 
     # Run through policy engine
     decision = _policy_engine.evaluate(
-        tool_output=body_text,
+        tool_output=tool_output,
         tool_name=tool_name,
         tool_description=tool_description,
         tool_schema=tool_schema,

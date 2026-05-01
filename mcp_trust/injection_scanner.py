@@ -58,7 +58,10 @@ INJECTION_PATTERNS = [
     },
     {
         "name": "INSTRUCTION_FORGET",
-        "pattern": r"(?i)forget\s+(everything|all|prior|previous|your)\s*(instructions?|context|above)?",
+        # Require the trigger word AND an explicit target noun (instructions/context/above)
+        # within a short window to avoid matching "forget everything I said" or
+        # "I forget everything". The (?:\w+\s+)? allows for "all previous instructions".
+        "pattern": r"(?i)forget\s+(?:everything|all|prior|previous|your)(?:\s+\w+)?\s+(instructions?|context|above|rules?|guidelines?)",
         "severity": SEVERITY_CRITICAL,
         "reason": REASON_INSTRUCTION_OVERRIDE,
         "description": "Instruction forget attempt",
@@ -72,7 +75,10 @@ INJECTION_PATTERNS = [
     },
     {
         "name": "ROLE_HIJACK",
-        "pattern": r"(?i)you\s+are\s+now\s+(a\s+|an\s+)?\w+",
+        # Require a role/identity noun after "you are now" to avoid matching
+        # state-change phrases like "you are now connected" or "you are now able".
+        # The negative lookahead excludes common false-positive verbs.
+        "pattern": r"(?i)you\s+are\s+now\s+(?!able|connected|ready|allowed|permitted|authorized|set|configured|running|using|in\b)(?:a\s+|an\s+)?(?:different\s+|new\s+|another\s+)?(ai|bot|assistant|agent|model|system|gpt|claude|llm|character|persona|role|entity|version)\b",
         "severity": SEVERITY_CRITICAL,
         "reason": REASON_INSTRUCTION_OVERRIDE,
         "description": "Role/persona hijack attempt",
@@ -95,7 +101,11 @@ INJECTION_PATTERNS = [
     # ── System prompt targeting (CRITICAL) ──
     {
         "name": "SYSTEM_MARKER",
-        "pattern": r"(?i)^(SYSTEM|ASSISTANT|USER|HUMAN|AI)\s*:",
+        # Match role markers only at the very start of the text (not mid-document)
+        # to avoid false positives on log files, markdown, and structured output
+        # that use role labels as field names on arbitrary lines.
+        # re.MULTILINE is NOT used here — \A anchors to string start only.
+        "pattern": r"(?i)\A\s*(SYSTEM|ASSISTANT|USER|HUMAN|AI)\s*:",
         "severity": SEVERITY_CRITICAL,
         "reason": REASON_INSTRUCTION_OVERRIDE,
         "description": "System/role marker injection",
@@ -142,10 +152,13 @@ INJECTION_PATTERNS = [
     # ── Exfiltration instructions (CRITICAL) ──
     {
         "name": "EXFIL_SEND",
-        "pattern": r"(?i)(send|forward|transmit|upload|post|submit)\s+(all\s+of\s+)?(this|the|all|these|everything)\s+(to|via|using|through)",
+        # Require a URL/endpoint target to avoid matching normal business language
+        # like "send all of this to the team" or "forward everything to the client".
+        # The target must look like a URL (http/https/ftp) or an IP address.
+        "pattern": r"(?i)(send|forward|transmit|upload|post|submit)\s+(all\s+of\s+)?(this|the|all|these|everything)\s+(to|via|using|through)\s+https?://\S+",
         "severity": SEVERITY_CRITICAL,
         "reason": REASON_EXFILTRATION_ATTEMPT,
-        "description": "Exfiltration instruction — send to",
+        "description": "Exfiltration instruction — send to URL",
     },
     {
         "name": "EXFIL_ENDPOINT",
@@ -196,7 +209,7 @@ class PromptInjectionScanner:
         self.block_on_critical = block_on_critical
         self.block_on_high = block_on_high
         self._compiled = [
-            (p["name"], re.compile(p["pattern"], re.MULTILINE),
+            (p["name"], re.compile(p["pattern"]),
              p["severity"], p["reason"], p["description"])
             for p in INJECTION_PATTERNS
         ]
@@ -226,6 +239,7 @@ class PromptInjectionScanner:
                 scanner_name="PromptInjectionScanner",
                 tool_name=tool_name,
                 tool_server=tool_server,
+                action=ACTION_ALLOW,
                 recommended_action=ACTION_ALLOW,
             )
 

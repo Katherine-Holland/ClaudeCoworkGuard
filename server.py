@@ -111,13 +111,16 @@ def check_payload_folders(payload: dict, allowed_folders: list) -> list:
     """
     if not allowed_folders:
         return []
+    import re
     blocked = []
     payload_str = json.dumps(payload)
-    import re
-    # Match common path patterns
-    paths = re.findall(r'(?:\/[\w\/.~-]+|~\/[\w\/.~-]+)', payload_str)
+    # Strip URLs before extracting paths so that URL path components
+    # (e.g. https://api.example.com/v1/users) are not treated as filesystem paths.
+    stripped = re.sub(r'https?://[^\s\'"]+', '', payload_str)
+    # Match absolute paths (/foo/bar) and home-relative paths (~/foo).
+    paths = re.findall(r'(?<![:\w])\/[\w/.~-]{3,}|~\/[\w/.~-]+', stripped)
     for path in paths:
-        if len(path) > 3 and not is_path_allowed(path, allowed_folders):
+        if not is_path_allowed(path, allowed_folders):
             blocked.append(path)
     return blocked
 
@@ -282,7 +285,11 @@ def generate_cert():
         )
         time.sleep(2)
         p.terminate()
-        p.wait(timeout=3)
+        try:
+            p.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            p.wait()
         cert = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
         if cert.exists():
             return jsonify({"ok": True})

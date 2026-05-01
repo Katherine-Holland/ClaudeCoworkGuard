@@ -106,15 +106,17 @@ PATTERNS = {
     "SLACK_WEBHOOK":    r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]{8}/B[a-zA-Z0-9_]{8}/[a-zA-Z0-9_]{24}",
     "GH_TOKEN":         r"ghp_[a-zA-Z0-9]{36,}|gho_[a-zA-Z0-9]{36,}|ghs_[a-zA-Z0-9]{36,}|github_pat_[a-zA-Z0-9_]{82,}",
     "GITLAB_TOKEN":     r"glpat-[a-zA-Z0-9\-_]{20}",
-    "TWILIO_KEY":       r"SK[a-zA-Z0-9]{32}",
+    "TWILIO_KEY":       r"\bSK[0-9a-fA-F]{32}\b",
     "TWILIO_TOKEN":     r"(?i)twilio.{0,20}['\"][a-zA-Z0-9]{32}['\"]",
     "SENDGRID_KEY":     r"SG\.[a-zA-Z0-9]{22}\.[a-zA-Z0-9]{43}",
-    "MAILGUN_KEY":      r"key-[a-zA-Z0-9]{32}",
+    "MAILGUN_KEY":      r"\bkey-[0-9a-f]{32}\b",
     "NPM_TOKEN":        r"npm_[a-zA-Z0-9]{36}",
     "VERCEL_TOKEN":     r"(?i)vercel.{0,10}['\"][a-zA-Z0-9]{24}['\"]",
     "NETLIFY_TOKEN":    r"(?i)netlify.{0,10}['\"][a-zA-Z0-9\-_]{40,}['\"]",
     "FIREBASE_KEY":     r"AAAA[a-zA-Z0-9_\-]{7}:[a-zA-Z0-9_\-]{140}",
-    "SUPABASE_KEY":     r"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+",
+    # Supabase anon/service keys embed "role":"anon" or "role":"service_role" in the payload.
+    # Matching on the decoded payload prefix avoids double-firing with the generic JWT pattern.
+    "SUPABASE_KEY":     r"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJyb2xlIjoi[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+",
     "DATADOG_KEY":      r"(?i)dd.{0,10}(api|app).{0,5}key.{0,5}['\"][a-zA-Z0-9]{40}['\"]",
 
     # ── Internal / Corporate ──────────────────────────────────────────────
@@ -287,6 +289,32 @@ class CoworkScanner:
 
         return result
 
+    def _extract_content_block(self, block: dict) -> list:
+        """
+        Recursively extract text from a single Anthropic content block.
+        Handles text, tool_result (scalar and list), and tool_use input.
+        """
+        parts = []
+        block_type = block.get("type", "")
+        if block_type == "text":
+            parts.append(block.get("text", ""))
+        elif block_type == "tool_result":
+            # tool_result carries MCP tool responses back into the conversation —
+            # the primary vector for indirect prompt injection attacks.
+            inner = block.get("content", "")
+            if isinstance(inner, str):
+                parts.append(inner)
+            elif isinstance(inner, list):
+                for inner_block in inner:
+                    if isinstance(inner_block, dict):
+                        parts.extend(self._extract_content_block(inner_block))
+        elif block_type == "tool_use":
+            # Scan tool call inputs too — they may carry injected data
+            tool_input = block.get("input", {})
+            if isinstance(tool_input, dict):
+                parts.append(json.dumps(tool_input))
+        return parts
+
     def _extract_text_anthropic(self, body: dict) -> list:
         """Extract text from Anthropic API request format."""
         parts = []
@@ -296,8 +324,8 @@ class CoworkScanner:
                 parts.append(content)
             elif isinstance(content, list):
                 for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        parts.append(block.get("text", ""))
+                    if isinstance(block, dict):
+                        parts.extend(self._extract_content_block(block))
         system = body.get("system", "")
         if isinstance(system, str):
             parts.append(system)

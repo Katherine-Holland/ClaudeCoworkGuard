@@ -82,19 +82,49 @@ def _schema_params(schema: Optional[dict]) -> set:
 
 
 def _has_dangerous_permissions(schema: Optional[dict]) -> list:
-    """Check for dangerous permission patterns in schema."""
+    """
+    Check for dangerous permission patterns in schema.
+    Only inspects string values of known sensitive fields (description, title,
+    enum values, default) — not field names — to avoid false positives from
+    legitimate parameter names like 'exec_path' or 'password_field'.
+    """
     if not schema:
         return []
-    schema_str = json.dumps(schema).lower()
+
+    # Collect only the string values that describe permissions/behaviour,
+    # not the structural keys (which are developer-chosen names).
+    value_strings: list = []
+
+    def _collect_values(obj):
+        if isinstance(obj, str):
+            value_strings.append(obj.lower())
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                # Only recurse into value-bearing fields, not arbitrary keys
+                if k in ("description", "title", "default", "enum", "examples",
+                         "const", "pattern", "format"):
+                    _collect_values(v)
+                elif isinstance(v, (dict, list)):
+                    _collect_values(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                _collect_values(item)
+
+    _collect_values(schema)
+    combined = " ".join(value_strings)
+
     dangerous = []
     checks = [
-        ("full_filesystem", ["filesystem", "full_access", "all_files", "/*", "~/*"]),
-        ("shell_access", ["shell", "exec", "subprocess", "command", "bash", "sh"]),
-        ("network_unrestricted", ["any_url", "all_domains", "unrestricted_network"]),
-        ("credential_access", ["keychain", "password", "credentials", ".ssh", ".aws"]),
+        ("full_filesystem", ["full_access", "all_files", "/*", "~/*", "entire filesystem"]),
+        ("shell_access", ["runs shell", "executes shell", "bash command", "shell command",
+                          "arbitrary command", "subprocess"]),
+        ("network_unrestricted", ["any_url", "all_domains", "unrestricted_network",
+                                  "any domain", "any url"]),
+        ("credential_access", ["keychain", ".ssh/", ".aws/", "credentials file",
+                               "password file", "secret store"]),
     ]
     for name, keywords in checks:
-        if any(kw in schema_str for kw in keywords):
+        if any(kw in combined for kw in keywords):
             dangerous.append(name)
     return dangerous
 
@@ -123,7 +153,7 @@ class ToolMetadataScanner:
         self._registry = _load_registry()
 
     def _save(self) -> None:
-        REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self._registry_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self._registry_path, "w") as f:
             json.dump(self._registry, f, indent=2)
 

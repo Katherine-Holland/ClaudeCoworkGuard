@@ -85,7 +85,9 @@ SKILL_PATTERNS = {
 
     # ── Network calls to non-AI domains ──────────────────────────────────
     # Allowlist loaded from domains.json — stays in sync with proxy.py and background.js
-    "FETCH_EXTERNAL":   r"\bfetch\s*\(\s*['\"]https?://(?!__AI_DOMAINS__)[^'\"]+['\"]",
+    # Negative lookahead anchored to domain boundary (/, :, end) so that
+    # subdomains like "notapi.anthropic.com" are not incorrectly allowed.
+    "FETCH_EXTERNAL":   r"\bfetch\s*\(\s*['\"]https?://(?!(?:__AI_DOMAINS__)(?:/|:|$))[^'\"]+['\"]",
     "AXIOS_EXTERNAL":   r"\baxios\.(get|post|put|delete)\s*\(\s*['\"]https?://(?!__AI_DOMAINS__)[^'\"]+['\"]",
     "CURL_COMMAND":     r"\bcurl\s+(?:-[a-zA-Z]+\s+)*https?://(?!__AI_DOMAINS__)[^\s]+",
     "WGET_COMMAND":     r"\bwget\s+https?://(?!__AI_DOMAINS__)[^\s]+",
@@ -118,7 +120,10 @@ SKILL_PATTERNS = {
 
     # ── Persistence mechanisms ────────────────────────────────────────────
     # Anchored to actual code — not just the word in comments/docs
-    "LAUNCHAGENT":      r"(?i)(?:cp|copy|install|write|create|plist)\s[^\n]*LaunchAgents|LaunchAgents[^\n]*(?:cp|copy|install|write|create|plist)|launchctl\s+(?:load|submit|start)|systemctl\s+(?:enable|start)\s",  # noqa: E501
+    # macOS LaunchAgent persistence — match file operations on LaunchAgents dir
+    # or launchctl load/submit. systemctl is intentionally excluded — it is a
+    # normal Linux operation and not a persistence attack vector in this context.
+    "LAUNCHAGENT":      r"(?i)(?:cp|copy|install|write|create|plist)\s[^\n]*LaunchAgents|LaunchAgents[^\n]*(?:cp|copy|install|write|create|plist)|launchctl\s+(?:load|submit|start)",  # noqa: E501
     "STARTUP_ENTRY":    r"(?i)HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run|echo\s[^\n]*>>\s*~?/\.(?:bashrc|zshrc|profile)|append.*(?:bashrc|zshrc|profile)",  # noqa: E501
 }
 
@@ -590,9 +595,11 @@ class SkillWatcher:
         return {}
 
     def _save_cache(self):
-        """Persist scan cache to disk."""
+        """Persist scan cache to disk, pruning entries for deleted files."""
         try:
             self.CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            live = {k: v for k, v in self._scanned.items() if Path(k).exists()}
+            self._scanned = live
             with open(self.CACHE_FILE, 'w') as f:
                 json.dump(self._scanned, f)
         except Exception:
@@ -688,7 +695,10 @@ class SkillWatcher:
 
             watched = []
             for watch_path in SKILL_WATCH_PATHS:
-                watch_path.mkdir(parents=True, exist_ok=True)
+                # Only watch paths that already exist — don't create directories
+                # for tools that aren't installed on this machine.
+                if not watch_path.exists():
+                    continue
                 observer.schedule(handler, str(watch_path), recursive=True)
                 watched.append(str(watch_path))
 

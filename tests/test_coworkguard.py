@@ -488,6 +488,310 @@ class TestEdgeCases(unittest.TestCase):
 # ─────────────────────────────────────────────
 # Runner
 # ─────────────────────────────────────────────
+# False-positive tests — things that must NOT be flagged
+# ─────────────────────────────────────────────
+
+class TestFalsePositives(unittest.TestCase):
+    """
+    Every test here asserts that a legitimate input is NOT flagged.
+    These guard against over-broad patterns causing noise in real usage.
+    """
+
+    def setUp(self):
+        self.scanner = make_scanner(critical=True, high=True)
+
+    def test_normal_email_not_blocked(self):
+        result = self.scanner.scan("Contact us at support@example.com for help.")
+        # EMAIL is MEDIUM — should never block
+        self.assertFalse(result.blocked)
+
+    def test_allowlisted_email_not_flagged(self):
+        scanner = CoworkScanner(email_allowlist=["mycompany.com"])
+        result = scanner.scan("Send to alice@mycompany.com please.")
+        types = [f.pattern_name for f in result.findings]
+        self.assertNotIn("EMAIL", types)
+
+    def test_phone_number_not_blocked(self):
+        result = self.scanner.scan("Call us at (555) 867-5309 for support.")
+        self.assertFalse(result.blocked)
+
+    def test_internal_url_not_blocked(self):
+        # INTERNAL_URL is MEDIUM — should flag but not block
+        result = self.scanner.scan("Dashboard at http://192.168.1.10/admin")
+        self.assertFalse(result.blocked)
+
+    def test_ip_address_not_blocked(self):
+        result = self.scanner.scan("Server IP is 10.0.0.1")
+        self.assertFalse(result.blocked)
+
+    def test_plain_text_no_findings(self):
+        result = self.scanner.scan(
+            "Here is a summary of the project. The main goal is to improve performance "
+            "by 20% over the next quarter. No sensitive data is included."
+        )
+        self.assertEqual(len(result.findings), 0)
+
+    def test_sku_code_not_flagged_as_twilio_key(self):
+        # Old TWILIO_KEY pattern matched SKU codes — verify fix
+        result = self.scanner.scan("Product SKU12345678901234567890123456789012 is in stock.")
+        types = [f.pattern_name for f in result.findings]
+        self.assertNotIn("TWILIO_KEY", types)
+
+    def test_generic_hyphenated_string_not_mailgun(self):
+        # Old MAILGUN_KEY matched any key-[32chars] — verify fix
+        result = self.scanner.scan("Reference: key-abcdefghijklmnopqrstuvwxyz123456")
+        types = [f.pattern_name for f in result.findings]
+        self.assertNotIn("MAILGUN_KEY", types)
+
+    def test_standard_jwt_not_double_flagged_as_supabase(self):
+        # A generic JWT (not Supabase) should match JWT but not SUPABASE_KEY
+        # Supabase keys encode {"role":"anon"} in payload — generic JWTs don't
+        generic_jwt = (
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+            ".eyJ1c2VyX2lkIjoiMTIzIn0"
+            ".SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        )
+        result = self.scanner.scan(f"Token: {generic_jwt}")
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("JWT", types)
+        self.assertNotIn("SUPABASE_KEY", types)
+
+    def test_public_certificate_severity_noted(self):
+        # CERTIFICATE fires on public certs — at minimum verify it's not blocking
+        # clean traffic that happens to contain a cert in a response body
+        cert_text = "-----BEGIN CERTIFICATE-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\n-----END CERTIFICATE-----"
+        result = self.scanner.scan(cert_text)
+        # It will be detected (CRITICAL) but we document this known behaviour
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("CERTIFICATE", types)
+
+    def test_suppressed_pattern_not_flagged(self):
+        scanner = CoworkScanner(suppressed_patterns=["GCP_SERVICE_ACCT"])
+        result = scanner.scan('{"type": "service_account", "project_id": "my-project"}')
+        types = [f.pattern_name for f in result.findings]
+        self.assertNotIn("GCP_SERVICE_ACCT", types)
+
+    def test_empty_string_no_findings(self):
+        result = self.scanner.scan("")
+        self.assertEqual(len(result.findings), 0)
+        self.assertFalse(result.blocked)
+
+    def test_whitespace_only_no_findings(self):
+        result = self.scanner.scan("   \n\t  ")
+        self.assertEqual(len(result.findings), 0)
+
+
+# ─────────────────────────────────────────────
+# tool_result content block extraction
+# ─────────────────────────────────────────────
+
+class TestToolResultExtraction(unittest.TestCase):
+    """
+    Verifies that tool_result content blocks in Anthropic API payloads
+    are scanned — the primary indirect prompt injection attack vector.
+    """
+
+    def setUp(self):
+        self.scanner = make_scanner(critical=True, high=True)
+
+    def _anthropic_payload(self, messages):
+        return json.dumps({"model": "claude-3-5-sonnet-20241022", "messages": messages}).encode()
+
+    def test_tool_result_scalar_content_scanned(self):
+        """SSN in a tool_result string content block must be detected."""
+        payload = self._anthropic_payload([{
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01",
+                    "content": "The user's SSN is 123-45-6789 per the HR record.",
+                }
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("SSN", types)
+
+    def test_tool_result_list_content_scanned(self):
+        """SSN inside a tool_result list-of-blocks must be detected."""
+        payload = self._anthropic_payload([{
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01",
+                    "content": [
+                        {"type": "text", "text": "SSN: 987-65-4321 found in document."}
+                    ],
+                }
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("SSN", types)
+
+    def test_tool_result_aws_key_blocked(self):
+        """AWS key in tool_result must trigger a block."""
+        payload = self._anthropic_payload([{
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01",
+                    "content": "Found key: AKIAIOSFODNN7EXAMPLE in config file.",
+                }
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        self.assertTrue(result.blocked)
+
+    def test_tool_result_clean_content_not_flagged(self):
+        """Clean tool_result content must not produce findings."""
+        payload = self._anthropic_payload([{
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01",
+                    "content": "Files found: main.py, README.md, requirements.txt",
+                }
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        self.assertEqual(len(result.findings), 0)
+
+    def test_tool_use_input_scanned(self):
+        """Sensitive data in tool_use input parameters must be detected."""
+        payload = self._anthropic_payload([{
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "toolu_01",
+                    "name": "write_file",
+                    "input": {"content": "SSN: 111-22-3333", "path": "/tmp/out.txt"},
+                }
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("SSN", types)
+
+    def test_mixed_text_and_tool_result_both_scanned(self):
+        """Both text blocks and tool_result blocks in the same message are scanned."""
+        payload = self._anthropic_payload([{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Here is the result:"},
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01",
+                    "content": "Credit card: 4111111111111111",
+                },
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("CREDIT_CARD", types)
+
+    def test_nested_tool_result_list_with_multiple_blocks(self):
+        """Multiple text blocks inside a tool_result list are all scanned."""
+        payload = self._anthropic_payload([{
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01",
+                    "content": [
+                        {"type": "text", "text": "Page 1: nothing sensitive"},
+                        {"type": "text", "text": "Page 2: SSN 444-55-6666 found"},
+                    ],
+                }
+            ]
+        }])
+        result = self.scanner.scan_json_payload(payload, url="https://api.anthropic.com/v1/messages")
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("SSN", types)
+
+
+# ─────────────────────────────────────────────
+# block_on_high behaviour
+# ─────────────────────────────────────────────
+
+class TestBlockOnHigh(unittest.TestCase):
+    """
+    Verifies that block_on_high=True blocks HIGH-severity findings,
+    and block_on_high=False (default) only flags them.
+    """
+
+    def test_jwt_flagged_not_blocked_by_default(self):
+        scanner = make_scanner(critical=True, high=False)
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        result = scanner.scan(f"Authorization: Bearer {jwt}")
+        self.assertFalse(result.blocked)
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("JWT", types)
+
+    def test_jwt_blocked_when_block_on_high(self):
+        scanner = make_scanner(critical=True, high=True)
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        result = scanner.scan(f"Authorization: Bearer {jwt}")
+        self.assertTrue(result.blocked)
+
+    def test_openai_key_flagged_not_blocked_by_default(self):
+        scanner = make_scanner(critical=True, high=False)
+        result = scanner.scan("sk-proj-abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJ")
+        self.assertFalse(result.blocked)
+        types = [f.pattern_name for f in result.findings]
+        self.assertIn("OPENAI_KEY", types)
+
+    def test_openai_key_blocked_when_block_on_high(self):
+        scanner = make_scanner(critical=True, high=True)
+        result = scanner.scan("sk-proj-abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJ")
+        self.assertTrue(result.blocked)
+
+    def test_gh_token_flagged_not_blocked_by_default(self):
+        scanner = make_scanner(critical=True, high=False)
+        result = scanner.scan("ghp_" + "a" * 36)
+        self.assertFalse(result.blocked)
+
+    def test_gh_token_blocked_when_block_on_high(self):
+        scanner = make_scanner(critical=True, high=True)
+        result = scanner.scan("ghp_" + "a" * 36)
+        self.assertTrue(result.blocked)
+
+    def test_critical_always_blocked_regardless_of_high_setting(self):
+        scanner = make_scanner(critical=True, high=False)
+        result = scanner.scan("SSN: 123-45-6789")
+        self.assertTrue(result.blocked)
+
+    def test_block_on_high_finding_marked_blocked(self):
+        scanner = make_scanner(critical=True, high=True)
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        result = scanner.scan(f"token: {jwt}")
+        high_findings = [f for f in result.findings if f.severity == "HIGH"]
+        self.assertTrue(any(f.blocked for f in high_findings))
+
+    def test_action_is_blocked_string_when_blocked(self):
+        scanner = make_scanner(critical=True, high=True)
+        result = scanner.scan("SSN: 123-45-6789")
+        self.assertEqual(result.action, "BLOCKED")
+
+    def test_action_is_flagged_when_findings_not_blocked(self):
+        scanner = make_scanner(critical=False, high=False)
+        result = scanner.scan("SSN: 123-45-6789")
+        self.assertFalse(result.blocked)
+        self.assertEqual(result.action, "FLAGGED")
+
+    def test_action_is_clean_when_no_findings(self):
+        scanner = make_scanner(critical=True, high=True)
+        result = scanner.scan("Nothing sensitive here.")
+        self.assertEqual(result.action, "CLEAN")
+        self.assertFalse(result.blocked)
+
+
+# ─────────────────────────────────────────────
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()

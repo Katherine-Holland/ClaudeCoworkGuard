@@ -139,6 +139,7 @@ class UnicodeHiddenTextScanner:
                 scanner_name="UnicodeHiddenTextScanner",
                 tool_name=tool_name,
                 tool_server=tool_server,
+                action=ACTION_ALLOW,
                 recommended_action=ACTION_ALLOW,
             )
 
@@ -212,6 +213,12 @@ class UnicodeHiddenTextScanner:
             recommended = ACTION_BLOCK
             for f in findings:
                 if f.severity == SEVERITY_CRITICAL:
+                    f.blocked = True
+        elif self.block_on_high and any(f.severity == SEVERITY_HIGH for f in findings):
+            blocked = True
+            recommended = ACTION_BLOCK
+            for f in findings:
+                if f.severity == SEVERITY_HIGH:
                     f.blocked = True
         elif findings:
             recommended = ACTION_CONFIRM
