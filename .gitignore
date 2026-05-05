@@ -45,3 +45,9 @@ coworkguard-ca-key.pem
 # Environment
 .env
 .env.local
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

@@ -1,6 +1,6 @@
 {
   "productName": "CoworkGuard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "identifier": "com.coworkguard.menubar",
   "build": {
     "frontendDist": "../src"
@@ -49,7 +49,13 @@
       "../../dashboard.html": "dashboard.html",
       "../../domains.json": "domains.json",
       "../../clipboard_monitor.py": "clipboard_monitor.py",
-      "../../file_write_monitor.py": "file_write_monitor.py"
+      "../../file_write_monitor.py": "file_write_monitor.py",
+      "../../mcp_trust/__init__.py": "mcp_trust/__init__.py",
+      "../../mcp_trust/result.py": "mcp_trust/result.py",
+      "../../mcp_trust/injection_scanner.py": "mcp_trust/injection_scanner.py",
+      "../../mcp_trust/metadata_scanner.py": "mcp_trust/metadata_scanner.py",
+      "../../mcp_trust/unicode_scanner.py": "mcp_trust/unicode_scanner.py",
+      "../../mcp_trust/policy_engine.py": "mcp_trust/policy_engine.py"
     },
     "shortDescription": "Privacy protection for AI agents",
     "targets": "all"
