@@ -1,14 +1,12 @@
 # CoworkGuard 🛡️
 
-**A firewall for AI agents.**
+**macOS AI Agent Security Layer. Your AI agent firewall. Blocks sensitive data leaving your machine and intercepts MCP tool responses before they reach the model.**
 
-AI agent tools — Claude, Cursor, GitHub Copilot, ChatGPT, Gemini — operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer.
+AI agent tools: Claude, Cursor, GitHub Copilot, ChatGPT, Gemini: operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer.
 
 CoworkGuard adds that layer. It sits between your machine and every major AI API, scanning outbound payloads in real time, blocking sensitive data before it leaves, and keeping a local audit log of everything that passes through.
 
 No cloud dependency. No accounts. Everything runs on your own machine.
-
-> **Proven in the wild:** Within 48 hours of Claude Cowork's launch, researchers demonstrated a Word document with hidden white text could exfiltrate partial Social Security numbers via the Anthropic API. CoworkGuard intercepted and blocked a live SSN payload in testing — the same scanner runs across all 10 monitored AI endpoints.
 
 ---
 
@@ -31,7 +29,7 @@ No cloud dependency. No accounts. Everything runs on your own machine.
 
 ## Why this exists
 
-Every AI agent tool operates with the same permissions you have — your browser session, your files, your credentials are all in scope. There is no native audit trail, no payload scanner, and no warning when sensitive data is about to leave your machine.
+Every AI agent tool operates with the same permissions you have: your browser session, your files, your credentials are all in scope. There is no native audit trail, no payload scanner, and no warning when sensitive data is about to leave your machine.
 
 This isn't a theoretical risk. Prompt injection, data exfiltration via hidden document content, and MCP supply chain attacks are all documented vectors. CoworkGuard is the DLP layer that AI agent tools don't ship with.
 
@@ -42,18 +40,19 @@ This isn't a theoretical risk. Prompt injection, data exfiltration via hidden do
 | Feature | Description |
 |---|---|
 | **Payload scanner** | 76 patterns detecting PII, secrets, and internal data in every outbound request |
-| **Active blocking** | Configurable by severity — CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
-| **Skill scanner** | Watch mode scanner for Cowork, OpenClaw, and MCP skills — detects supply chain attacks, obfuscated payloads, and excessive permissions before a skill executes |
+| **Active blocking** | Configurable by severity: CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
+| **Skill scanner** | Watch mode scanner for Cowork, OpenClaw, and MCP skills: detects supply chain attacks, obfuscated payloads, and excessive permissions before a skill executes |
 | **Domain guard** | In-page warning banner + Chrome notification when a Claude session is active and you navigate to a sensitive domain |
 | **Live audit log** | Real-time JSONL log of every intercepted request, with filterable dashboard view |
-| **Threat detail modal** | Click any log entry to see full finding breakdown — severity, type, redacted preview |
+| **Threat detail modal** | Click any log entry to see full finding breakdown: severity, type, redacted preview |
 | **Payload trend chart** | 24-hour bar chart showing data volume sent per hour, colour-coded by worst action |
-| **Settings panel** | Toggle block levels, add custom patterns and domains — no config file editing required |
-| **Menubar app** | Native macOS menubar app — start/stop protection with one click, no terminal required |
+| **Settings panel** | Toggle block levels, add custom patterns and domains: no config file editing required |
+| **Menubar app** | Native macOS menubar app: start/stop protection with one click, no terminal required |
 | **Clipboard monitoring** | Warns when sensitive data (API keys, SSNs) detected in clipboard |
 | **File write monitoring** | Warns when AI tools write sensitive data outside your allowed folders |
-| **Folder access control** | Define which folders AI tools are allowed to read from — content from all others blocked at exit |
+| **Folder access control** | Define which folders AI tools are allowed to read from: content from all others blocked at exit |
 | **Physical alert (ESP32)** | LED strip on your desk lights up red when a critical payload is blocked |
+| **MCP Trust Gateway** | Intercepts MCP tool responses before LLM ingestion: blocks prompt injection, credential leaks, rug-pull attacks and hidden unicode |
 | **Zero cloud dependency** | Everything runs locally. No accounts, no telemetry, no data leaves your machine |
 
 ---
@@ -155,6 +154,13 @@ Browser / AI Agent Tools
  │          clipboard_monitor · file_write_monitor      │
  └──────────────────────────────────────────────────────┘
 
+ ┌──────────────────────────────────────────────────────┐
+ │  MCP Trust Gateway (proxy response hook)             │
+ │  Scans tool responses before LLM ingestion           │
+ │  PromptInjectionScanner · ToolMetadataScanner        │
+ │  UnicodeHiddenTextScanner · PolicyEngine             │
+ └──────────────────────────────────────────────────────┘
+
  Chrome Extension (parallel layer)
  ┌────────────────────────────────────────────┐
  │ background.js  Session detection, API watch│
@@ -179,6 +185,12 @@ coworkguard/
 ├── server.py               # Local Flask API server for dashboard
 ├── clipboard_monitor.py    # Clipboard monitoring — warns on sensitive clipboard content
 ├── file_write_monitor.py   # File write monitoring — warns on writes outside allowed folders
+├── mcp_trust/              # MCP Trust Gateway package
+│   ├── result.py           # Shared ScanResult dataclasses
+│   ├── injection_scanner.py # Prompt injection detection
+│   ├── metadata_scanner.py  # Tool metadata / rug-pull detection
+│   ├── unicode_scanner.py   # Hidden unicode detection
+│   └── policy_engine.py    # Policy decisions — allow/redact/confirm/block
 ├── dashboard.html          # Audit dashboard UI
 ├── domains.json            # Shared sensitive domains list
 ├── COWORKGUARD_TOOL_SPEC.md # MCP tool scope specification
@@ -186,7 +198,7 @@ coworkguard/
 ├── tests/
 │   ├── test_coworkguard.py # 71 tests for scanner.py
 │   └── test_skill_scanner.py # 56 tests for skill_scanner.py
-│   └── (127 tests total passing)
+│   └── (295 tests total passing)
 ├── docs/                   # GitHub Pages — public site
 │   ├── index.html          # Landing page
 │   ├── privacy.html        # Privacy policy
@@ -209,7 +221,7 @@ coworkguard/
 
 ## Quick Start
 
-### Option 1 — macOS Menubar App (recommended)
+### Option 1: macOS Menubar App (recommended)
 
 Download the DMG for your Mac from the [latest release](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases):
 
@@ -219,7 +231,7 @@ Download the DMG for your Mac from the [latest release](https://github.com/Kathe
 | Intel + Apple Silicon | `CoworkGuard_1.0.1_universal.dmg` |
 
 1. Open the `.dmg` and drag CoworkGuard to Applications
-2. Open CoworkGuard — a shield icon appears in your menubar
+2. Open CoworkGuard: a shield icon appears in your menubar
 3. Complete the one-time setup wizard (generates and trusts the certificate)
 4. Click the shield → **Start Protection**
 
@@ -227,7 +239,7 @@ That's it. No terminal required.
 
 Then install the Chrome extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg).
 
-### Option 2 — Terminal installer
+### Option 2: Terminal installer
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash
@@ -257,13 +269,13 @@ Requires `pip install watchdog` for watch mode. Falls back to polling if not ins
 ~/CoworkGuard/stop.sh    # Stop protection + restore internet
 ```
 
-> **Important:** Always stop CoworkGuard when done. If your Mac restarts with protection on, CoworkGuard will alert you automatically and offer to fix it.
+> CoworkGuard resets your system proxy automatically when stopped or on restart.
 
 ---
 
 ## Configuration
 
-All settings are available through the dashboard at `http://localhost:7070` — no config file editing needed.
+All settings are available through the dashboard at `http://localhost:7070`: no config file editing needed.
 
 | Setting | Default | Description |
 |---|---|---|
@@ -273,16 +285,16 @@ All settings are available through the dashboard at `http://localhost:7070` — 
 | Domain Alerts | ✅ On | Warn when navigating to sensitive domains while a Claude session is active |
 | Proxy Port | 8080 | Port mitmdump listens on |
 | Max Log Entries | 1000 | Audit log rotation limit |
-| Custom Patterns | — | Your own regex patterns, applied at MEDIUM severity |
-| Custom Domains | — | Additional domains to monitor |
-| Allowed Folders | — | Folders AI tools are permitted to read from. Content from all other folders blocked at exit |
-| Quiet Mode | ❌ Off | Suppress all notifications — log findings silently |
+| Custom Patterns |: | Your own regex patterns, applied at MEDIUM severity |
+| Custom Domains |: | Additional domains to monitor |
+| Allowed Folders |: | Folders AI tools are permitted to read from. Content from all other folders blocked at exit |
+| Quiet Mode | ❌ Off | Suppress all notifications: log findings silently |
 
 ---
 
 ## Audit Logs
 
-Logs are written to `~/.coworkguard/logs/` — one JSONL file per day.
+Logs are written to `~/.coworkguard/logs/`: one JSONL file per day.
 
 **API traffic** (`audit_YYYYMMDD.jsonl`):
 ```json
@@ -333,29 +345,9 @@ Add your own in the Settings panel.
 
 ## Roadmap
 
-### Immediate
-- [x] Chrome Web Store — v1.0.3 published
-- [x] Universal DMG — Intel + Apple Silicon
+CoworkGuard is under active development. The current focus is deepening the MCP security layer and expanding platform support.
 
-### Post-launch (v1.x)
-- [x] **Skill scanner** — ✅ shipped — watch mode, 28 patterns, 56 tests passing
-- [x] Clipboard monitoring — warns on sensitive clipboard content
-- [x] File write monitoring — warns on writes outside allowed folders
-- [x] Folder access control — allowlist at folder level
-- [x] Physical alert (ESP32 + LED strip) — desk LEDs flash red on critical block
-- [x] CoworkGuard MCP Tool Spec — scope declaration for tool authors
-- [ ] Confirm-before-send — hold request, user decides allow/block/always allow
-- [ ] Mac App Store distribution (menubar app)
-- [ ] Windows support
-- [ ] Firefox extension
-- [ ] OTel exporter — pipe findings to Grafana/Datadog/SIEM
-- [ ] Enterprise managed policy support
-- [ ] Webhook alerts — POST to Slack/Teams when a request is blocked
-- [ ] `.pkg` installer
-
-### CoworkGuard Shield (v2) — enterprise
-CoworkGuard Shield (v2) extends protection from the network layer to the endpoint layer — runtime behaviour monitoring, MCP server vetting, and centralised team visibility. Enterprise pricing. 
-Contact littlerobinagency@gmail.com for early access.
+For enterprise features, managed policy support, or early access to upcoming releases contact littlerobinagency@gmail.com.
 
 ---
 
@@ -369,7 +361,7 @@ For security disclosures, please open a private GitHub issue.
 
 ## License
 
-**MIT with Commons Clause** — © 2026 Katherine Weston. All rights reserved.
+**MIT with Commons Clause**: © 2026 Katherine Weston. All rights reserved.
 
 - CoworkGuard is free for personal and internal non-commercial use
 - You can fork and modify for personal use
