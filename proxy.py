@@ -429,6 +429,32 @@ def response(flow: http.HTTPFlow):
     except Exception:
         pass
 
+    # Run secret scanner on tool output — catches PII, credentials, SSNs
+    # This runs alongside the policy engine (injection/metadata/unicode)
+    secret_result = scanner.scan(tool_output)
+    if secret_result.blocked:
+        log.warning(
+            f"MCP_SECRET_BLOCKED [{tool_name}] {flow.request.pretty_url} — "
+            f"{[f.pattern_name for f in secret_result.findings if f.blocked]}"
+        )
+        findings_summary = ", ".join(
+            f"{f.pattern_name}({f.severity})" for f in secret_result.findings if f.blocked
+        )
+        body = json.dumps({
+            "error": {
+                "type": "coworkguard_mcp_secret_blocked",
+                "tool": tool_name,
+                "message": f"CoworkGuard blocked this tool response — sensitive data detected: {findings_summary}",
+                "payload_hash": secret_result.payload_hash,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        })
+        flow.response = http.Response.make(
+            403, body,
+            {"Content-Type": "application/json", "X-CoworkGuard": "MCP_SECRET_BLOCKED"}
+        )
+        return
+
     # Run through policy engine
     decision = _policy_engine.evaluate(
         tool_output=tool_output,
