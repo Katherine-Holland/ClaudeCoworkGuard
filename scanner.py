@@ -401,6 +401,19 @@ class CoworkScanner:
         except Exception:
             return self.scan(raw_body.decode("utf-8", errors="replace"))
 
+        # Handle top-level tool_result — MCP tool responses scanned directly
+        # e.g. {"type": "tool_result", "content": "..."} from proxy.py response hook
+        if isinstance(body, dict) and body.get("type") == "tool_result":
+            inner = body.get("content", "")
+            if isinstance(inner, str):
+                return self.scan(inner)
+            elif isinstance(inner, list):
+                parts = []
+                for block in inner:
+                    if isinstance(block, dict):
+                        parts.extend(self._extract_content_block(block))
+                return self.scan("\n".join(parts))
+
         # Route to provider-specific extractor
         # Default (empty URL) uses Anthropic format for backwards compatibility
         url_lower = url.lower()
