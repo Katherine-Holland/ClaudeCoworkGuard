@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CoworkGuard",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Local firewall for AI agents- monitors outbound API requests. Blocks sensitive data before it leaves your machine.",
   "permissions": [
     "tabs",
@@ -29,12 +29,30 @@
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"
+        "https://claude.ai/*",
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
+        "https://gemini.google.com/*",
+        "https://perplexity.ai/*",
+        "https://cursor.sh/*",
+        "https://mistral.ai/*",
+        "https://groq.com/*",
+        "https://github.com/copilot*"
       ],
       "js": [
         "content.js"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "window-ai-detector.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "action": {

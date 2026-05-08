@@ -41,10 +41,11 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 .partial-banner a{color:var(--accent2);text-decoration:none;cursor:pointer}
 
 /* Stats */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
 .stat{background:var(--bg);padding:10px 8px;text-align:center}
 .stat-v{font-size:22px;font-weight:700;line-height:1;margin-bottom:2px}
 .stat-v.blocked{color:#f05060}.stat-v.flagged{color:#f0a030}.stat-v.clean{color:#3dd68c}
+.stat-v.local-ai{color:#a78bfa}.stat-v.suspicious{color:#f05060}
 .stat-l{font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 
 /* Events */
@@ -92,9 +93,11 @@ body{width:300px;min-height:200px;background:var(--bg);color:var(--text);font-fa
 </div>
 
 <div class="stats">
-  <div class="stat"><div class="stat-v blocked" id="s-blocked">–</div><div class="stat-l">Blocked</div></div>
-  <div class="stat"><div class="stat-v flagged" id="s-flagged">–</div><div class="stat-l">Flagged</div></div>
-  <div class="stat"><div class="stat-v clean"   id="s-clean">–</div><div class="stat-l">Clean</div></div>
+  <div class="stat"><div class="stat-v blocked"    id="s-blocked">–</div><div class="stat-l">Blocked</div></div>
+  <div class="stat"><div class="stat-v flagged"    id="s-flagged">–</div><div class="stat-l">Flagged</div></div>
+  <div class="stat"><div class="stat-v clean"      id="s-clean">–</div><div class="stat-l">Clean</div></div>
+  <div class="stat"><div class="stat-v local-ai"   id="s-local-ai">–</div><div class="stat-l">Local AI</div></div>
+  <div class="stat"><div class="stat-v suspicious" id="s-suspicious">–</div><div class="stat-l">Wrap</div></div>
 </div>
 
 <!-- Skill scanner alert — shown when skill findings exist -->

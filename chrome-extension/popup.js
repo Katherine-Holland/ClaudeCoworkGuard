@@ -35,10 +35,12 @@ function esc(s) {
 
 async function clearData() {
   await chrome.runtime.sendMessage({ type: 'CLEAR_LOG' });
-  document.getElementById('s-blocked').textContent = '0';
-  document.getElementById('s-flagged').textContent = '0';
-  document.getElementById('s-clean').textContent   = '0';
-  document.getElementById('event-list').innerHTML  = '<div class="empty">Cleared</div>';
+  document.getElementById('s-blocked').textContent    = '0';
+  document.getElementById('s-flagged').textContent    = '0';
+  document.getElementById('s-clean').textContent      = '0';
+  document.getElementById('s-local-ai').textContent   = '0';
+  document.getElementById('s-suspicious').textContent = '0';
+  document.getElementById('event-list').innerHTML     = '<div class="empty">Cleared</div>';
 }
 
 async function loadSkillScans() {
@@ -107,9 +109,11 @@ async function load() {
       text.textContent = 'CHECKING';
     }
 
-    document.getElementById('s-blocked').textContent = s?.blocked ?? '0';
-    document.getElementById('s-flagged').textContent = s?.flagged ?? '0';
-    document.getElementById('s-clean').textContent   = s?.clean   ?? '0';
+    document.getElementById('s-blocked').textContent    = s?.blocked             ?? '0';
+    document.getElementById('s-flagged').textContent    = s?.flagged             ?? '0';
+    document.getElementById('s-clean').textContent      = s?.clean               ?? '0';
+    document.getElementById('s-local-ai').textContent   = s?.windowAiDetections  ?? '0';
+    document.getElementById('s-suspicious').textContent = s?.suspiciousWraps      ?? '0';
   });
 
   chrome.storage.local.get(['auditLog'], result => {
