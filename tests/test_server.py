@@ -339,3 +339,93 @@ class TestPathHelpers:
         payload = {"file": str(tmp_path / "myfile.txt")}
         blocked = check_payload_folders(payload, [allowed])
         assert blocked == []
+
+
+# ─────────────────────────────────────────────
+# /api/log-event
+# ─────────────────────────────────────────────
+
+class TestLogEventEndpoint:
+
+    def _post(self, client, tmp_path, monkeypatch, payload):
+        monkeypatch.setattr(server, "LOG_DIR", tmp_path / "logs")
+        (tmp_path / "logs").mkdir(exist_ok=True)
+        return client.post("/api/log-event",
+                           data=json.dumps(payload),
+                           content_type="application/json")
+
+    def _read_log(self, tmp_path):
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        log_file = tmp_path / "logs" / f"audit_{today}.jsonl"
+        return json.loads(log_file.read_text().strip().split("\n")[-1])
+
+    def test_valid_window_ai_detected_accepted(self, client, tmp_path, monkeypatch):
+        r = self._post(client, tmp_path, monkeypatch, {
+            "type": "WINDOW_AI_DETECTED",
+            "severity": "HIGH",
+            "action": "FLAGGED",
+            "url": "https://claude.ai/",
+            "path": "LanguageModel",
+            "timestamp": "2026-05-01T10:00:00+00:00",
+        })
+        assert r.status_code == 200
+        assert json.loads(r.data)["ok"] is True
+
+    def test_valid_suspicious_wrap_accepted(self, client, tmp_path, monkeypatch):
+        r = self._post(client, tmp_path, monkeypatch, {
+            "type": "SUSPICIOUS_API_WRAP",
+            "severity": "CRITICAL",
+            "action": "CRITICAL_ALERT",
+            "url": "https://chat.openai.com/",
+            "fetchWrapped": True,
+            "xhrWrapped": False,
+            "timestamp": "2026-05-01T10:00:00+00:00",
+        })
+        assert r.status_code == 200
+        assert json.loads(r.data)["ok"] is True
+
+    def test_missing_fields_handled_gracefully(self, client, tmp_path, monkeypatch):
+        r = self._post(client, tmp_path, monkeypatch, {})
+        assert r.status_code == 200
+        assert json.loads(r.data)["ok"] is True
+
+    def test_oversized_url_truncated(self, client, tmp_path, monkeypatch):
+        self._post(client, tmp_path, monkeypatch, {
+            "type": "WINDOW_AI_DETECTED",
+            "url": "https://claude.ai/" + "x" * 1000,
+            "timestamp": "2026-05-01T10:00:00+00:00",
+        })
+        entry = self._read_log(tmp_path)
+        assert len(entry["url"]) <= 500
+
+    def test_invalid_timestamp_replaced_with_server_time(self, client, tmp_path, monkeypatch):
+        self._post(client, tmp_path, monkeypatch, {
+            "type": "WINDOW_AI_DETECTED",
+            "timestamp": "not-a-date",
+            "url": "https://claude.ai/",
+        })
+        entry = self._read_log(tmp_path)
+        assert entry["timestamp"] != "not-a-date"
+        from datetime import datetime
+        datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
+
+    def test_unknown_event_type_normalised_to_chrome_event(self, client, tmp_path, monkeypatch):
+        self._post(client, tmp_path, monkeypatch, {
+            "type": "UNKNOWN_EVIL_TYPE",
+            "timestamp": "2026-05-01T10:00:00+00:00",
+        })
+        entry = self._read_log(tmp_path)
+        assert entry["type"] == "CHROME_EVENT"
+
+    def test_event_written_to_audit_log_with_correct_source(self, client, tmp_path, monkeypatch):
+        self._post(client, tmp_path, monkeypatch, {
+            "type": "WINDOW_AI_DETECTED",
+            "severity": "HIGH",
+            "action": "FLAGGED",
+            "url": "https://claude.ai/",
+            "timestamp": "2026-05-01T10:00:00+00:00",
+        })
+        entry = self._read_log(tmp_path)
+        assert entry["type"] == "WINDOW_AI_DETECTED"
+        assert entry["source"] == "chrome_extension"

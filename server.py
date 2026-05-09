@@ -547,6 +547,95 @@ def folder_check():
     })
 
 
+
+# Simple in-memory rate limiter for /api/log-event
+_log_event_counts = {}  # {minute_str: count}
+
+ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING"}
+LOG_EVENT_MAX_PER_MINUTE = 100
+
+
+@app.route("/api/log-event", methods=["POST"])
+def log_event():
+    """
+    Receive events from the Chrome extension and write them to the
+    daily audit JSONL log so they appear in the dashboard.
+
+    Used for:
+      - WINDOW_AI_DETECTED  — Chrome Prompt API / window.ai usage
+      - SUSPICIOUS_API_WRAP — malicious extension fetch/XHR wrapping
+      - DOMAIN_WARNING      — sensitive domain navigation (supplement)
+    """
+    try:
+        # Rate limit — max 100 events per minute
+        minute = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+        _log_event_counts[minute] = _log_event_counts.get(minute, 0) + 1
+        # Clean up old minute keys
+        for k in list(_log_event_counts):
+            if k != minute:
+                del _log_event_counts[k]
+        if _log_event_counts[minute] > LOG_EVENT_MAX_PER_MINUTE:
+            return jsonify({"ok": False, "error": "rate limit exceeded"}), 429
+
+        event = request.get_json(force=True) or {}
+
+        # Validate event type against known allowlist
+        raw_type   = str(event.get("type", ""))[:64]
+        event_type = raw_type if raw_type in ALLOWED_EVENT_TYPES else "CHROME_EVENT"
+
+        severity   = str(event.get("severity", "MEDIUM"))[:16]
+        action     = str(event.get("action", "FLAGGED"))[:32]
+        url        = str(event.get("url", ""))[:500]
+
+        # Validate timestamp — must parse as ISO 8601, otherwise use server time
+        raw_ts = str(event.get("timestamp", ""))[:32]
+        try:
+            datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            timestamp = raw_ts
+        except ValueError:
+            timestamp = datetime.now(timezone.utc).isoformat()
+
+        # Build safe log entry — only known fields, no raw content
+        entry = {
+            "timestamp":  timestamp,
+            "type":       event_type,
+            "source":     "chrome_extension",
+            "action":     action,
+            "blocked":    action == "BLOCKED",
+            "severity":   severity,
+            "url":        url,
+            "finding_count": 1,
+            "findings": [{
+                "type":     event_type,
+                "severity": severity,
+                "preview":  event_type,
+                "blocked":  action == "BLOCKED",
+            }],
+        }
+
+        # Include safe optional fields
+        if "path" in event:
+            entry["path"] = str(event["path"])[:64]
+        if "domain" in event:
+            entry["domain"] = str(event["domain"])[:128]
+        if "fetchWrapped" in event:
+            entry["fetchWrapped"] = bool(event["fetchWrapped"])
+        if "xhrWrapped" in event:
+            entry["xhrWrapped"] = bool(event["xhrWrapped"])
+        if "message" in event:
+            entry["message"] = str(event["message"])[:256]
+
+        # Write to daily audit log
+        log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+        with open(log_file, "a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/clear", methods=["POST"])
 def clear_logs():
     for lf in LOG_DIR.glob("audit_*.jsonl"):

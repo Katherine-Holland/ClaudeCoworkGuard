@@ -99,6 +99,8 @@
   .badge.MEDIUM{background:rgba(255,235,59,.08);color:#fff176;border:1px solid rgba(255,235,59,.3)}
   .badge.CLIPBOARD{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.25)}
   .badge.FILEWRITE{background:rgba(234,179,8,.1);color:#fbbf24;border:1px solid rgba(234,179,8,.25)}
+  .badge.WINDOWAI{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.25)}
+  .badge.SUSPICIOUS{background:rgba(255,61,61,.2);color:#ff6b6b;border:1px solid rgba(255,61,61,.4)}
   .event-type{color:var(--muted);font-size:11px}
   .event-detail{color:var(--text);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .finding-tag{display:inline-block;background:rgba(224,90,32,.08);border:1px solid rgba(224,90,32,.2);color:var(--accent2);padding:1px 6px;border-radius:3px;font-size:10px;margin-right:4px}
@@ -246,6 +248,8 @@
         <button class="filter-btn" onclick="setFilter('CLIPBOARD_WARNING',this)">Clipboard</button>
         <button class="filter-btn" onclick="setFilter('FILE_WRITE_WARNING',this)">File Writes</button>
         <button class="filter-btn" onclick="setFilter('CLEAN',this)">Clean</button>
+        <button class="filter-btn" onclick="setFilter('WINDOW_AI_DETECTED',this)">Local AI</button>
+        <button class="filter-btn" onclick="setFilter('SUSPICIOUS_API_WRAP',this)">Suspicious Wrap</button>
       </div>
       <div class="log-col-header"><span>Timestamp</span><span>Action</span><span>Type</span><span>Detail</span></div>
       <div class="event-log" id="event-log">
@@ -521,14 +525,18 @@ function renderLog() {
     const ts = new Date(e.timestamp);
     const time = ts.toLocaleTimeString('en-US',{hour12:false});
     const date = ts.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILEWRITE':esc(e.action||'UNKNOWN');
-    const type   = e.type==='DOMAIN_WARNING'?'DOMAIN':e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILE':'API';
+    const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILEWRITE':e.type==='WINDOW_AI_DETECTED'?'WINDOWAI':e.type==='SUSPICIOUS_API_WRAP'?'SUSPICIOUS':esc(e.action||'UNKNOWN');
+    const type   = e.type==='DOMAIN_WARNING'?'DOMAIN':e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILE':e.type==='WINDOW_AI_DETECTED'?'LOCAL AI':e.type==='SUSPICIOUS_API_WRAP'?'EXTENSION':'API';
     let detail = e.type==='DOMAIN_WARNING'
       ? `⚠️ Navigated to <strong style="color:var(--warn)">${esc(e.domain||e.url)}</strong> while AI agent active`
       : e.type==='CLIPBOARD_WARNING'
         ? `📋 Clipboard contains sensitive data: ${e.findings?.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')||'unknown'}`
       : e.type==='FILE_WRITE_WARNING'
         ? `📄 File written outside allowed folders: <strong style="color:var(--warn)">${esc((e.url||'').split('/').pop())}</strong>${e.findings?.length?` — ${e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')}`:''}`
+      : e.type==='WINDOW_AI_DETECTED'
+        ? `🤖 Chrome built-in AI (Gemini Nano) used via <strong style="color:#38bdf8">${esc(e.path||'window.ai')}</strong> on ${esc((e.url||'').replace(/https?:\/\//,'').split('/')[0])}`
+      : e.type==='SUSPICIOUS_API_WRAP'
+        ? `🚨 Extension overriding ${[e.fetchWrapped&&'fetch()',e.xhrWrapped&&'XMLHttpRequest'].filter(Boolean).join(' and ')||'fetch() or XMLHttpRequest'} on AI page — possible conversation harvesting`
       : e.findings?.length
         ? e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')
         : `<span style="color:var(--muted)">No sensitive data detected</span>`;
