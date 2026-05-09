@@ -1,0 +1,38 @@
+# CoworkGuard
+
+> Local AI agent firewall for macOS. Blocks PII, credentials, and secrets from leaving your machine via AI APIs. Detects MCP prompt injection attacks. Free, open source, no account required.
+
+CoworkGuard is a privacy and security layer that sits between your machine and AI APIs (Claude, ChatGPT, Gemini, Cursor, Copilot, and others). It scans every outbound request for sensitive data before it leaves your machine, and scans inbound MCP tool responses for prompt injection attacks.
+
+## Key facts
+
+- Runs entirely locally — no telemetry, no cloud sync, no account
+- macOS app + Chrome extension
+- Open source: MIT with Commons Clause (free for personal use)
+- Detects 40+ sensitive data patterns: SSNs, API keys, private keys, credit cards, database credentials, internal URLs
+- Blocks CRITICAL findings by default; configurable for HIGH severity
+- MCP security: injection scanner, metadata scanner, unicode scanner
+- Confirm Before Send: hold blocked requests for human review before allowing
+- Detects malicious browser extensions harvesting AI conversations (Urban VPN pattern)
+- Detects Chrome built-in Prompt API (window.ai / LanguageModel) usage
+
+## Supported AI providers
+
+Anthropic (Claude), OpenAI (ChatGPT / GPT-4), Google Gemini, Perplexity AI, Cursor, GitHub Copilot, Mistral AI, Cohere, Groq, xAI (Grok)
+
+## Pages
+
+- Home: https://coworkguard.com/
+- FAQ: https://coworkguard.com/faq.html
+- Support: https://coworkguard.com/support.html
+- Privacy Policy: https://coworkguard.com/privacy.html
+
+## Downloads
+
+- macOS app: https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases
+- Chrome extension: https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg
+- Source code: https://github.com/Katherine-Holland/ClaudeCoworkGuard
+
+## Author
+
+Katherine Weston — https://github.com/Katherine-Holland

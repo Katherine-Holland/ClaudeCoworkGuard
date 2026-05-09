@@ -3,7 +3,7 @@
   CoworkGuard — Marketing Landing Page (docs/index.html)
   -------------------------------------------------------
   This is the PUBLIC MARKETING SITE hosted on GitHub Pages at
-  https://katherine-holland.github.io/ClaudeCoworkGuard
+  https://coworkguard.com
 
   NOT the same as dashboard.html which is the local audit UI
   served by server.py at http://localhost:7070 when CoworkGuard is running.
@@ -14,6 +14,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>CoworkGuard — Local Privacy Layer for AI Agents</title>
 <meta name="description" content="macOS AI Agent Security Layer. Your AI agent firewall. Blocks sensitive data leaving your machine and intercepts MCP tool responses before they reach the model."/>
+<link rel="canonical" href="https://coworkguard.com/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="CoworkGuard"/>
+<meta property="og:title" content="CoworkGuard — Local AI Agent Firewall for macOS"/>
+<meta property="og:description" content="Blocks PII, credentials, and secrets before they reach AI APIs. Detects MCP prompt injection. Free, open source, runs entirely on your machine."/>
+<meta property="og:url" content="https://coworkguard.com/"/>
+<meta property="og:image" content="https://coworkguard.com/og-image.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="CoworkGuard — Local AI Agent Firewall for macOS"/>
+<meta name="twitter:description" content="Blocks PII, credentials, and secrets before they reach AI APIs. Detects MCP prompt injection. Free, open source, runs entirely on your machine."/>
+<meta name="twitter:image" content="https://coworkguard.com/og-image.png"/>
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/>
 <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png"/>
 <link rel="icon" type="image/png" href="favicon.png"/>
@@ -154,6 +165,31 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
 .footer-links a:hover{color:var(--text)}
 .footer-copy{font-family:var(--mono);font-size:11px;color:var(--muted)}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "CoworkGuard",
+  "applicationCategory": "SecurityApplication",
+  "operatingSystem": "macOS",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Local AI agent firewall for macOS. Blocks PII, credentials, and secrets from leaving your machine via AI APIs. Detects MCP prompt injection attacks and suspicious browser extension behaviour.",
+  "url": "https://coworkguard.com",
+  "downloadUrl": "https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases",
+  "softwareVersion": "1.0.6",
+  "license": "https://github.com/Katherine-Holland/ClaudeCoworkGuard/blob/main/LICENSE",
+  "author": { "@type": "Person", "name": "Katherine Weston" },
+  "sameAs": "https://github.com/Katherine-Holland/ClaudeCoworkGuard"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "CoworkGuard",
+  "url": "https://coworkguard.com"
+}
+</script>
 </head>
 <body>
 <div class="grid-bg"></div>
@@ -168,6 +204,7 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
     <a class="nav-link" href="#features">Features</a>
     <a class="nav-link" href="#patterns">Detection</a>
     <a class="nav-link" href="#privacy">Privacy</a>
+    <a class="nav-link" href="faq.html">FAQ</a>
     <a class="nav-link" href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a>
     <!--<a class="nav-link" href="shield.html" style="color:var(--blue2,#3b82f6)">Shield ↗</a>-->
     <a class="nav-cta" href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.1/CoworkGuard_1.0.1_universal.dmg">Download — Free</a>
@@ -407,6 +444,7 @@ footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-i
   </div>
   <div class="footer-links">
     <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a>
+    <a href="faq.html">FAQ</a>
     <a href="support.html">Support</a>
     <a href="privacy.html">Privacy Policy</a>
     <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/blob/main/LICENSE">License</a>

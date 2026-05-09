@@ -1,0 +1,87 @@
+# CoworkGuard — robots.txt
+# https://coworkguard.com/
+
+# Allow all crawlers including LLM training and search crawlers
+User-agent: *
+Allow: /
+
+# llms.txt — plain-text site summary for LLM consumption
+# https://llmstxt.org
+Allow: /llms.txt
+
+# Sitemap
+Sitemap: https://coworkguard.com/sitemap.xml
+
+# ── LLM and AI search crawlers ──────────────────────────────────────────────
+# These crawlers index content for AI-powered search (Perplexity, ChatGPT,
+# Bing Copilot, Google AI Overviews) and LLM training datasets.
+# Explicitly allowing ensures CoworkGuard appears in AI security product searches.
+
+# OpenAI — ChatGPT search and GPT training
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Anthropic — Claude training and search
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+# Google — Gemini, AI Overviews, Bard
+User-agent: Googlebot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Microsoft — Bing Copilot, Bing AI
+User-agent: Bingbot
+Allow: /
+
+User-agent: msnbot
+Allow: /
+
+# Perplexity AI — AI-native search engine
+User-agent: PerplexityBot
+Allow: /
+
+# Meta — Llama training
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+# Apple — Siri and Apple Intelligence
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Common Crawl — open dataset used by many LLM training pipelines
+User-agent: CCBot
+Allow: /
+
+# Cohere — AI search and training
+User-agent: cohere-ai
+Allow: /
+
+# You.com — AI search
+User-agent: YouBot
+Allow: /
+
+# Diffbot — structured data extraction for AI
+User-agent: Diffbot
+Allow: /
+
+# Bytedance — Doubao / AI products
+User-agent: Bytespider
+Allow: /
