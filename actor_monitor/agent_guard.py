@@ -1,0 +1,487 @@
+"""
+CoworkGuard AI Actor Monitor — Agent Guard
+© 2026 Katherine Weston. All rights reserved.
+
+Monitors running AI actor processes and detects risky permission combinations
+and sensitive app co-occurrence without requiring Accessibility permission.
+
+What it detects:
+  - Which AI actor processes are currently running
+  - Which sensitive apps are running simultaneously
+  - Which AI actors have Accessibility / Full Disk Access / Screen Recording
+    (read from macOS TCC.db — requires Full Disk Access only)
+  - AI actor + sensitive app running at the same time → HIGH alert
+  - AI actor with Accessibility + Full Disk Access → HIGH alert
+
+What it does NOT do (requires AX permission or kernel extension):
+  - Intercept actual AX reads
+  - Monitor specific UI element access
+  - Block network connections
+
+Runs as a background process spawned by main.rs.
+Polls every 30 seconds. Writes to daily audit JSONL log.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sqlite3
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
+
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+
+from .actor_registry import ActorRegistry, Actor, SensitiveBundle
+
+log = logging.getLogger("coworkguard.agent_guard")
+
+# ─────────────────────────────────────────────
+# Config
+# ─────────────────────────────────────────────
+
+LOG_DIR      = Path.home() / ".coworkguard" / "logs"
+SETTINGS_FILE = Path.home() / ".coworkguard" / "settings.json"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+POLL_INTERVAL    = 30    # seconds between scans
+CORRELATION_TTL  = 10    # seconds — AX access + network within this = CRITICAL
+
+# macOS TCC database — stores app permission grants
+TCC_DB_PATHS = [
+    Path.home() / "Library/Application Support/com.apple.TCC/TCC.db",
+    Path("/Library/Application Support/com.apple.TCC/TCC.db"),
+]
+
+# TCC service identifiers
+TCC_ACCESSIBILITY    = "kTCCServiceAccessibility"
+TCC_FULL_DISK        = "kTCCServiceSystemPolicyAllFiles"
+TCC_SCREEN_RECORDING = "kTCCServiceScreenCapture"
+TCC_CAMERA           = "kTCCServiceCamera"
+TCC_MICROPHONE       = "kTCCServiceMicrophone"
+
+
+# ─────────────────────────────────────────────
+# TCC permission reader
+# ─────────────────────────────────────────────
+
+def _read_tcc_permissions() -> Dict[str, Set[str]]:
+    """
+    Read macOS TCC.db to find which apps have which permissions.
+    Returns dict: {bundle_id: {service1, service2, ...}}
+    Requires Full Disk Access — gracefully degrades if not available.
+    """
+    permissions: Dict[str, Set[str]] = {}
+
+    for db_path in TCC_DB_PATHS:
+        if not db_path.exists():
+            continue
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            cursor = conn.execute(
+                "SELECT client, service, allowed FROM access WHERE allowed = 1"
+            )
+            for bundle_id, service, allowed in cursor.fetchall():
+                if bundle_id not in permissions:
+                    permissions[bundle_id] = set()
+                permissions[bundle_id].add(service)
+            conn.close()
+        except Exception as e:
+            log.debug("TCC.db read failed (%s): %s", db_path, e)
+
+    return permissions
+
+
+def _get_permission_labels(bundle_id: str, tcc: Dict[str, Set[str]]) -> List[str]:
+    """Return human-readable permission labels for a bundle_id."""
+    services = tcc.get(bundle_id, set())
+    labels = []
+    if TCC_ACCESSIBILITY    in services: labels.append("accessibility")
+    if TCC_FULL_DISK        in services: labels.append("full_disk")
+    if TCC_SCREEN_RECORDING in services: labels.append("screen_recording")
+    if TCC_CAMERA           in services: labels.append("camera")
+    if TCC_MICROPHONE       in services: labels.append("microphone")
+    return labels
+
+
+# ─────────────────────────────────────────────
+# Process scanning
+# ─────────────────────────────────────────────
+
+def _get_running_bundle_id(pid: int) -> Optional[str]:
+    """Get bundle ID for a running process using macOS lsappinfo."""
+    try:
+        result = subprocess.run(
+            ["lsappinfo", "info", "-only", "bundleid", str(pid)],
+            capture_output=True, text=True, timeout=2
+        )
+        for line in result.stdout.splitlines():
+            if "bundleid" in line.lower() and "=" in line:
+                return line.split("=")[-1].strip().strip('"')
+    except Exception:
+        pass
+    return None
+
+
+def _get_parent_actor_id(proc, registry: ActorRegistry) -> Optional[str]:
+    """Get the actor_id of a process's parent if it's a known AI actor."""
+    try:
+        parent = proc.parent()
+        if parent:
+            parent_actor = registry.match_process(name=parent.name())
+            return parent_actor.actor_id if parent_actor else None
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+    return None
+
+
+def scan_running_actors(registry: ActorRegistry,
+                         tcc: Dict[str, Set[str]]) -> List[Dict]:
+    """
+    Scan all running processes and return those matching known AI actors.
+    """
+    if not HAS_PSUTIL:
+        return []
+
+    running = []
+    seen_actor_ids: Set[str] = set()
+
+    for proc in psutil.process_iter(['pid', 'name', 'exe', 'create_time']):
+        try:
+            name = proc.info['name'] or ''
+            pid  = proc.info['pid']
+
+            # Get bundle_id for better matching
+            bundle_id = _get_running_bundle_id(pid)
+
+            # Get parent for MCP tool matching
+            parent_actor_id = _get_parent_actor_id(proc, registry)
+
+            actor = registry.match_process(
+                name=name,
+                bundle_id=bundle_id,
+                parent_actor_id=parent_actor_id,
+            )
+            if not actor:
+                continue
+
+            # Get permissions from TCC
+            perms = []
+            if bundle_id:
+                perms = _get_permission_labels(bundle_id, tcc)
+
+            # Determine risk level
+            risk = _assess_risk(actor, perms)
+
+            entry = {
+                "actor_id":     actor.actor_id,
+                "display_name": actor.display_name,
+                "pid":          pid,
+                "bundle_id":    bundle_id or "",
+                "permissions":  perms,
+                "capabilities": actor.capabilities,
+                "risk":         risk,
+                "running_since": datetime.fromtimestamp(
+                    proc.info['create_time'], tz=timezone.utc
+                ).isoformat() if proc.info.get('create_time') else "",
+            }
+
+            # For actors requiring parent match, include but mark accordingly
+            if actor.requires_parent_match:
+                entry["parent_actor_id"] = parent_actor_id
+                if not parent_actor_id:
+                    continue  # skip — not running as MCP tool
+
+            # Dedupe — one entry per actor_id (keep highest risk)
+            if actor.actor_id in seen_actor_ids:
+                continue
+            seen_actor_ids.add(actor.actor_id)
+            running.append(entry)
+
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    return running
+
+
+def scan_sensitive_apps() -> List[Dict]:
+    """
+    Return list of sensitive apps currently running.
+    """
+    if not HAS_PSUTIL:
+        return []
+
+    running = []
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            bundle_id = _get_running_bundle_id(proc.info['pid'])
+            if not bundle_id:
+                continue
+            # Check against known sensitive bundle list via registry
+            # (we pass registry in from caller — this is a helper)
+            running.append({
+                "pid": proc.info['pid'],
+                "name": proc.info['name'],
+                "bundle_id": bundle_id,
+            })
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return running
+
+
+def _assess_risk(actor: Actor, permissions: List[str]) -> str:
+    """
+    Assess risk level for a running actor based on permissions.
+    CRITICAL: accessibility + full_disk
+    HIGH: accessibility alone, or full_disk + network in high-risk actor
+    MEDIUM: network capable actor running
+    LOW: everything else
+    """
+    has_ax  = "accessibility"    in permissions
+    has_fda = "full_disk"        in permissions
+    has_sr  = "screen_recording" in permissions
+
+    if has_ax and has_fda:
+        return "critical"
+    if has_ax or (has_fda and "network_access" in actor.capabilities):
+        return "high"
+    if has_sr:
+        return "high"
+    if "network_access" in actor.capabilities:
+        return "medium"
+    return "low"
+
+
+# ─────────────────────────────────────────────
+# Alert generation
+# ─────────────────────────────────────────────
+
+def _notify(title: str, message: str) -> None:
+    try:
+        subprocess.run([
+            "osascript", "-e",
+            f'display notification "{message}" with title "⚠️ CoworkGuard" subtitle "{title}"'
+        ], timeout=3, capture_output=True)
+    except Exception:
+        pass
+
+
+def _write_log(event_type: str, severity: str, actor_id: str,
+               actor_name: str, detail: str, extra: dict = None) -> None:
+    log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+    entry = {
+        "timestamp":     datetime.now(timezone.utc).isoformat(),
+        "type":          event_type,
+        "source":        "agent_guard",
+        "action":        "FLAGGED",
+        "blocked":       False,
+        "severity":      severity,
+        "actor_id":      actor_id,
+        "actor_name":    actor_name,
+        "finding_count": 1,
+        "findings": [{
+            "type":     event_type,
+            "severity": severity,
+            "preview":  detail,
+            "blocked":  False,
+        }],
+    }
+    if extra:
+        entry.update(extra)
+    with open(log_file, "a") as fh:
+        fh.write(json.dumps(entry) + "\n")
+
+    # Report to dashboard
+    try:
+        import urllib.request
+        payload = json.dumps({
+            "type":       event_type,
+            "severity":   severity,
+            "action":     "FLAGGED",
+            "actor_id":   actor_id,
+            "actor_name": actor_name,
+            "timestamp":  entry["timestamp"],
+            "message":    detail,
+        }).encode()
+        req = urllib.request.Request(
+            "http://localhost:7070/api/log-event",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        urllib.request.urlopen(req, timeout=2)
+    except Exception:
+        pass
+
+
+def check_permission_risks(actors: List[Dict], registry: ActorRegistry,
+                            alerted: Set[str]) -> None:
+    """Alert when an actor has a risky permission combination."""
+    for actor_info in actors:
+        perms = actor_info.get("permissions", [])
+        actor_id = actor_info["actor_id"]
+        actor_name = actor_info["display_name"]
+
+        has_ax  = "accessibility" in perms
+        has_fda = "full_disk"     in perms
+
+        # Dedupe alerts — only fire once per actor per session
+        alert_key = f"perm:{actor_id}:{':'.join(sorted(perms))}"
+        if alert_key in alerted:
+            continue
+
+        if has_ax and has_fda:
+            alerted.add(alert_key)
+            detail = f"{actor_name} has Accessibility and Full Disk Access"
+            log.warning("PERM_RISK [%s] %s", actor_id, detail)
+            _write_log("PERM_RISK_CRITICAL", "CRITICAL", actor_id, actor_name, detail)
+            _notify(
+                f"{actor_name} — permission risk",
+                "This app has both Accessibility and Full Disk Access. "
+                "Review in CoworkGuard Agent Guard tab."
+            )
+        elif has_ax:
+            alerted.add(alert_key)
+            detail = f"{actor_name} has Accessibility access"
+            log.info("AX_ACCESS [%s] %s", actor_id, detail)
+            _write_log("AX_ACCESS_DETECTED", "HIGH", actor_id, actor_name, detail)
+
+
+def check_sensitive_cooccurrence(actors: List[Dict],
+                                   registry: ActorRegistry,
+                                   alerted: Set[str]) -> None:
+    """
+    Alert when an AI actor and a sensitive app are running simultaneously.
+    MVP: detect co-occurrence, not actual AX reads.
+    """
+    if not HAS_PSUTIL:
+        return
+
+    # Get all running bundle IDs
+    running_bundles: Dict[str, str] = {}  # bundle_id -> process name
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            bid = _get_running_bundle_id(proc.info['pid'])
+            if bid:
+                running_bundles[bid.lower()] = proc.info['name']
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    # Check each running actor against sensitive bundles
+    for actor_info in actors:
+        actor_id   = actor_info["actor_id"]
+        actor_name = actor_info["display_name"]
+        perms      = actor_info.get("permissions", [])
+        has_ax     = "accessibility" in perms
+
+        for bid, sb in {
+            k: v for k, v in
+            {b: registry.is_sensitive_bundle(b) for b in running_bundles}.items()
+            if v
+        }.items():
+            alert_key = f"cooccur:{actor_id}:{bid}"
+            if alert_key in alerted:
+                continue
+
+            # Only alert if actor has AX permission — otherwise just running
+            # alongside a sensitive app is not a strong signal
+            if not has_ax:
+                continue
+
+            alerted.add(alert_key)
+            detail = (f"{actor_name} has Accessibility access while "
+                      f"{sb.display_name} is running")
+            severity = sb.risk
+
+            log.info("AX_COOCCUR [%s] %s", actor_id, detail)
+            _write_log(
+                "AX_ACCESS_DETECTED", severity,
+                actor_id, actor_name, detail,
+                extra={"target_app": sb.display_name, "target_bundle": bid}
+            )
+            _notify(
+                f"{actor_name} — sensitive app active",
+                f"{actor_name} has Accessibility access while "
+                f"{sb.display_name} is open."
+            )
+
+
+# ─────────────────────────────────────────────
+# Main loop
+# ─────────────────────────────────────────────
+
+def _load_settings() -> dict:
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def main() -> None:
+    if sys.platform != "darwin":
+        log.error("agent_guard requires macOS")
+        sys.exit(0)
+
+    if not HAS_PSUTIL:
+        log.error("psutil not installed — agent_guard unavailable")
+        while True:
+            time.sleep(60)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [CoworkGuard AgentGuard] %(message)s"
+    )
+
+    registry = ActorRegistry()
+    log.info(
+        "Agent Guard started — %d actors, %d sensitive bundles, polling every %ds",
+        registry.actor_count(), registry.sensitive_bundle_count(), POLL_INTERVAL
+    )
+
+    alerted: Set[str] = set()  # dedupe alerts within session
+
+    while True:
+        try:
+            settings = _load_settings()
+            if settings.get("quiet_mode", False):
+                time.sleep(POLL_INTERVAL)
+                continue
+
+            # Read TCC permissions
+            tcc = _read_tcc_permissions()
+
+            # Scan running AI actors
+            actors = scan_running_actors(registry, tcc)
+
+            if actors:
+                log.info(
+                    "Running AI actors: %s",
+                    ", ".join(a["display_name"] for a in actors)
+                )
+
+            # Check permission risks
+            check_permission_risks(actors, registry, alerted)
+
+            # Check sensitive app co-occurrence
+            check_sensitive_cooccurrence(actors, registry, alerted)
+
+        except Exception as e:
+            log.error("Agent Guard error: %s", e)
+
+        time.sleep(POLL_INTERVAL)
+
+
+if __name__ == "__main__":
+    main()
