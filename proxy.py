@@ -52,6 +52,56 @@ except ImportError:
     MCP_TRUST_AVAILABLE = False
     log_placeholder = None
 
+
+# ─────────────────────────────────────────────
+# Confirm-before-send — pending request store
+# ─────────────────────────────────────────────
+import threading
+import uuid
+import time as _time
+
+_pending_lock = threading.Lock()
+_pending_requests: dict = {}
+_PENDING_TTL = 60
+
+
+def _reap_pending():
+    now = _time.time()
+    with _pending_lock:
+        expired = [k for k, v in _pending_requests.items() if now - v["timestamp"] > _PENDING_TTL]
+        for k in expired:
+            del _pending_requests[k]
+
+
+def get_pending_requests() -> list:
+    _reap_pending()
+    with _pending_lock:
+        return [
+            {
+                "id": rid,
+                "url": v["url"],
+                "method": v["method"],
+                "provider": v["provider"],
+                "payload_hash": v["payload_hash"],
+                "payload_size_bytes": v["payload_size_bytes"],
+                "findings": v["findings"],
+                "timestamp": v["timestamp"],
+                "age_seconds": int(_time.time() - v["timestamp"]),
+            }
+            for rid, v in _pending_requests.items()
+        ]
+
+
+def allow_request(request_id: str) -> bool:
+    """Signal the blocked hook to allow and replay the held request."""
+    with _pending_lock:
+        entry = _pending_requests.get(request_id)
+        if entry:
+            entry["event"].set()
+            return True
+    return False
+
+
 # ─────────────────────────────────────────────
 # AI API endpoints to monitor
 # ─────────────────────────────────────────────
@@ -204,6 +254,65 @@ def blocked_response(flow: http.HTTPFlow, result: ScanResult):
     )
 
 
+
+
+def hold_for_confirmation(flow, result, url: str, method: str, provider: str) -> str:
+    """
+    Block the mitmproxy hook until the user allows or the TTL expires.
+
+    Uses a threading.Event so the hook thread waits here — keeping the flow
+    open — rather than returning a 202 that the client can't act on. When
+    allow_request() is called from the dashboard, it sets the event and the
+    hook resumes, forwarding the original request unmodified.
+
+    If the TTL expires without user action the request is dropped (403).
+    """
+    request_id = uuid.uuid4().hex
+    allow_event = threading.Event()
+
+    with _pending_lock:
+        _pending_requests[request_id] = {
+            "timestamp": _time.time(),
+            "url": url,
+            "method": method,
+            "provider": provider,
+            "payload_hash": result.payload_hash,
+            "payload_size_bytes": result.payload_size_bytes,
+            "findings": [
+                {
+                    "type": f.pattern_name,
+                    "severity": f.severity,
+                    "preview": f.match_preview,
+                    "blocked": f.blocked,
+                }
+                for f in result.findings
+            ],
+            "event": allow_event,
+        }
+
+    log.info(
+        f"PENDING [{provider}] {url} — waiting for user confirmation "
+        f"(id={request_id[:8]}, TTL={_PENDING_TTL}s)"
+    )
+
+    # Block this hook thread until allowed or TTL expires
+    allowed = allow_event.wait(timeout=_PENDING_TTL)
+
+    # Remove from pending store regardless of outcome
+    with _pending_lock:
+        _pending_requests.pop(request_id, None)
+
+    if allowed:
+        # Let the request through — clear any previously set response
+        flow.response = None
+        log.info(f"ALLOWED [{provider}] {url} — user approved (id={request_id[:8]})")
+    else:
+        # TTL expired — block with 403
+        blocked_response(flow, result)
+        log.warning(f"PENDING_EXPIRED [{provider}] {url} — TTL exceeded, request blocked (id={request_id[:8]})")
+
+    return request_id, allowed
+
 # ─────────────────────────────────────────────
 # mitmproxy hooks
 # ─────────────────────────────────────────────
@@ -276,16 +385,30 @@ def request(flow: http.HTTPFlow):
     # Run scan
     result = scanner.scan_json_payload(raw_body, url=url)
 
-    # Always write to audit log
-    write_audit(result, url, method, provider)
-
     if result.blocked:
+        settings_now = load_settings()
+        if settings_now.get("confirm_before_send", False):
+            # Write PENDING audit entry before blocking the hook thread
+            result.action = "PENDING"
+            write_audit(result, url, method, provider)
+            request_id, allowed = hold_for_confirmation(flow, result, url, method, provider)
+            if allowed:
+                result.action = "ALLOWED"
+                write_audit(result, url, method, provider)
+            else:
+                result.action = "BLOCKED"
+                write_audit(result, url, method, provider)
+            return
         log.warning(
             f"BLOCKED [{provider}] {url} — {len(result.findings)} findings "
             f"({', '.join(f.pattern_name for f in result.findings if f.blocked)})"
         )
+        write_audit(result, url, method, provider)
         blocked_response(flow, result)
         return
+
+    # Write audit for non-blocked requests
+    write_audit(result, url, method, provider)
 
     if result.findings:
         log.info(

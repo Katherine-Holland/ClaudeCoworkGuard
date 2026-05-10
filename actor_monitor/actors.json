@@ -1,0 +1,1056 @@
+{
+  "_version": "1.1.3",
+  "_last_updated": "2026-05-10",
+  "_platform": "macos",
+  "_comment": "Configuration only. No detection logic lives here. Edit to customise actors, policies, and notification text. Detection logic is in actor_registry.py and agent_guard.py.",
+  "_description": "CoworkGuard AI Actor Registry. Defines known AI actors on macOS. Edit to add custom actors.",
+  "event_severity": {
+    "PROMPT_API_USED": "MEDIUM",
+    "LOCAL_MODEL_DOWNLOADED": "LOW",
+    "LOCAL_MODEL_UPDATED": "LOW",
+    "EXTENSION_HOOK_DETECTED": "HIGH",
+    "MCP_TOOL_INSTALLED": "MEDIUM",
+    "MCP_CONFIG_CHANGED": "MEDIUM",
+    "AX_ACCESS_DETECTED": "HIGH",
+    "NETWORK_AFTER_SENSITIVE_ACCESS": "CRITICAL",
+    "NATIVE_MESSAGING_REGISTERED": "MEDIUM",
+    "AI_EXTENSION_INSTALLED": "MEDIUM",
+    "BUNDLED_MODEL_DETECTED": "LOW",
+    "AGENT_MODE_ACTIVATED": "MEDIUM",
+    "SHELL_COMMAND_EXECUTED": "MEDIUM",
+    "MCP_STDOUT_SENSITIVE_DATA": "HIGH",
+    "MCP_PROMPT_INJECTION": "CRITICAL",
+    "FILE_ACCESS_OUTSIDE_ALLOWED": "HIGH",
+    "HIDDEN_HELPER_SPAWNED": "MEDIUM",
+    "LOCAL_AI_API_USED": "MEDIUM",
+    "WEBKIT_ML_ACTIVATED": "LOW",
+    "COPILOT_ACTIVE": "LOW",
+    "TERMINAL_AGENT_COMMAND": "MEDIUM"
+  },
+  "detection_methods": {
+    "prompt_api": {
+      "method": "chrome_extension_hook",
+      "status": "shipped"
+    },
+    "local_model_downloads": {
+      "method": "filesystem_watch",
+      "status": "shipped"
+    },
+    "browser_extensions": {
+      "method": "filesystem_watch",
+      "status": "shipped"
+    },
+    "mcp_tools": {
+      "method": "filesystem_watch",
+      "status": "shipped"
+    },
+    "mcp_config_changed": {
+      "method": "file_hash_monitor",
+      "status": "shipped"
+    },
+    "accessibility_access": {
+      "method": "macos_ax_observer",
+      "status": "partial",
+      "note": "Detects AX notifications and permission grants. Does not intercept every kAXValueAttribute read."
+    },
+    "network_access": {
+      "method": "network_monitor",
+      "status": "planned",
+      "note": "Uses lsof polling. Not a true kernel-level monitor. Cannot intercept raw sockets or non-TCP traffic."
+    },
+    "shell_execution": {
+      "method": "process_monitor",
+      "status": "shipped"
+    },
+    "mcp_stdio": {
+      "method": "process_monitor",
+      "status": "shipped"
+    },
+    "native_messaging": {
+      "method": "filesystem_watch",
+      "status": "shipped"
+    },
+    "bundled_ai_runtime": {
+      "method": "filesystem_watch",
+      "status": "shipped"
+    },
+    "hidden_helpers": {
+      "method": "process_monitor",
+      "status": "shipped"
+    },
+    "future_local_ai_apis": {
+      "method": "filesystem_watch",
+      "status": "planned"
+    },
+    "webkit_ml": {
+      "method": "filesystem_watch",
+      "status": "planned"
+    }
+  },
+  "actors": [
+    {
+      "actor_id": "chrome",
+      "display_name": "Google Chrome",
+      "bundle_ids": [
+        "com.google.Chrome",
+        "com.google.Chrome.canary"
+      ],
+      "process_names": [
+        "Google Chrome",
+        "Google Chrome Helper",
+        "chrome"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/Google/Chrome/Default/OptGuideOnDeviceModel",
+        "~/Library/Application Support/Google/Chrome/Default/optimization_guide_model_store",
+        "~/Library/Caches/Google/Chrome",
+        "~/Library/Application Support/Google/Chrome/Default/Extensions"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/Google/Chrome/Default/OptGuideOnDeviceModel/*/weights.bin"
+      ],
+      "capabilities": [
+        "prompt_api",
+        "local_model_downloads",
+        "browser_extensions",
+        "network_access"
+      ],
+      "risk_events": [
+        "PROMPT_API_USED",
+        "LOCAL_MODEL_DOWNLOADED",
+        "EXTENSION_HOOK_DETECTED",
+        "LOCAL_MODEL_UPDATED"
+      ],
+      "default_policy": {
+        "PROMPT_API_USED": "notify",
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "EXTENSION_HOOK_DETECTED": "ask",
+        "LOCAL_MODEL_UPDATED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "PROMPT_API_USED": "A website started a local AI session inside your browser using Chrome's built-in Gemini Nano model. The AI runs on your device, not in the cloud.",
+        "LOCAL_MODEL_DOWNLOADED": "Chrome has downloaded an AI model file to your device. This enables AI features in Chrome to run locally without sending data to Google's servers.",
+        "LOCAL_MODEL_UPDATED": "Chrome updated its local AI model file.",
+        "EXTENSION_HOOK_DETECTED": "A browser extension has modified how Chrome handles network requests on AI pages. This could allow it to read your AI conversations."
+      },
+      "notes": "Chrome downloads Gemini Nano (weights.bin ~4GB) to OptGuideOnDeviceModel when AI features are enabled.",
+      "enabled": true
+    },
+    {
+      "actor_id": "brave",
+      "display_name": "Brave Browser",
+      "bundle_ids": [
+        "com.brave.Browser",
+        "com.brave.Browser.nightly"
+      ],
+      "process_names": [
+        "Brave Browser",
+        "Brave Browser Helper"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/Extensions",
+        "~/Library/Application Support/BraveSoftware/Brave-Browser"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/OptGuideOnDeviceModel/*/weights.bin"
+      ],
+      "capabilities": [
+        "browser_extensions",
+        "local_model_downloads",
+        "network_access"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "EXTENSION_HOOK_DETECTED"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "EXTENSION_HOOK_DETECTED": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "Brave has downloaded a local AI model file to your device.",
+        "EXTENSION_HOOK_DETECTED": "A browser extension has modified how Brave handles network requests on AI pages."
+      },
+      "notes": "Chromium-based. May receive Gemini Nano via Chrome component updater.",
+      "enabled": true
+    },
+    {
+      "actor_id": "arc",
+      "display_name": "Arc Browser",
+      "bundle_ids": [
+        "company.thebrowser.Browser"
+      ],
+      "process_names": [
+        "Arc",
+        "Arc Helper"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/Arc",
+        "~/Library/Caches/Arc"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "browser_extensions",
+        "network_access",
+        "ai_extensions"
+      ],
+      "risk_events": [
+        "EXTENSION_HOOK_DETECTED",
+        "AI_EXTENSION_INSTALLED"
+      ],
+      "default_policy": {
+        "EXTENSION_HOOK_DETECTED": "ask",
+        "AI_EXTENSION_INSTALLED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "EXTENSION_HOOK_DETECTED": "A browser extension has modified how Arc handles network requests on AI pages.",
+        "AI_EXTENSION_INSTALLED": "A new AI-capable extension was installed in Arc."
+      },
+      "notes": "Chromium-based. Built-in AI features. Watch for future local model downloads.",
+      "enabled": true
+    },
+    {
+      "actor_id": "edge",
+      "display_name": "Microsoft Edge",
+      "bundle_ids": [
+        "com.microsoft.edgemac",
+        "com.microsoft.edgemac.Beta"
+      ],
+      "process_names": [
+        "Microsoft Edge",
+        "Microsoft Edge Helper"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/Microsoft Edge/Default/Extensions",
+        "~/Library/Application Support/Microsoft Edge"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/Microsoft Edge/Default/OptGuideOnDeviceModel/*/weights.bin"
+      ],
+      "capabilities": [
+        "browser_extensions",
+        "local_model_downloads",
+        "network_access",
+        "copilot"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "EXTENSION_HOOK_DETECTED",
+        "COPILOT_ACTIVE"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "EXTENSION_HOOK_DETECTED": "ask",
+        "COPILOT_ACTIVE": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "Edge has downloaded a local AI model file to your device.",
+        "EXTENSION_HOOK_DETECTED": "A browser extension has modified how Edge handles network requests on AI pages.",
+        "COPILOT_ACTIVE": "Microsoft Copilot is active in Edge and may be processing page content."
+      },
+      "notes": "Chromium-based. Has Copilot built in. May receive Gemini Nano via Chrome component updater.",
+      "enabled": true
+    },
+    {
+      "actor_id": "claude_desktop",
+      "display_name": "Claude Desktop",
+      "bundle_ids": [
+        "com.anthropic.claudefordesktop"
+      ],
+      "process_names": [
+        "Claude",
+        "Claude Desktop",
+        "claude"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/Claude",
+        "~/Library/Caches/Claude",
+        "~/.claude",
+        "~/Library/Application Support/Claude/claude_desktop_config.json"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "mcp_tools",
+        "helper_processes",
+        "network_access",
+        "accessibility_access",
+        "native_messaging"
+      ],
+      "risk_events": [
+        "MCP_TOOL_INSTALLED",
+        "MCP_CONFIG_CHANGED",
+        "AX_ACCESS_DETECTED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "NATIVE_MESSAGING_REGISTERED"
+      ],
+      "default_policy": {
+        "MCP_TOOL_INSTALLED": "ask",
+        "MCP_CONFIG_CHANGED": "notify",
+        "AX_ACCESS_DETECTED": "ask",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "critical",
+        "NATIVE_MESSAGING_REGISTERED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 60
+      },
+      "explanations": {
+        "MCP_TOOL_INSTALLED": "A new tool has been added to Claude Desktop. Tools can read files, run code, and access services on your behalf.",
+        "MCP_CONFIG_CHANGED": "Claude Desktop's tool configuration was modified. Check which tools are now enabled.",
+        "AX_ACCESS_DETECTED": "Claude Desktop requested permission to interact with another app on your screen using macOS Accessibility APIs.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Claude Desktop accessed a sensitive application and then made an outbound network connection shortly after.",
+        "NATIVE_MESSAGING_REGISTERED": "Claude Desktop registered a communication bridge in one or more of your browsers."
+      },
+      "notes": "MCP config at ~/Library/Application Support/Claude/claude_desktop_config.json",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    },
+    {
+      "actor_id": "cursor",
+      "display_name": "Cursor IDE",
+      "bundle_ids": [
+        "com.todesktop.230313mzl4w4u92"
+      ],
+      "process_names": [
+        "Cursor",
+        "Cursor Helper",
+        "cursor"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/Cursor",
+        "~/.cursor",
+        "~/.cursor/mcp.json"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "mcp_tools",
+        "shell_execution",
+        "file_access",
+        "network_access",
+        "accessibility_access",
+        "terminal_agent"
+      ],
+      "risk_events": [
+        "MCP_TOOL_INSTALLED",
+        "SHELL_COMMAND_EXECUTED",
+        "AX_ACCESS_DETECTED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "AGENT_MODE_ACTIVATED"
+      ],
+      "default_policy": {
+        "MCP_TOOL_INSTALLED": "ask",
+        "SHELL_COMMAND_EXECUTED": "notify",
+        "AX_ACCESS_DETECTED": "ask",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "critical",
+        "AGENT_MODE_ACTIVATED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 60
+      },
+      "explanations": {
+        "MCP_TOOL_INSTALLED": "A new tool has been added to Cursor. Tools can read your codebase, run commands, and access external services.",
+        "SHELL_COMMAND_EXECUTED": "Cursor executed a shell command on your machine.",
+        "AX_ACCESS_DETECTED": "Cursor requested Accessibility interaction with another app on your screen.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Cursor accessed a sensitive application and then made an outbound network connection shortly after.",
+        "AGENT_MODE_ACTIVATED": "Cursor entered agent mode, which allows it to take autonomous actions on your machine."
+      },
+      "notes": "Electron app. Agent mode can execute shell commands and read files autonomously.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    },
+    {
+      "actor_id": "vscode",
+      "display_name": "Visual Studio Code",
+      "bundle_ids": [
+        "com.microsoft.VSCode",
+        "com.microsoft.VSCodeInsiders"
+      ],
+      "process_names": [
+        "Code",
+        "Visual Studio Code",
+        "code",
+        "Code Helper"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/.vscode/extensions",
+        "~/Library/Application Support/Code"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "ai_extensions",
+        "copilot",
+        "terminal_agent",
+        "file_access",
+        "network_access"
+      ],
+      "risk_events": [
+        "AI_EXTENSION_INSTALLED",
+        "COPILOT_ACTIVE",
+        "TERMINAL_AGENT_COMMAND",
+        "NETWORK_AFTER_SENSITIVE_ACCESS"
+      ],
+      "default_policy": {
+        "AI_EXTENSION_INSTALLED": "notify",
+        "COPILOT_ACTIVE": "notify",
+        "TERMINAL_AGENT_COMMAND": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "AI_EXTENSION_INSTALLED": "A new AI extension was installed in VS Code. Extensions can read your open files and terminal output.",
+        "COPILOT_ACTIVE": "GitHub Copilot is active and may be sending code context to Microsoft's servers.",
+        "TERMINAL_AGENT_COMMAND": "A VS Code AI agent executed a command in your terminal.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "VS Code accessed a sensitive application and then made an outbound network connection shortly after."
+      },
+      "notes": "GitHub Copilot and AI extensions can read open files and terminal output.",
+      "enabled": true
+    },
+    {
+      "actor_id": "windsurf",
+      "display_name": "Windsurf",
+      "bundle_ids": [
+        "com.exafunction.windsurf"
+      ],
+      "process_names": [
+        "Windsurf",
+        "Windsurf Helper"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/.codeium",
+        "~/Library/Application Support/Windsurf"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "ai_extensions",
+        "shell_execution",
+        "file_access",
+        "network_access",
+        "terminal_agent"
+      ],
+      "risk_events": [
+        "AGENT_MODE_ACTIVATED",
+        "SHELL_COMMAND_EXECUTED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS"
+      ],
+      "default_policy": {
+        "AGENT_MODE_ACTIVATED": "notify",
+        "SHELL_COMMAND_EXECUTED": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 120
+      },
+      "explanations": {
+        "AGENT_MODE_ACTIVATED": "Windsurf entered agent mode, which allows it to take autonomous actions including running commands and editing files.",
+        "SHELL_COMMAND_EXECUTED": "Windsurf executed a shell command on your machine.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Windsurf accessed a sensitive application and then made an outbound network connection shortly after."
+      },
+      "notes": "Codeium-based AI IDE. Cascade agent can run autonomous multi-step tasks.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    },
+    {
+      "actor_id": "zed",
+      "display_name": "Zed",
+      "bundle_ids": [
+        "dev.zed.Zed",
+        "dev.zed.Zed-Preview"
+      ],
+      "process_names": [
+        "Zed",
+        "zed"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/.config/zed",
+        "~/Library/Application Support/Zed"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "ai_extensions",
+        "file_access",
+        "network_access"
+      ],
+      "risk_events": [
+        "AI_EXTENSION_INSTALLED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS"
+      ],
+      "default_policy": {
+        "AI_EXTENSION_INSTALLED": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "AI_EXTENSION_INSTALLED": "A new AI extension was installed in Zed.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Zed accessed a sensitive application and then made an outbound network connection shortly after."
+      },
+      "notes": "Fast Rust-based editor with built-in AI. Growing MCP support.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    },
+    {
+      "actor_id": "raycast",
+      "display_name": "Raycast",
+      "bundle_ids": [
+        "com.raycast.macos"
+      ],
+      "process_names": [
+        "Raycast"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Application Support/com.raycast.macos",
+        "~/.config/raycast"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "ai_extensions",
+        "accessibility_access",
+        "file_access",
+        "network_access",
+        "shell_execution"
+      ],
+      "risk_events": [
+        "AX_ACCESS_DETECTED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "SHELL_COMMAND_EXECUTED"
+      ],
+      "default_policy": {
+        "AX_ACCESS_DETECTED": "ask",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "ask",
+        "SHELL_COMMAND_EXECUTED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 120
+      },
+      "explanations": {
+        "AX_ACCESS_DETECTED": "Raycast requested Accessibility interaction with another app. Raycast AI can read screen content and interact with apps on your behalf.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Raycast accessed a sensitive application and then made an outbound network connection shortly after.",
+        "SHELL_COMMAND_EXECUTED": "Raycast executed a shell command on your machine."
+      },
+      "notes": "Raycast AI has deep system integration. Can read screen, interact with apps, run scripts.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    },
+    {
+      "actor_id": "ollama",
+      "display_name": "Ollama",
+      "bundle_ids": [
+        "ai.ollama.ollama"
+      ],
+      "process_names": [
+        "ollama",
+        "Ollama"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/.ollama",
+        "~/.ollama/models"
+      ],
+      "model_paths": [
+        "~/.ollama/models/blobs/*"
+      ],
+      "capabilities": [
+        "local_model_downloads",
+        "network_access",
+        "mcp_stdio"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "LOCAL_MODEL_UPDATED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "LOCAL_MODEL_UPDATED": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 600
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "Ollama downloaded a new AI model to your device. Models are stored in ~/.ollama/models.",
+        "LOCAL_MODEL_UPDATED": "Ollama updated a local AI model.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Ollama accessed a sensitive application and then made an outbound network connection shortly after."
+      },
+      "notes": "Runs local LLMs. Models stored in ~/.ollama/models. Server runs on localhost:11434.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    },
+    {
+      "actor_id": "lm_studio",
+      "display_name": "LM Studio",
+      "bundle_ids": [
+        "ai.lmstudio.app"
+      ],
+      "process_names": [
+        "LM Studio",
+        "lms"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/.lmstudio",
+        "~/Library/Application Support/LM Studio"
+      ],
+      "model_paths": [
+        "~/.lmstudio/models/**/*.gguf",
+        "~/.lmstudio/models/**/*.bin"
+      ],
+      "capabilities": [
+        "local_model_downloads",
+        "network_access",
+        "mcp_stdio"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "LOCAL_MODEL_UPDATED"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "LOCAL_MODEL_UPDATED": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 600
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "LM Studio downloaded a new AI model to your device.",
+        "LOCAL_MODEL_UPDATED": "LM Studio updated a local AI model."
+      },
+      "notes": "GUI for running local LLMs. Models typically stored as GGUF files.",
+      "enabled": true
+    },
+    {
+      "actor_id": "safari",
+      "display_name": "Safari",
+      "bundle_ids": [
+        "com.apple.Safari"
+      ],
+      "process_names": [
+        "Safari",
+        "Safari Web Content"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [
+        "~/Library/Safari",
+        "~/Library/Caches/com.apple.Safari"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "future_local_ai_apis",
+        "webkit_ml",
+        "network_access"
+      ],
+      "risk_events": [
+        "LOCAL_AI_API_USED",
+        "WEBKIT_ML_ACTIVATED"
+      ],
+      "default_policy": {
+        "LOCAL_AI_API_USED": "notify",
+        "WEBKIT_ML_ACTIVATED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "LOCAL_AI_API_USED": "A website used Safari's local AI capabilities.",
+        "WEBKIT_ML_ACTIVATED": "Safari activated its on-device machine learning runtime."
+      },
+      "notes": "WebKit local AI APIs not yet shipped. Monitoring for future capability expansion.",
+      "enabled": true
+    },
+    {
+      "actor_id": "python_mcp",
+      "display_name": "Python MCP Tool",
+      "bundle_ids": [],
+      "process_names": [
+        "python3",
+        "python",
+        "uvicorn",
+        "fastapi"
+      ],
+      "requires_parent_match": true,
+      "known_parents": [
+        "claude_desktop",
+        "cursor",
+        "windsurf",
+        "vscode"
+      ],
+      "watch_paths": [],
+      "model_paths": [],
+      "capabilities": [
+        "mcp_stdio",
+        "file_access",
+        "network_access",
+        "shell_execution"
+      ],
+      "risk_events": [
+        "MCP_STDOUT_SENSITIVE_DATA",
+        "MCP_PROMPT_INJECTION",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "FILE_ACCESS_OUTSIDE_ALLOWED"
+      ],
+      "default_policy": {
+        "MCP_STDOUT_SENSITIVE_DATA": "ask",
+        "MCP_PROMPT_INJECTION": "block",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "critical",
+        "FILE_ACCESS_OUTSIDE_ALLOWED": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": false,
+        "cooldown_seconds": 30
+      },
+      "explanations": {
+        "MCP_STDOUT_SENSITIVE_DATA": "A Python MCP tool returned output containing what appears to be sensitive data \u2014 credentials, personal information, or secrets.",
+        "MCP_PROMPT_INJECTION": "A Python MCP tool returned output containing instructions that appear to target the AI system rather than you.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "A Python MCP tool accessed sensitive data and then made an outbound network connection shortly after.",
+        "FILE_ACCESS_OUTSIDE_ALLOWED": "A Python MCP tool attempted to access files outside your allowed folders."
+      },
+      "notes": "Only flagged when running as child of a known AI actor. Avoids false positives on normal Python processes.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      },
+      "parent_process": [
+        "claude_desktop",
+        "cursor",
+        "windsurf",
+        "vscode"
+      ]
+    },
+    {
+      "actor_id": "node_mcp",
+      "display_name": "Node.js MCP Tool",
+      "bundle_ids": [],
+      "process_names": [
+        "node",
+        "npx",
+        "tsx",
+        "ts-node"
+      ],
+      "requires_parent_match": true,
+      "known_parents": [
+        "claude_desktop",
+        "cursor",
+        "windsurf",
+        "vscode"
+      ],
+      "watch_paths": [],
+      "model_paths": [],
+      "capabilities": [
+        "mcp_stdio",
+        "file_access",
+        "network_access",
+        "shell_execution"
+      ],
+      "risk_events": [
+        "MCP_STDOUT_SENSITIVE_DATA",
+        "MCP_PROMPT_INJECTION",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "FILE_ACCESS_OUTSIDE_ALLOWED"
+      ],
+      "default_policy": {
+        "MCP_STDOUT_SENSITIVE_DATA": "ask",
+        "MCP_PROMPT_INJECTION": "block",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "critical",
+        "FILE_ACCESS_OUTSIDE_ALLOWED": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": false,
+        "cooldown_seconds": 30
+      },
+      "explanations": {
+        "MCP_STDOUT_SENSITIVE_DATA": "A Node.js MCP tool returned output containing what appears to be sensitive data.",
+        "MCP_PROMPT_INJECTION": "A Node.js MCP tool returned output containing instructions that appear to target the AI system rather than you.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "A Node.js MCP tool accessed sensitive data and then made an outbound network connection shortly after.",
+        "FILE_ACCESS_OUTSIDE_ALLOWED": "A Node.js MCP tool attempted to access files outside your allowed folders."
+      },
+      "notes": "Only flagged when running as child of a known AI actor.",
+      "enabled": true,
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      },
+      "parent_process": [
+        "claude_desktop",
+        "cursor",
+        "windsurf",
+        "vscode"
+      ]
+    },
+    {
+      "actor_id": "electron_ai",
+      "display_name": "Electron AI App",
+      "bundle_ids": [],
+      "process_names": [
+        "Electron",
+        "electron"
+      ],
+      "requires_parent_match": false,
+      "watch_paths": [],
+      "model_paths": [],
+      "capabilities": [
+        "bundled_ai_runtime",
+        "hidden_helpers",
+        "file_access",
+        "network_access",
+        "accessibility_access"
+      ],
+      "risk_events": [
+        "BUNDLED_MODEL_DETECTED",
+        "AX_ACCESS_DETECTED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "HIDDEN_HELPER_SPAWNED"
+      ],
+      "default_policy": {
+        "BUNDLED_MODEL_DETECTED": "notify",
+        "AX_ACCESS_DETECTED": "ask",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "ask",
+        "HIDDEN_HELPER_SPAWNED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
+      "explanations": {
+        "BUNDLED_MODEL_DETECTED": "This Electron app contains a bundled AI model. The model can run locally without an internet connection.",
+        "AX_ACCESS_DETECTED": "This Electron app requested Accessibility interaction with another app on your screen.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "This Electron app accessed a sensitive application and then made an outbound network connection shortly after.",
+        "HIDDEN_HELPER_SPAWNED": "This Electron app launched a background helper process."
+      },
+      "notes": "Generic Electron app. Many AI tools ship as Electron. Matched by app name when specific actor not recognised.",
+      "enabled": true,
+      "known_parents": [],
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
+      }
+    }
+  ],
+  "sensitive_bundles": [
+    {
+      "bundle_id": "com.1password.1password",
+      "display_name": "1Password",
+      "risk": "CRITICAL"
+    },
+    {
+      "bundle_id": "com.agilebits.onepassword7",
+      "display_name": "1Password 7",
+      "risk": "CRITICAL"
+    },
+    {
+      "bundle_id": "com.apple.keychainaccess",
+      "display_name": "Keychain Access",
+      "risk": "CRITICAL"
+    },
+    {
+      "bundle_id": "com.apple.mail",
+      "display_name": "Apple Mail",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.apple.MobileSMS",
+      "display_name": "Messages",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.apple.Notes",
+      "display_name": "Notes",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.microsoft.Outlook",
+      "display_name": "Outlook",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.apple.Safari",
+      "display_name": "Safari",
+      "risk": "MEDIUM"
+    },
+    {
+      "bundle_id": "com.google.Chrome",
+      "display_name": "Chrome",
+      "risk": "MEDIUM"
+    },
+    {
+      "bundle_id": "com.tinyspeck.slackmacgap",
+      "display_name": "Slack",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "net.whatsapp.WhatsApp",
+      "display_name": "WhatsApp",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.apple.systempreferences",
+      "display_name": "System Settings",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.apple.Terminal",
+      "display_name": "Terminal",
+      "risk": "HIGH"
+    },
+    {
+      "bundle_id": "com.googlecode.iterm2",
+      "display_name": "iTerm2",
+      "risk": "HIGH"
+    }
+  ],
+  "policy_modes": {
+    "visibility": {
+      "description": "Monitor and log all AI actor activity. Notify on significant events. No blocking. Recommended for most users.",
+      "default": true
+    },
+    "enforcement": {
+      "description": "Actively block or require approval for risky actions. For power users and security teams.",
+      "default": false
+    }
+  },
+  "notification_templates": {
+    "PROMPT_API_USED": "{actor} activated a local AI model on this page",
+    "LOCAL_MODEL_DOWNLOADED": "{actor} has enabled a local AI model on your device",
+    "LOCAL_MODEL_UPDATED": "{actor} updated its local AI model",
+    "EXTENSION_HOOK_DETECTED": "A browser extension modified AI page network APIs",
+    "MCP_TOOL_INSTALLED": "{actor} added a new MCP tool: {detail}",
+    "MCP_CONFIG_CHANGED": "{actor} MCP configuration was modified",
+    "AX_ACCESS_DETECTED": "{actor} requested Accessibility interaction with {target}",
+    "NETWORK_AFTER_SENSITIVE_ACCESS": "{actor} accessed {target}, then made an outbound connection {seconds}s later",
+    "NATIVE_MESSAGING_REGISTERED": "{actor} registered a Native Messaging bridge in your browsers",
+    "AI_EXTENSION_INSTALLED": "A new AI extension was installed: {detail}",
+    "BUNDLED_MODEL_DETECTED": "{actor} contains a bundled AI model",
+    "AGENT_MODE_ACTIVATED": "{actor} entered agent mode",
+    "SHELL_COMMAND_EXECUTED": "{actor} executed a shell command",
+    "MCP_STDOUT_SENSITIVE_DATA": "An MCP tool returned output containing sensitive data",
+    "MCP_PROMPT_INJECTION": "An MCP tool returned output containing suspicious instructions"
+  },
+  "_policy_precedence": "In enforcement mode, event_severity=CRITICAL overrides default_policy action and requires explicit user approval. default_policy actions apply in visibility mode."
+}

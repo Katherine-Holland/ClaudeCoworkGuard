@@ -15,6 +15,7 @@ Runs on http://localhost:7070
 """
 
 import json
+import re
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -26,6 +27,12 @@ try:
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
+
+try:
+    import proxy as _proxy
+    HAS_PROXY = True
+except ImportError:
+    HAS_PROXY = False
 
 app = Flask(__name__)
 # Restrict CORS to localhost only — prevents malicious pages from
@@ -54,6 +61,7 @@ DEFAULT_SETTINGS = {
     "custom_blocked_domains": [],
     "allowed_folders": [],          # folders AI tools are allowed to read from
     "quiet_mode": False,
+    "confirm_before_send": False,     # hold blocked requests for user confirmation
 }
 
 
@@ -632,6 +640,39 @@ def log_event():
 
         return jsonify({"ok": True})
 
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+@app.route("/api/pending-requests")
+def pending_requests():
+    """Return list of requests held pending user confirmation."""
+    try:
+        if not HAS_PROXY:
+            return jsonify({"pending": [], "count": 0})
+        pending = _proxy.get_pending_requests()
+        return jsonify({"pending": pending, "count": len(pending)})
+    except Exception as e:
+        return jsonify({"pending": [], "count": 0, "error": str(e)})
+
+
+@app.route("/api/allow-request/<request_id>", methods=["POST"])
+def allow_request(request_id: str):
+    """
+    Allow a held request to proceed.
+    Sets the threading.Event in the proxy hook so the blocked flow resumes.
+    """
+    if not request_id or not re.fullmatch(r'[0-9a-f]{32}', request_id):
+        return jsonify({"ok": False, "error": "invalid request_id"}), 400
+    try:
+        if not HAS_PROXY:
+            return jsonify({"ok": False, "error": "proxy not running"}), 503
+        ok = _proxy.allow_request(request_id)
+        if ok:
+            app.logger.info(f"User allowed request {request_id[:8]}")
+            return jsonify({"ok": True, "request_id": request_id})
+        return jsonify({"ok": False, "error": "request not found or expired"}), 404
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

@@ -429,3 +429,87 @@ class TestLogEventEndpoint:
         entry = self._read_log(tmp_path)
         assert entry["type"] == "WINDOW_AI_DETECTED"
         assert entry["source"] == "chrome_extension"
+
+
+# ─────────────────────────────────────────────
+# /api/pending-requests and /api/allow-request
+# ─────────────────────────────────────────────
+
+class TestPendingRequestsEndpoint:
+
+    def test_returns_empty_when_proxy_unavailable(self, client, monkeypatch):
+        monkeypatch.setattr(server, "HAS_PROXY", False)
+        r = client.get("/api/pending-requests")
+        assert r.status_code == 200
+        d = json.loads(r.data)
+        assert d["pending"] == []
+        assert d["count"] == 0
+
+    def test_returns_pending_list_from_proxy(self, client, monkeypatch):
+        fake_pending = [
+            {
+                "id": "a" * 32,
+                "url": "https://api.anthropic.com/v1/messages",
+                "method": "POST",
+                "provider": "Anthropic",
+                "payload_hash": "abc123",
+                "payload_size_bytes": 512,
+                "findings": [{"type": "SSN", "severity": "CRITICAL", "preview": "***", "blocked": True}],
+                "timestamp": 1234567890.0,
+                "age_seconds": 5,
+            }
+        ]
+        mock_proxy = MagicMock()
+        mock_proxy.get_pending_requests.return_value = fake_pending
+        monkeypatch.setattr(server, "HAS_PROXY", True)
+        monkeypatch.setitem(sys.modules, "proxy", mock_proxy)
+        monkeypatch.setattr(server, "_proxy", mock_proxy, raising=False)
+        r = client.get("/api/pending-requests")
+        assert r.status_code == 200
+        d = json.loads(r.data)
+        assert d["count"] == 1
+        assert d["pending"][0]["id"] == "a" * 32
+
+
+class TestAllowRequestEndpoint:
+
+    def test_malformed_id_rejected(self, client):
+        r = client.post("/api/allow-request/not-valid")
+        assert r.status_code == 400
+        assert json.loads(r.data)["ok"] is False
+
+    def test_short_id_rejected(self, client):
+        r = client.post("/api/allow-request/abc123")
+        assert r.status_code == 400
+
+    def test_id_with_uppercase_rejected(self, client, monkeypatch):
+        # uuid4().hex is always lowercase — uppercase should fail validation
+        monkeypatch.setattr(server, "HAS_PROXY", True)
+        r = client.post("/api/allow-request/" + "A" * 32)
+        assert r.status_code == 400
+
+    def test_valid_id_not_found_returns_404(self, client, monkeypatch):
+        mock_proxy = MagicMock()
+        mock_proxy.allow_request.return_value = False
+        monkeypatch.setattr(server, "HAS_PROXY", True)
+        monkeypatch.setattr(server, "_proxy", mock_proxy, raising=False)
+        r = client.post("/api/allow-request/" + "a" * 32)
+        assert r.status_code == 404
+        assert json.loads(r.data)["ok"] is False
+
+    def test_valid_id_found_returns_200(self, client, monkeypatch):
+        mock_proxy = MagicMock()
+        mock_proxy.allow_request.return_value = True
+        monkeypatch.setattr(server, "HAS_PROXY", True)
+        monkeypatch.setattr(server, "_proxy", mock_proxy, raising=False)
+        valid_id = "b" * 32
+        r = client.post(f"/api/allow-request/{valid_id}")
+        assert r.status_code == 200
+        d = json.loads(r.data)
+        assert d["ok"] is True
+        assert d["request_id"] == valid_id
+
+    def test_proxy_unavailable_returns_503(self, client, monkeypatch):
+        monkeypatch.setattr(server, "HAS_PROXY", False)
+        r = client.post("/api/allow-request/" + "c" * 32)
+        assert r.status_code == 503
