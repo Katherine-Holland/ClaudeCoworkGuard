@@ -103,6 +103,47 @@
   .badge.SUSPICIOUS{background:rgba(255,61,61,.2);color:#ff6b6b;border:1px solid rgba(255,61,61,.4)}
   .badge.PENDING{background:rgba(167,139,250,.12);color:#c4b5fd;border:1px solid rgba(167,139,250,.3);animation:pendingPulse 2s infinite}
   @keyframes pendingPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+  /* ── Agent Guard ── */
+  .ag-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .ag-metric{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px}
+  .ag-metric-label{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+  .ag-metric-value{font-size:32px;font-weight:700;line-height:1}
+  .ag-metric-value.danger{color:var(--danger)}
+  .ag-metric-value.warn{color:var(--warn)}
+  .ag-metric-value.info{color:#38bdf8}
+  .ag-metric-value.muted{color:var(--muted2)}
+  .ag-two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+  .ag-actor-row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(28,42,56,.5);font-size:12px}
+  .ag-actor-row:last-child{border-bottom:none}
+  .ag-actor-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .ag-actor-name{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:2px}
+  .ag-actor-sub{font-size:10px;color:var(--muted);font-family:var(--font-mono)}
+  .ag-perm-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+  .ag-perm{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:20px;font-size:10px;font-family:var(--font-mono)}
+  .ag-perm.ax{background:rgba(240,80,96,.1);color:#f05060;border:1px solid rgba(240,80,96,.2)}
+  .ag-perm.fda{background:rgba(240,160,48,.1);color:var(--warn);border:1px solid rgba(240,160,48,.2)}
+  .ag-perm.net{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2)}
+  .ag-perm.safe{background:rgba(61,214,140,.07);color:var(--success);border:1px solid rgba(61,214,140,.2)}
+  .ag-risk{font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+  .ag-risk.critical{background:rgba(240,80,96,.12);color:#f05060;border:1px solid rgba(240,80,96,.25)}
+  .ag-risk.high{background:rgba(240,160,48,.1);color:var(--warn);border:1px solid rgba(240,160,48,.22)}
+  .ag-risk.low{background:rgba(61,214,140,.07);color:var(--success);border:1px solid rgba(61,214,140,.2)}
+  .ag-model-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:12px}
+  .ag-model-card.new{border-left:3px solid var(--warn)}
+  .ag-model-title{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:4px}
+  .ag-model-meta{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;line-height:1.6}
+  .ag-model-warning{font-size:11px;color:var(--warn);background:rgba(240,160,48,.07);border:1px solid rgba(240,160,48,.15);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5}
+  .ag-model-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .ag-btn{padding:6px 14px;border-radius:6px;font-size:11px;font-family:var(--font-mono);cursor:pointer;border:1px solid;transition:all .2s}
+  .ag-btn.danger{background:rgba(240,80,96,.08);border-color:rgba(240,80,96,.3);color:#f05060}
+  .ag-btn.danger:hover{background:rgba(240,80,96,.18)}
+  .ag-btn.secondary{background:transparent;border-color:var(--border);color:var(--muted2)}
+  .ag-btn.secondary:hover{border-color:var(--accent);color:var(--accent)}
+  .ag-btn.dismiss{background:transparent;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px}
+  .ag-model-removed{font-size:11px;color:var(--success);margin-top:6px}
+  .ag-empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--font-mono);font-size:12px}
+
   .allow-btn{background:rgba(61,214,140,.1);border:1px solid rgba(61,214,140,.3);color:#3dd68c;padding:2px 10px;border-radius:4px;font-family:var(--font-mono);font-size:10px;cursor:pointer;transition:all .2s;margin-left:8px}
   .allow-btn:hover{background:rgba(61,214,140,.2)}
   .event-type{color:var(--muted);font-size:11px}
@@ -194,6 +235,7 @@
         <span class="last-update" id="last-update">connecting…</span>
         <button class="nav-btn active" onclick="showView('dashboard',this)">Dashboard</button>
         <button class="nav-btn" onclick="showView('skills',this)">Skills</button>
+        <button class="nav-btn" onclick="showView('agent-guard',this)">Agent Guard</button>
         <button class="nav-btn" onclick="showView('settings',this)">Settings</button>
         <div class="status-pill unknown" id="cowork-status">
           <div class="pulse"></div>
@@ -454,6 +496,55 @@
   </div>
 </div>
 
+
+  <!-- ── Agent Guard View ── -->
+  <div id="view-agent-guard" class="view">
+    <div class="ag-grid">
+      <div class="ag-metric"><div class="ag-metric-label">AI Actors detected</div><div class="ag-metric-value info" id="ag-actor-count">–</div></div>
+      <div class="ag-metric"><div class="ag-metric-label">Models on device</div><div class="ag-metric-value warn" id="ag-model-count">–</div></div>
+      <div class="ag-metric"><div class="ag-metric-label">Alerts today</div><div class="ag-metric-value danger" id="ag-alert-count">–</div></div>
+      <div class="ag-metric"><div class="ag-metric-label">Last scan</div><div class="ag-metric-value muted" id="ag-last-scan">–</div></div>
+    </div>
+
+    <div class="ag-two-col">
+      <div>
+        <!-- Model Activity -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-header">
+            <span class="panel-title">Local AI Models</span>
+            <button class="btn" onclick="loadAgentGuard()" style="font-size:10px;padding:4px 10px">Refresh</button>
+          </div>
+          <div id="ag-models-list" style="padding:8px 0">
+            <div class="ag-empty">Scanning for AI models…</div>
+          </div>
+        </div>
+
+        <!-- Recent Actor Events -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Recent Activity</span>
+          </div>
+          <div id="ag-events-list" style="padding:4px 0">
+            <div class="ag-empty">No activity yet</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <!-- Actor Inventory -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">AI Actors</span>
+            <span class="badge" id="ag-actors-badge" style="font-size:10px;padding:2px 8px;background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2);border-radius:4px">–</span>
+          </div>
+          <div id="ag-actor-list">
+            <div class="ag-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script>
 const API = 'http://localhost:7070';
 let allEvents = [], currentFilter = 'ALL', currentSettings = {}, serverAvailable = false;
@@ -465,6 +556,7 @@ function showView(name, btn) {
   if (btn) btn.classList.add('active');
   if (name === 'settings') loadSettingsIntoForm();
   if (name === 'skills') loadSkillScans();
+  if (name === 'agent-guard') loadAgentGuard();
 }
 
 // ── HTML sanitiser — prevents XSS from audit log data ──
@@ -661,6 +753,219 @@ function closeModal(e) {
 }
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
+
+
+// ── Agent Guard ──
+let agModels = [], agActors = [], agEvents = [];
+
+async function loadAgentGuard() {
+  try {
+    // Load model activity from audit log
+    const logsResp = await fetch(API + '/api/logs?limit=200');
+    const logsData = await logsResp.json();
+    const entries = logsData.entries || [];
+
+    // Filter model events
+    agEvents = entries.filter(e =>
+      ['LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_UPDATED','LOCAL_MODEL_REMOVED',
+       'AX_ACCESS_DETECTED','NETWORK_AFTER_SENSITIVE_ACCESS'].includes(e.type)
+    );
+
+    agModels = entries.filter(e =>
+      ['LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_UPDATED'].includes(e.type)
+    );
+
+    // Dedupe models by path — keep latest per path
+    const modelMap = {};
+    for (const m of agModels) {
+      const path = m.url || m.path || '';
+      if (!modelMap[path] || m.timestamp > modelMap[path].timestamp) {
+        modelMap[path] = m;
+      }
+    }
+    agModels = Object.values(modelMap);
+
+    renderAgModels();
+    renderAgEvents();
+    updateAgMetrics();
+
+  } catch(e) {
+    console.error('Agent Guard load error:', e);
+  }
+
+  // Load actor inventory from registry endpoint
+  try {
+    const actorResp = await fetch(API + '/api/actors');
+    const actorData = await actorResp.json();
+    agActors = actorData.actors || [];
+    renderAgActors();
+  } catch(e) {
+    // endpoint not yet available — show static message
+    document.getElementById('ag-actor-list').innerHTML =
+      '<div class="ag-empty">Actor inventory coming soon</div>';
+  }
+}
+
+function _safeCardId(path) {
+  // Safe card ID from path — avoids btoa() throwing on non-Latin1 characters
+  const hash = Math.abs([...path].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0));
+  return 'model-' + hash;
+}
+
+function renderAgModels() {
+  const el = document.getElementById('ag-models-list');
+  if (!agModels.length) {
+    el.innerHTML = '<div class="ag-empty" style="color:var(--success)">✓ No AI models detected on this device</div>';
+    return;
+  }
+  el.innerHTML = agModels.map(m => {
+    const path = m.url || m.path || 'unknown';
+    const filename = esc(path.split('/').pop());
+    const actor = esc(m.actor_name || m.ai_provider || 'Unknown');
+    const sizeMb = m.size_mb ? `${m.size_mb > 999 ? (m.size_mb/1024).toFixed(1)+'GB' : m.size_mb+'MB'}` : '';
+    const ts = m.timestamp ? new Date(m.timestamp).toLocaleString() : '';
+    const isRemoved = m.type === 'LOCAL_MODEL_REMOVED';
+    const cardId = _safeCardId(path);
+
+    return `<div class="ag-model-card ${isRemoved ? '' : 'new'}" id="${cardId}" data-path="${esc(path)}" data-actor="${actor}">
+      <div class="ag-model-title">${actor} — local AI model ${isRemoved ? 'removed' : 'enabled'}</div>
+      <div class="ag-model-meta">
+        File: ${filename}${sizeMb ? ' ('+sizeMb+')' : ''}<br>
+        Location: ${esc(path)}<br>
+        Detected: ${ts}
+      </div>
+      ${isRemoved ? '' : `
+      <div class="ag-model-warning">
+        Removing the file without disabling the feature in app settings may result in it being re-downloaded automatically.
+      </div>
+      <div class="ag-model-actions" id="${cardId}-actions">
+        <button class="ag-btn danger"     data-action="remove-model"   data-card="${cardId}">Remove file</button>
+        <button class="ag-btn secondary"  data-action="open-settings"  data-card="${cardId}">Open App Settings →</button>
+        <button class="ag-btn dismiss"    data-action="dismiss-card"   data-card="${cardId}">Dismiss</button>
+      </div>`}
+    </div>`;
+  }).join('');
+}
+
+// Delegated listener for all Agent Guard card buttons
+document.addEventListener('click', async function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const cardId = btn.dataset.card;
+  const card = cardId ? document.getElementById(cardId) : null;
+
+  if (action === 'remove-model') {
+    const path = card ? card.dataset.path : '';
+    if (!path) return;
+    try {
+      const r = await fetch(API + '/api/remove-model-file', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path})
+      });
+      const d = await r.json();
+      if (d.ok) {
+        const actionsEl = document.getElementById(cardId + '-actions');
+        if (actionsEl) {
+          const actor = card ? card.dataset.actor : '';
+          actionsEl.innerHTML = `
+            <div class="ag-model-removed">✓ File removed</div>
+            <button class="ag-btn secondary" style="margin-top:8px" data-action="open-settings" data-card="${cardId}">Open App Settings →</button>
+            <button class="ag-btn dismiss" data-action="dismiss-card" data-card="${cardId}">Dismiss</button>
+          `;
+        }
+        showToast('Model file removed');
+      } else {
+        showToast(d.error || 'Could not remove file', true);
+      }
+    } catch(e) {
+      showToast('Could not reach server', true);
+    }
+  }
+
+  if (action === 'open-settings') {
+    const actor = card ? card.dataset.actor : '';
+    openModelSettings(actor);
+  }
+
+  if (action === 'dismiss-card') {
+    if (card) card.style.display = 'none';
+  }
+});
+
+function openModelSettings(actorName) {
+  const lower = (actorName || '').toLowerCase();
+  let url;
+  if (lower.includes('chrome'))        url = 'googlechrome://settings/ai';
+  else if (lower.includes('claude'))   url = 'claude://';
+  else if (lower.includes('cursor'))   url = 'cursor://';
+  else if (lower.includes('windsurf')) url = 'windsurf://';
+  else                                 url = 'x-apple.systempreferences:com.apple.preference.security';
+  fetch(API + '/api/open-url', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({url})
+  });
+}
+
+function renderAgActors() {
+  const el = document.getElementById('ag-actor-list');
+  document.getElementById('ag-actors-badge').textContent = agActors.length;
+  if (!agActors.length) {
+    el.innerHTML = '<div class="ag-empty">No AI actors detected running</div>';
+    return;
+  }
+  el.innerHTML = agActors.map(a => {
+    const risk = a.risk || 'low';
+    const perms = a.permissions || [];
+    const permTags = perms.map(p => {
+      const cls = p === 'accessibility' ? 'ax' : p === 'full_disk' ? 'fda' : p === 'network' ? 'net' : 'safe';
+      const label = p === 'accessibility' ? 'AX' : p === 'full_disk' ? 'FDA' : p === 'network' ? 'Net' : p;
+      return `<span class="ag-perm ${cls}">${label}</span>`;
+    }).join('');
+    return `<div class="ag-actor-row">
+      <div class="ag-actor-icon" style="background:var(--${risk==='critical'?'danger':risk==='high'?'warn':'success'}-dim, rgba(61,214,140,.1))">🤖</div>
+      <div style="flex:1">
+        <div class="ag-actor-name">${esc(a.display_name)}</div>
+        <div class="ag-actor-sub">PID ${a.pid || '–'}</div>
+        <div class="ag-perm-tags">${permTags}</div>
+      </div>
+      <span class="ag-risk ${risk}">${risk}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAgEvents() {
+  const el = document.getElementById('ag-events-list');
+  if (!agEvents.length) {
+    el.innerHTML = '<div class="ag-empty">No activity yet</div>';
+    return;
+  }
+  el.innerHTML = agEvents.slice(0,10).map(e => {
+    const ts = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : '';
+    const actor = esc(e.actor_name || e.ai_provider || 'Unknown');
+    const type = esc(e.type || '');
+    const sev = (e.severity||'').toLowerCase();
+    const sevCls = sev==='critical'?'danger':sev==='high'?'warn':'muted2';
+    return `<div class="ag-actor-row" style="padding:8px 16px">
+      <div style="flex:1">
+        <span style="color:var(--${sevCls});font-size:11px;font-family:var(--font-mono)">${type}</span>
+        <span style="color:var(--muted);font-size:11px;margin-left:8px">${actor}</span>
+      </div>
+      <span style="color:var(--muted);font-size:10px;font-family:var(--font-mono)">${ts}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateAgMetrics() {
+  document.getElementById('ag-actor-count').textContent = agActors.length || '–';
+  document.getElementById('ag-model-count').textContent = agModels.length || '0';
+  document.getElementById('ag-alert-count').textContent =
+    agEvents.filter(e => ['CRITICAL','HIGH'].includes(e.severity)).length || '0';
+  document.getElementById('ag-last-scan').textContent = 'just now';
+  document.getElementById('ag-actors-badge').textContent = agActors.length || '–';
+}
 
 // ── Folder Access Control ──
 let allowedFolders = [];

@@ -16,6 +16,7 @@ Runs on http://localhost:7070
 
 import json
 import re
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -33,6 +34,14 @@ try:
     HAS_PROXY = True
 except ImportError:
     HAS_PROXY = False
+
+try:
+    from actor_monitor.actor_registry import ActorRegistry
+    _registry = ActorRegistry()
+    HAS_REGISTRY = True
+except Exception:
+    _registry = None
+    HAS_REGISTRY = False
 
 app = Flask(__name__)
 # Restrict CORS to localhost only — prevents malicious pages from
@@ -675,6 +684,104 @@ def allow_request(request_id: str):
         return jsonify({"ok": False, "error": "request not found or expired"}), 404
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+@app.route("/api/remove-model-file", methods=["POST"])
+def remove_model_file():
+    """Delete a local AI model file at user request."""
+    data = request.get_json(force=True) or {}
+    path_str = str(data.get("path", ""))[:500]
+    if not path_str:
+        return jsonify({"ok": False, "error": "no path provided"}), 400
+    try:
+        path = Path(path_str).expanduser().resolve()
+        ALLOWED_PARENTS = [
+            Path.home() / "Library" / "Application Support" / "Google",
+            Path.home() / "Library" / "Application Support" / "BraveSoftware",
+            Path.home() / "Library" / "Application Support" / "Microsoft Edge",
+            Path.home() / ".ollama" / "models",
+            Path.home() / ".lmstudio",
+        ]
+        if not any(path == p or p in path.parents for p in ALLOWED_PARENTS):
+            return jsonify({"ok": False, "error": "path outside allowed AI app directories"}), 403
+        if not path.exists():
+            return jsonify({"ok": False, "error": "file not found"}), 404
+        if not path.is_file():
+            return jsonify({"ok": False, "error": "path is not a file"}), 400
+        path.unlink()
+        app.logger.info("Model file removed by user: %s", path)
+        log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "LOCAL_MODEL_REMOVED", "source": "user_action",
+            "action": "ALLOWED", "blocked": False, "severity": "LOW",
+            "url": str(path), "finding_count": 0, "findings": [],
+        }
+        with open(log_file, "a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+        return jsonify({"ok": True, "path": str(path)})
+    except PermissionError:
+        return jsonify({"ok": False, "error": "permission denied — file may be in use"}), 403
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/open-url", methods=["POST"])
+def open_url():
+    """Open a URL or app settings page using macOS open command."""
+    data = request.get_json(force=True) or {}
+    url = str(data.get("url", ""))[:500]
+    ALLOWED_SCHEMES = [
+        "googlechrome://",
+        "x-apple.systempreferences:",
+        "claude://",
+        "cursor://",
+        "windsurf://",
+        "http://localhost",
+        "http://127.0.0.1",
+    ]
+    if not any(url.startswith(s) for s in ALLOWED_SCHEMES):
+        return jsonify({"ok": False, "error": "URL scheme not allowed"}), 403
+    try:
+        subprocess.Popen(["open", url])
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/actors")
+def get_actors():
+    """Return running AI actor processes for the Agent Guard dashboard."""
+    if not HAS_PSUTIL or not HAS_REGISTRY:
+        return jsonify({"actors": [], "count": 0})
+    try:
+        running = []
+        for proc in psutil.process_iter(['pid', 'name']):
+            try:
+                name = proc.info['name'] or ''
+                # Resolve parent name for MCP tool matching (python_mcp, node_mcp)
+                try:
+                    parent = proc.parent()
+                    parent_name = parent.name() if parent else None
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    parent_name = None
+                actor = _registry.match_process(name=name, parent_actor_id=parent_name)
+                if actor:
+                    running.append({
+                        "actor_id": actor.actor_id,
+                        "display_name": actor.display_name,
+                        "pid": proc.info['pid'],
+                        "capabilities": actor.capabilities,
+                        "risk": "low", "permissions": [],
+                    })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        seen = set()
+        deduped = [a for a in running if not (a['actor_id'] in seen or seen.add(a['actor_id']))]
+        return jsonify({"actors": deduped, "count": len(deduped)})
+    except Exception as e:
+        return jsonify({"actors": [], "count": 0, "error": str(e)})
 
 
 @app.route("/api/clear", methods=["POST"])
