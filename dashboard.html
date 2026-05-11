@@ -792,7 +792,7 @@ function openModal(ts) {
   const e = allEvents.find(ev => ev.timestamp === ts); if (!e) return;
   const action = esc(e.action||'UNKNOWN');
   const info = _getEventInfo(e);
-  const ts = new Date(e.timestamp).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
+  const tsFormatted = new Date(e.timestamp).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
   const findings = e.findings||[];
 
   document.getElementById('modal-title').innerHTML =
@@ -809,7 +809,7 @@ function openModal(ts) {
   // Technical details section
   const techHtml = `
     <div class="modal-meta-grid">
-      <div class="meta-item"><div class="meta-key">Time</div><div class="meta-val">${esc(ts)}</div></div>
+      <div class="meta-item"><div class="meta-key">Time</div><div class="meta-val">${esc(tsFormatted)}</div></div>
       <div class="meta-item"><div class="meta-key">Event type</div><div class="meta-val" style="font-size:10px;font-family:var(--font-mono)">${esc(e.type||'API_REQUEST')}</div></div>
       ${e.payload_size_bytes?`<div class="meta-item"><div class="meta-key">Data size</div><div class="meta-val">${(e.payload_size_bytes/1024).toFixed(1)} KB</div></div>`:''}
       ${e.payload_hash?`<div class="meta-item"><div class="meta-key">Fingerprint</div><div class="meta-val" style="font-size:10px;font-family:var(--font-mono)">${esc(e.payload_hash)}</div></div>`:''}
