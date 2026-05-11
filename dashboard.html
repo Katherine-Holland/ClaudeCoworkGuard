@@ -129,6 +129,7 @@
   .ag-risk.critical{background:rgba(240,80,96,.12);color:#f05060;border:1px solid rgba(240,80,96,.25)}
   .ag-risk.high{background:rgba(240,160,48,.1);color:var(--warn);border:1px solid rgba(240,160,48,.22)}
   .ag-risk.low{background:rgba(61,214,140,.07);color:var(--success);border:1px solid rgba(61,214,140,.2)}
+  .ag-actor-detail.open{display:block !important}
   .ag-model-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:12px}
   .ag-model-card.new{border-left:3px solid var(--warn)}
   .ag-model-title{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:4px}
@@ -220,6 +221,27 @@
   .finding-preview{font-family:var(--font-mono);font-size:11px;color:var(--muted);flex:1;word-break:break-all}
   .finding-blocked-tag{font-size:10px;font-family:var(--font-mono);color:var(--danger);border:1px solid rgba(255,61,61,.3);padding:1px 6px;border-radius:3px;white-space:nowrap}
   .no-findings{color:var(--muted);font-family:var(--font-mono);font-size:12px;padding:16px;background:var(--bg);border-radius:8px;text-align:center}
+  /* ── Plain English Modal ── */
+  .modal-summary{padding:18px 20px;border-radius:10px;margin-bottom:18px}
+  .modal-summary.blocked{background:rgba(240,80,96,.07);border:1px solid rgba(240,80,96,.2)}
+  .modal-summary.flagged{background:rgba(240,160,48,.07);border:1px solid rgba(240,160,48,.2)}
+  .modal-summary.info{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.2)}
+  .modal-summary.ok{background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2)}
+  .modal-summary-icon{font-size:24px;margin-bottom:8px}
+  .modal-summary-title{font-size:15px;font-weight:600;color:var(--heading);margin-bottom:6px}
+  .modal-summary-desc{font-size:13px;color:var(--text);line-height:1.6}
+  .modal-what-to-do{margin-top:14px}
+  .modal-what-to-do-title{font-size:11px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .modal-action-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(28,42,56,.4);font-size:13px;color:var(--text);line-height:1.5}
+  .modal-action-step:last-child{border-bottom:none}
+  .modal-action-num{width:20px;height:20px;border-radius:50%;background:rgba(224,90,32,.15);color:var(--accent2);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+  .modal-tech-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font-size:11px;font-family:var(--font-mono);margin-top:16px;padding:8px 0;border-top:1px solid var(--border)}
+  .modal-tech-toggle:hover{color:var(--text)}
+  .modal-tech-section{display:none;margin-top:12px}
+  .modal-tech-section.open{display:block}
+  .clear-clipboard-btn{display:flex;align-items:center;gap:8px;background:rgba(224,90,32,.08);border:1px solid rgba(224,90,32,.25);color:var(--accent2);padding:8px 14px;border-radius:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;margin-top:12px;transition:all .2s}
+  .clear-clipboard-btn:hover{background:rgba(224,90,32,.16)}
+
 </style>
 </head>
 <body>
@@ -652,7 +674,7 @@ function renderLog() {
     const ts = new Date(e.timestamp);
     const time = ts.toLocaleTimeString('en-US',{hour12:false});
     const date = ts.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILEWRITE':e.type==='WINDOW_AI_DETECTED'?'WINDOWAI':e.type==='SUSPICIOUS_API_WRAP'?'SUSPICIOUS':e.action==='PENDING'?'PENDING':esc(e.action||'UNKNOWN');
+    const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILEWRITE':e.type==='WINDOW_AI_DETECTED'?'WINDOWAI':e.type==='SUSPICIOUS_API_WRAP'?'SUSPICIOUS':e.action==='PENDING'?'PENDING':(e.action||'UNKNOWN').replace(/[^A-Z0-9_]/gi,'');
     const type   = e.type==='DOMAIN_WARNING'?'DOMAIN':e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILE':e.type==='WINDOW_AI_DETECTED'?'LOCAL AI':e.type==='SUSPICIOUS_API_WRAP'?'EXTENSION':'API';
     let detail = e.type==='DOMAIN_WARNING'
       ? `⚠️ Navigated to <strong style="color:var(--warn)">${esc(e.domain||e.url)}</strong> while AI agent active`
@@ -668,7 +690,7 @@ function renderLog() {
         ? e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')
         : `<span style="color:var(--muted)">No sensitive data detected</span>`;
     const allowBtn = e.action==='PENDING' && e.request_id ? `<button class="allow-btn" data-rid="${esc(e.request_id)}">Allow once</button>` : '';
-    return `<div class="event-row" onclick="openModal(${i},event)"><span class="event-time">${esc(date)} ${esc(time)}</span><span class="badge ${action}">${action}</span><span class="event-type">${type}</span><span class="event-detail">${detail}</span>${allowBtn}</div>`;
+    return `<div class="event-row" data-action="open-modal" data-ts="${esc(e.timestamp)}"><span class="event-time">${esc(date)} ${esc(time)}</span><span class="badge ${action}">${action}</span><span class="event-type">${type}</span><span class="event-detail">${detail}</span>${allowBtn}</div>`;
   }).join('');
 }
 
@@ -717,34 +739,131 @@ function updateCoworkStatus(cowork) {
 }
 
 // ── Modal ──
-function openModal(idx, evt) {
-  if (evt) evt.stopPropagation();
-  const filtered = currentFilter==='ALL'?allEvents:allEvents.filter(e=>e.action===currentFilter||e.type===currentFilter);
-  const e = filtered[idx]; if (!e) return;
+// ── Plain English event descriptions ──
+const EVENT_INFO = {
+  // Outbound blocks
+  'BLOCKED_SSN':      { icon:'🛡️', title:'CoworkGuard blocked sensitive data', summary:'A request to an AI service contained personal information — like a Social Security Number, passport number, or financial data. CoworkGuard stopped it before it left your device.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','Check which app or file triggered this. It may have had access to a document containing personal information.','If this keeps happening, go to Settings → Folder Access and limit which folders your AI tools can read.'] },
+  'BLOCKED_CRED':     { icon:'🛡️', title:'CoworkGuard blocked a password or key', summary:'A request to an AI service contained what looks like a password, API key, or login credential. CoworkGuard stopped it before it was sent.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','If this was a real credential, consider changing it as a precaution.','Check which app sent the request and whether it should have had access to that file.'] },
+  'BLOCKED_INJECT':   { icon:'🛡️', title:'CoworkGuard blocked a hidden instruction', summary:'An AI tool sent back a response containing a hidden instruction — something designed to change how your AI behaves without you knowing. CoworkGuard stopped it.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','Consider removing or disabling the tool that sent this response in your AI app settings.','If you do not recognise this tool, check which tools are installed in your AI app.'] },
+  // Flagged
+  'CLIPBOARD_WARNING':{ icon:'📋', title:'Sensitive data was copied to your clipboard', summary:'Something containing personal or sensitive information — like a password, ID number, or financial detail — was copied to your clipboard. Be careful where you paste it.', style:'flagged', steps:['Avoid pasting this into an AI chat or any website you do not fully trust.','To clear your clipboard, click the button below. This replaces the sensitive data with something harmless.'], clipboard:true },
+  'FILE_WRITE_WARNING':{ icon:'📄', title:'An AI tool saved sensitive data outside your approved folders', summary:'An AI tool wrote a file containing sensitive information to a location outside the folders you have approved. This could mean data is being stored somewhere unexpected.', style:'flagged', steps:['Find the file at the location shown in the details below.','Open it and check what it contains.','If you did not expect it to be there, delete it.','To prevent this in future, go to Settings → Folder Access in CoworkGuard.'] },
+  'DOMAIN_WARNING':   { icon:'⚠️', title:'You visited a sensitive page while an AI session was active', summary:'You navigated to a page — like your email, cloud console, or banking — while an AI tool was running. There is a risk the AI could access content from that page.', style:'flagged', steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.','You can manage which domains trigger this warning in Settings.'] },
+  // Agent Guard
+  'AX_ACCESS_DETECTED':{ icon:'👁️', title:'An AI app can see and interact with other apps on your Mac', summary:'An AI app has been granted permission to read and interact with other apps on your screen — including ones containing passwords, messages, or private data.', style:'flagged', steps:['If you set this up intentionally, no action is needed.','If you did not, go to your Mac System Settings → Privacy & Security → Accessibility and remove the AI app from the list.','To open System Settings, click the Apple menu in the top-left corner of your screen.'] },
+  'PERM_RISK_CRITICAL':{ icon:'🚨', title:'An AI app has unusually broad access to your Mac', summary:'This AI app has both the ability to see your screen and read any file on your Mac. This is a high-risk combination — it means the app could read almost anything on your device.', style:'blocked', steps:['Go to System Settings → Privacy & Security on your Mac.','Click Accessibility and check if this app is listed. Remove it if you did not add it intentionally.','Also check Full Disk Access in the same Privacy & Security screen.','To open System Settings, click the Apple menu in the top-left corner of your screen.'] },
+  'NETWORK_AFTER_SENSITIVE_ACCESS':{ icon:'🚨', title:'An AI app accessed private data then went online', summary:'An AI app opened a sensitive app on your Mac — like a password manager or your email — and then connected to the internet shortly after. This could mean data was read and sent online.', style:'blocked', steps:['Go to System Settings → Privacy & Security → Accessibility on your Mac.','Find the AI app shown below and remove it from the list.','If you use this AI app regularly, consider only running it when you do not have sensitive apps open.','To open System Settings, click the Apple menu in the top-left corner of your screen.'] },
+  'LOCAL_MODEL_DOWNLOADED':{ icon:'💾', title:'An AI model was installed on your device', summary:'An AI app has downloaded and installed an AI model directly onto your Mac. This lets it run AI features without sending data to the internet.', style:'info', steps:['No action needed if you expected this.','If you did not expect it, you can remove the model file using the button in the Agent Guard tab.','Removing the model without turning off the feature in the app may result in it being downloaded again.'] },
+  'SUSPICIOUS_API_WRAP':{ icon:'🚨', title:'A browser extension may be reading your AI conversations', summary:'Something modified how your browser handles AI requests on this page. This is a technique used by some extensions to read and record AI conversations without your knowledge.', style:'blocked', steps:['Open your browser and go to Extensions (in Chrome: click the three dots menu → Extensions → Manage Extensions).','Look for any extensions you do not recognise or did not install intentionally.','Remove any suspicious extensions.','Only install browser extensions from sources you trust.'] },
+  'WINDOW_AI_DETECTED':{ icon:'🤖', title:'A website used your device's built-in AI', summary:'A website activated the AI model built into your browser. The AI ran on your device — your data was not sent to the internet for this.', style:'info', steps:['No action needed if this was expected.','If you are not sure which website did this, check the location shown in the details below.'] },
+  'MCP_TOOL_INSTALLED':{ icon:'🔧', title:'A new tool was added to your AI app', summary:'A new tool has been installed in your AI app. Tools can read files, run commands, and access services on your behalf.', style:'flagged', steps:['Open your AI app and check which tools are currently enabled.','If you do not recognise this tool, disable or remove it.','Only use tools from sources you trust.'] },
+  'PENDING':           { icon:'⏳', title:'CoworkGuard is holding a request', summary:'A request was flagged and CoworkGuard is waiting for your decision before allowing it through.', style:'flagged', steps:['Review the findings below.','If the request looks safe, click Allow Once in the audit log to let it through.','If you are not sure, let it expire — it will be blocked automatically after 60 seconds.'] },
+  'DEFAULT':           { icon:'ℹ️', title:'Activity detected', summary:'CoworkGuard logged this event for your records.', style:'info', steps:['Review the details below if you want more information.'] },
+};
+
+function _getEventInfo(e) {
+  const type = e.type || '';
+  const action = e.action || '';
+  const findings = e.findings || [];
+  const findingTypes = findings.map(f => (f.type||'').toUpperCase());
+
+  if (type === 'CLIPBOARD_WARNING') return EVENT_INFO['CLIPBOARD_WARNING'];
+  if (type === 'FILE_WRITE_WARNING') return EVENT_INFO['FILE_WRITE_WARNING'];
+  if (type === 'DOMAIN_WARNING') return EVENT_INFO['DOMAIN_WARNING'];
+  if (type === 'AX_ACCESS_DETECTED') return EVENT_INFO['AX_ACCESS_DETECTED'];
+  if (type === 'PERM_RISK_CRITICAL') return EVENT_INFO['PERM_RISK_CRITICAL'];
+  if (type === 'NETWORK_AFTER_SENSITIVE_ACCESS') return EVENT_INFO['NETWORK_AFTER_SENSITIVE_ACCESS'];
+  if (type === 'LOCAL_MODEL_DOWNLOADED' || type === 'LOCAL_MODEL_UPDATED') return EVENT_INFO['LOCAL_MODEL_DOWNLOADED'];
+  if (type === 'SUSPICIOUS_API_WRAP') return EVENT_INFO['SUSPICIOUS_API_WRAP'];
+  if (type === 'WINDOW_AI_DETECTED') return EVENT_INFO['WINDOW_AI_DETECTED'];
+  if (type === 'MCP_TOOL_INSTALLED' || type === 'MCP_CONFIG_CHANGED') return EVENT_INFO['MCP_TOOL_INSTALLED'];
+  if (action === 'PENDING') return EVENT_INFO['PENDING'];
+  if (action === 'BLOCKED' || action === 'FLAGGED') {
+    if (findingTypes.some(t => t.includes('SSN') || t.includes('PASSPORT') || t.includes('CREDIT'))) return EVENT_INFO['BLOCKED_SSN'];
+    if (findingTypes.some(t => t.includes('KEY') || t.includes('TOKEN') || t.includes('PASSWORD') || t.includes('SECRET') || t.includes('CRED'))) return EVENT_INFO['BLOCKED_CRED'];
+    if (findingTypes.some(t => t.includes('INJECT') || t.includes('OVERRIDE') || t.includes('HIJACK') || t.includes('EXFIL'))) return EVENT_INFO['BLOCKED_INJECT'];
+    return action === 'BLOCKED' ? EVENT_INFO['BLOCKED_CRED'] : EVENT_INFO['DEFAULT'];
+  }
+  return EVENT_INFO['DEFAULT'];
+}
+
+function openModal(ts) {
+  // Look up by timestamp — stable across auto-refreshes unlike array index
+  const e = allEvents.find(ev => ev.timestamp === ts); if (!e) return;
   const action = esc(e.action||'UNKNOWN');
-  document.getElementById('modal-title').innerHTML = `Event Detail <span class="badge ${action}" style="font-size:11px">${action}</span>`;
-  const ts = new Date(e.timestamp).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'long'});
+  const info = _getEventInfo(e);
+  const ts = new Date(e.timestamp).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
   const findings = e.findings||[];
-  document.getElementById('modal-body').innerHTML = `
-    <div class="modal-section">
-      <div class="modal-section-title">Event Info</div>
-      <div class="modal-meta-grid">
-        <div class="meta-item"><div class="meta-key">Timestamp</div><div class="meta-val">${esc(ts)}</div></div>
-        <div class="meta-item"><div class="meta-key">Type</div><div class="meta-val">${esc(e.type||'API_REQUEST')}</div></div>
-        <div class="meta-item"><div class="meta-key">Payload Size</div><div class="meta-val">${e.payload_size_bytes?(e.payload_size_bytes/1024).toFixed(1)+' KB':'–'}</div></div>
-        <div class="meta-item"><div class="meta-key">Payload Hash</div><div class="meta-val" style="font-size:10px">${esc(e.payload_hash||'–')}</div></div>
-        ${e.url?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">URL</div><div class="meta-val" style="font-size:10px">${esc(e.url)}</div></div>`:''}
-        ${e.domain?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Domain</div><div class="meta-val">${esc(e.domain)}</div></div>`:''}
-      </div>
+
+  document.getElementById('modal-title').innerHTML =
+    `${info.icon} <span style="font-size:14px">${info.title}</span>`;
+
+  const stepsHtml = info.steps.map((s,i) =>
+    `<div class="modal-action-step"><span class="modal-action-num">${i+1}</span><span>${s}</span></div>`
+  ).join('');
+
+  const clipboardBtn = info.clipboard
+    ? `<button class="clear-clipboard-btn" onclick="clearClipboard()">📋 Click to clear your clipboard</button>`
+    : '';
+
+  // Technical details section
+  const techHtml = `
+    <div class="modal-meta-grid">
+      <div class="meta-item"><div class="meta-key">Time</div><div class="meta-val">${esc(ts)}</div></div>
+      <div class="meta-item"><div class="meta-key">Event type</div><div class="meta-val" style="font-size:10px;font-family:var(--font-mono)">${esc(e.type||'API_REQUEST')}</div></div>
+      ${e.payload_size_bytes?`<div class="meta-item"><div class="meta-key">Data size</div><div class="meta-val">${(e.payload_size_bytes/1024).toFixed(1)} KB</div></div>`:''}
+      ${e.payload_hash?`<div class="meta-item"><div class="meta-key">Fingerprint</div><div class="meta-val" style="font-size:10px;font-family:var(--font-mono)">${esc(e.payload_hash)}</div></div>`:''}
+      ${e.url?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Destination</div><div class="meta-val" style="font-size:10px;font-family:var(--font-mono)">${esc(e.url)}</div></div>`:''}
+      ${e.domain?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Domain</div><div class="meta-val">${esc(e.domain)}</div></div>`:''}
+      ${e.destination?`<div class="meta-item" style="grid-column:1/-1"><div class="meta-key">Connected to</div><div class="meta-val" style="font-family:var(--font-mono);font-size:11px">${esc(e.destination)}${e.seconds_after?' ('+e.seconds_after+'s after access)':''}</div></div>`:''}
     </div>
-    <div class="modal-section">
-      <div class="modal-section-title">Findings (${findings.length})</div>
-      ${!findings.length
-        ? `<div class="no-findings">✓ No sensitive data detected in this request</div>`
-        : findings.map(f=>`<div class="finding-row"><span class="badge ${esc(f.severity)}">${esc(f.severity)}</span><span style="font-family:var(--font-mono);font-size:12px;color:var(--text);min-width:140px">${esc(f.type)}</span><span class="finding-preview">${esc(f.preview||f.match_preview||'–')}</span>${f.blocked?'<span class="finding-blocked-tag">BLOCKED</span>':''}</div>`).join('')
-      }
-    </div>`;
+    ${findings.length ? `<div style="margin-top:12px">
+      ${findings.map(f=>`<div class="finding-row">
+        <span class="badge ${esc(f.severity)}">${esc(f.severity)}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text);min-width:120px">${esc(f.type)}</span>
+        <span class="finding-preview">${esc(f.preview||f.match_preview||'–')}</span>
+        ${f.blocked?'<span class="finding-blocked-tag">BLOCKED</span>':''}
+      </div>`).join('')}
+    </div>` : ''}
+  `;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-summary ${info.style}">
+      <div class="modal-summary-desc">${info.summary}</div>
+      ${clipboardBtn}
+    </div>
+    <div class="modal-what-to-do">
+      <div class="modal-what-to-do-title">What to do</div>
+      ${stepsHtml}
+    </div>
+    <div class="modal-tech-toggle" onclick="toggleTechDetails(this)">
+      <span>▶</span> Show technical details
+    </div>
+    <div class="modal-tech-section">${techHtml}</div>
+  `;
   document.getElementById('modal').classList.add('open');
+}
+
+function toggleTechDetails(el) {
+  const section = el.nextElementSibling;
+  section.classList.toggle('open');
+  el.querySelector('span').textContent = section.classList.contains('open') ? '▼' : '▶';
+}
+
+async function clearClipboard() {
+  try {
+    await navigator.clipboard.writeText('CoworkGuard is protecting this');
+    showToast('Clipboard cleared');
+  } catch(e) {
+    // Fallback — create temp element
+    const ta = document.createElement('textarea');
+    ta.value = 'CoworkGuard is protecting this';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Clipboard cleared');
+  }
 }
 
 function closeModal(e) {
@@ -821,13 +940,14 @@ function renderAgModels() {
   el.innerHTML = agModels.map(m => {
     const path = m.url || m.path || 'unknown';
     const filename = esc(path.split('/').pop());
-    const actor = esc(m.actor_name || m.ai_provider || 'Unknown');
+    const actorRaw = m.actor_name || m.ai_provider || 'Unknown';
+    const actor = esc(actorRaw);
     const sizeMb = m.size_mb ? `${m.size_mb > 999 ? (m.size_mb/1024).toFixed(1)+'GB' : m.size_mb+'MB'}` : '';
     const ts = m.timestamp ? new Date(m.timestamp).toLocaleString() : '';
     const isRemoved = m.type === 'LOCAL_MODEL_REMOVED';
     const cardId = _safeCardId(path);
 
-    return `<div class="ag-model-card ${isRemoved ? '' : 'new'}" id="${cardId}" data-path="${esc(path)}" data-actor="${actor}">
+    return `<div class="ag-model-card ${isRemoved ? '' : 'new'}" id="${cardId}" data-path="${esc(path)}" data-actor="${actorRaw}">
       <div class="ag-model-title">${actor} — local AI model ${isRemoved ? 'removed' : 'enabled'}</div>
       <div class="ag-model-meta">
         File: ${filename}${sizeMb ? ' ('+sizeMb+')' : ''}<br>
@@ -851,9 +971,27 @@ function renderAgModels() {
 document.addEventListener('click', async function(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
+  e.stopPropagation();
   const action = btn.dataset.action;
   const cardId = btn.dataset.card;
   const card = cardId ? document.getElementById(cardId) : null;
+
+  if (action === 'toggle-actor-detail') {
+    const row = btn.closest('.ag-actor-row');
+    const detail = row && row.querySelector('.ag-actor-detail');
+    if (detail) {
+      const isOpen = detail.classList.toggle('open');
+      detail.style.display = isOpen ? 'block' : 'none';
+      btn.textContent = isOpen ? '⌄' : '›';
+    }
+    return;
+  }
+
+  if (action === 'open-modal') {
+    const ts = btn.dataset.ts;
+    if (ts) openModal(ts);
+    return;
+  }
 
   if (action === 'remove-model') {
     const path = card ? card.dataset.path : '';
@@ -909,29 +1047,77 @@ function openModelSettings(actorName) {
   });
 }
 
+
+const ACTOR_TYPES = {
+  chrome: 'Browser', brave: 'Browser', arc: 'Browser', edge: 'Browser', safari: 'Browser',
+  claude_desktop: 'AI Assistant', cursor: 'AI Coding Tool', vscode: 'AI Coding Tool',
+  windsurf: 'AI Coding Tool', zed: 'AI Coding Tool', raycast: 'AI Launcher',
+  ollama: 'Local AI Runtime', lm_studio: 'Local AI Runtime',
+  python_mcp: 'AI Tool Process', node_mcp: 'AI Tool Process', electron_ai: 'AI App',
+};
+const ACTOR_ICONS = {
+  chrome:'🌐', brave:'🦁', arc:'🌈', edge:'🌀', safari:'🧭',
+  claude_desktop:'🤖', cursor:'⚡', vscode:'💻', windsurf:'🏄', zed:'⚡',
+  raycast:'🚀', ollama:'🦙', lm_studio:'🔬', python_mcp:'🐍', node_mcp:'📦', electron_ai:'⚛️',
+};
+const ACTOR_DESC = {
+  chrome: 'Your browser. Chrome can run AI features locally using a built-in AI model.',
+  brave: 'Your browser. Brave can run AI features locally.',
+  arc: 'Your browser. Arc has built-in AI features.',
+  edge: 'Your browser. Edge includes Microsoft Copilot AI.',
+  safari: 'Your browser. Safari may gain local AI features in future updates.',
+  claude_desktop: 'Anthropic's AI assistant app. It can use tools that read files and access services on your behalf.',
+  cursor: 'An AI-powered code editor. It can read your files and run commands on your Mac.',
+  vscode: 'A code editor with AI features including GitHub Copilot.',
+  windsurf: 'An AI-powered code editor that can take autonomous actions on your Mac.',
+  zed: 'A fast code editor with built-in AI features.',
+  raycast: 'A launcher app with AI features that can interact with other apps on your screen.',
+  ollama: 'A tool for running AI models locally on your Mac.',
+  lm_studio: 'A tool for downloading and running AI models locally on your Mac.',
+  python_mcp: 'A Python-based AI tool running on your Mac.',
+  node_mcp: 'A JavaScript-based AI tool running on your Mac.',
+  electron_ai: 'An AI app built on web technology.',
+};
 function renderAgActors() {
   const el = document.getElementById('ag-actor-list');
   document.getElementById('ag-actors-badge').textContent = agActors.length;
   if (!agActors.length) {
-    el.innerHTML = '<div class="ag-empty">No AI actors detected running</div>';
+    el.innerHTML = '<div class="ag-empty">No AI apps detected running</div>';
     return;
   }
   el.innerHTML = agActors.map(a => {
-    const risk = a.risk || 'low';
+    const VALID_RISKS = ['critical', 'high', 'medium', 'low'];
+    const risk = VALID_RISKS.includes(a.risk) ? a.risk : 'low';
     const perms = a.permissions || [];
+    const actorId = a.actor_id || '';
+    const icon = ACTOR_ICONS[actorId] || '🤖';
+    const typeLabel = ACTOR_TYPES[actorId] || 'AI App';
+    const desc = ACTOR_DESC[actorId] || a.display_name;
+
     const permTags = perms.map(p => {
-      const cls = p === 'accessibility' ? 'ax' : p === 'full_disk' ? 'fda' : p === 'network' ? 'net' : 'safe';
-      const label = p === 'accessibility' ? 'AX' : p === 'full_disk' ? 'FDA' : p === 'network' ? 'Net' : p;
+      const cls = p==='accessibility'?'ax':p==='full_disk'?'fda':p==='network'?'net':'safe';
+      const label = p==='accessibility'?'Can see your screen':p==='full_disk'?'Can read all files':p==='network'?'Has internet access':esc(p);
       return `<span class="ag-perm ${cls}">${label}</span>`;
     }).join('');
-    return `<div class="ag-actor-row">
-      <div class="ag-actor-icon" style="background:var(--${risk==='critical'?'danger':risk==='high'?'warn':'success'}-dim, rgba(61,214,140,.1))">🤖</div>
-      <div style="flex:1">
-        <div class="ag-actor-name">${esc(a.display_name)}</div>
-        <div class="ag-actor-sub">PID ${a.pid || '–'}</div>
-        <div class="ag-perm-tags">${permTags}</div>
+
+    const riskLabel = risk==='critical'?'High risk':risk==='high'?'Needs attention':risk==='medium'?'Normal':'Normal';
+
+    return `<div class="ag-actor-row" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="ag-actor-icon" style="background:rgba(${risk==='critical'?'240,80,96':risk==='high'?'240,160,48':'61,214,140'},.1)">${icon}</div>
+        <div style="flex:1">
+          <div class="ag-actor-name">${esc(a.display_name)}</div>
+          <div class="ag-actor-sub">${esc(typeLabel)}</div>
+          <div class="ag-perm-tags" style="margin-top:4px">${permTags}</div>
+        </div>
+        <span class="ag-risk ${risk}">${riskLabel}</span>
+        <button data-action="toggle-actor-detail" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;line-height:1" title="Show details">›</button>
       </div>
-      <span class="ag-risk ${risk}">${risk}</span>
+      <div class="ag-actor-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text);line-height:1.6">
+        <p>${esc(desc)}</p>
+        ${perms.includes('accessibility')?'<p style="margin-top:8px;color:var(--warn)">⚠️ This app can see and interact with other apps on your screen. Go to System Settings → Privacy & Security → Accessibility to review.</p>':''}
+        ${risk==='critical'?'<p style="margin-top:8px;color:var(--danger)">🚨 This app has unusually broad access to your Mac. Go to System Settings → Privacy & Security to review its permissions.</p>':''}
+      </div>
     </div>`;
   }).join('');
 }
