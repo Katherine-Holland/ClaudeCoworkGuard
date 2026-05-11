@@ -43,6 +43,7 @@ except ImportError:
     HAS_PSUTIL = False
 
 from .actor_registry import ActorRegistry, Actor, SensitiveBundle
+from . import network_correlator
 
 log = logging.getLogger("coworkguard.agent_guard")
 
@@ -419,6 +420,7 @@ def check_sensitive_cooccurrence(actors: List[Dict],
             detail = (f"{actor_name} has Accessibility access while "
                       f"{sb.display_name} is running")
             severity = sb.risk
+            actor_pid = actor_info.get("pid", 0)
 
             log.info("AX_COOCCUR [%s] %s", actor_id, detail)
             _write_log(
@@ -430,6 +432,14 @@ def check_sensitive_cooccurrence(actors: List[Dict],
                 f"{actor_name} — sensitive app active",
                 f"{actor_name} has Accessibility access while "
                 f"{sb.display_name} is open."
+            )
+            # Feed into network correlator — Track 2C
+            network_correlator.record_ax_event(
+                actor_id=actor_id,
+                actor_pid=actor_pid,
+                actor_name=actor_name,
+                target_app=sb.display_name,
+                target_bundle_id=bid,
             )
 
 
@@ -469,6 +479,9 @@ def main() -> None:
     )
 
     alerted: Dict[str, float] = {}  # alert_key -> monotonic timestamp; reaped after ALERT_TTL
+
+    # Start network correlation thread — Track 2C
+    network_correlator.start_network_monitor()
 
     while True:
         try:
