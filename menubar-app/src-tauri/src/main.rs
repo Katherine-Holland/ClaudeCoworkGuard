@@ -328,7 +328,7 @@ fn rebuild_menu(app: &AppHandle, running: bool) -> tauri::Result<()> {
     let app = app.clone();
     // Tray/menu APIs must run on the main thread. Calling them from a
     // background thread panics inside tao's event loop dispatcher.
-    let _ = app.run_on_main_thread(move || {
+    let _ = app.clone().run_on_main_thread(move || {
         let quiet = *app.state::<AppState>().quiet_mode.lock().unwrap();
         if let Some(tray) = app.tray_by_id("main") {
             if let Ok(menu) = build_menu(&app, running, quiet) {
