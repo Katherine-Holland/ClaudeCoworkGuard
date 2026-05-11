@@ -33,7 +33,9 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -58,10 +60,13 @@ LARGE_MODEL_SIZE_MB = 500   # flag files larger than this as notable
 
 # macOS notification via osascript
 def _notify(title: str, message: str) -> None:
+    # Sanitise — double quotes in title/message break the osascript string
+    safe_title   = title.replace('"', "'")
+    safe_message = message.replace('"', "'")
     try:
         subprocess.run([
             "osascript", "-e",
-            f'display notification "{message}" with title "⚠️ CoworkGuard" subtitle "{title}"'
+            f'display notification "{safe_message}" with title "⚠️ CoworkGuard" subtitle "{safe_title}"'
         ], timeout=3, capture_output=True)
     except Exception:
         pass
@@ -103,13 +108,9 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
 
     for actor in actors:
         for pattern in actor.model_paths:
-            # Handle glob patterns
-            base = _expand(pattern)
-            parent = base.parent
-            glob_pattern = base.name
-
-            # Walk up to find the first non-glob parent
-            parts = str(parent).split("/")
+            # Expand ~ and find the deepest non-glob ancestor directory
+            expanded = str(_expand(pattern))
+            parts = expanded.split("/")
             fixed_parts = []
             for part in parts:
                 if "*" in part or "?" in part:
@@ -120,13 +121,14 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
             if not fixed_base.exists():
                 continue
 
-            # Use rglob for recursive patterns, glob for flat
+            # Derive the glob suffix relative to fixed_base
+            suffix = expanded[len(str(fixed_base)):].lstrip("/")
+
             try:
-                if "**" in pattern:
-                    suffix = pattern.split("**")[-1].lstrip("/")
-                    matches = list(fixed_base.rglob(suffix))
+                if suffix:
+                    matches = list(fixed_base.glob(suffix))
                 else:
-                    matches = list(fixed_base.glob("**/" + glob_pattern))
+                    matches = [fixed_base] if fixed_base.is_file() else []
             except Exception:
                 matches = []
 
@@ -158,13 +160,12 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
 # ─────────────────────────────────────────────
 
 def _load_state() -> Dict[str, Dict]:
-    """Load previously seen model files."""
-    if STATE_FILE.exists():
-        try:
-            with open(STATE_FILE) as f:
-                return json.load(f)
-        except Exception:
-            pass
+    """Load previously seen model files. Returns empty dict on missing or corrupt state."""
+    try:
+        if STATE_FILE.exists():
+            return json.loads(STATE_FILE.read_text())
+    except (json.JSONDecodeError, OSError, ValueError):
+        log.warning("model_state.json unreadable — starting fresh")
     return {}
 
 
@@ -208,6 +209,20 @@ def _write_log(event_type: str, actor_id: str, actor_name: str,
 # Event handling
 # ─────────────────────────────────────────────
 
+def _post_to_dashboard(payload: bytes) -> None:
+    """Send event to dashboard server. Runs on a daemon thread — never blocks the scan loop."""
+    try:
+        req = urllib.request.Request(
+            "http://localhost:7070/api/log-event",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        urllib.request.urlopen(req, timeout=2)
+    except Exception:
+        pass  # server not running — audit log is the fallback
+
+
 def _handle_new_model(actor: Actor, path: str, size_mb: float,
                       registry: ActorRegistry) -> None:
     severity = registry.severity_for("LOCAL_MODEL_DOWNLOADED")
@@ -227,30 +242,19 @@ def _handle_new_model(actor: Actor, path: str, size_mb: float,
     message = f"{Path(path).name} ({size_str}). {explanation[:80]}"
     _notify(title, message)
 
-    # Report to local server dashboard
-    try:
-        import urllib.request
-        import json as _json
-        payload = _json.dumps({
-            "type": "LOCAL_MODEL_DOWNLOADED",
-            "severity": severity,
-            "action": "FLAGGED",
-            "url": path,
-            "actor_id": actor.actor_id,
-            "actor_name": actor.display_name,
-            "size_mb": size_mb,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "message": explanation,
-        }).encode()
-        req = urllib.request.Request(
-            "http://localhost:7070/api/log-event",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        urllib.request.urlopen(req, timeout=2)
-    except Exception:
-        pass  # server not running — audit log is the fallback
+    # Report to dashboard on a daemon thread — avoids blocking the scan loop
+    payload = json.dumps({
+        "type": "LOCAL_MODEL_DOWNLOADED",
+        "severity": severity,
+        "action": "FLAGGED",
+        "url": path,
+        "actor_id": actor.actor_id,
+        "actor_name": actor.display_name,
+        "size_mb": size_mb,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": explanation,
+    }).encode()
+    threading.Thread(target=_post_to_dashboard, args=(payload,), daemon=True).start()
 
 
 def _handle_updated_model(actor: Actor, path: str, size_mb: float,

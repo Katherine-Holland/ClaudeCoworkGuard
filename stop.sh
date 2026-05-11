@@ -55,6 +55,20 @@ fi
 pkill -f "skill_scanner.py" 2>/dev/null || true
 echo -e "${GREEN}✓ Skill scanner stopped${NC}"
 
+# ── Stop agent guard and model monitor ───────────────────────────────
+echo -e "${CYAN}→ Stopping agent guard...${NC}"
+if [ -f "$HOME/.coworkguard/agent_guard.pid" ]; then
+  kill "$(cat "$HOME/.coworkguard/agent_guard.pid")" 2>/dev/null || true
+  rm "$HOME/.coworkguard/agent_guard.pid"
+fi
+if [ -f "$HOME/.coworkguard/model_monitor.pid" ]; then
+  kill "$(cat "$HOME/.coworkguard/model_monitor.pid")" 2>/dev/null || true
+  rm "$HOME/.coworkguard/model_monitor.pid"
+fi
+pkill -f "actor_monitor.agent_guard" 2>/dev/null || true
+pkill -f "actor_monitor.model_monitor" 2>/dev/null || true
+echo -e "${GREEN}✓ Agent guard stopped${NC}"
+
 # ── Done ─────────────────────────────────────────────────────────────
 echo ""
 echo "─────────────────────────────────────"

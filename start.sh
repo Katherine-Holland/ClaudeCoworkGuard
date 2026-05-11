@@ -56,6 +56,17 @@ echo $! > "$HOME/.coworkguard/skill_scanner.pid"
 sleep 1
 echo -e "${GREEN}✓ Skill scanner watching for new AI agent skills${NC}"
 
+# ── Start agent guard (actor monitor + model monitor) ─────────────────
+echo -e "${CYAN}→ Starting agent guard...${NC}"
+nohup python3 -m actor_monitor.agent_guard \
+  > "$HOME/.coworkguard/agent_guard.log" 2>&1 &
+echo $! > "$HOME/.coworkguard/agent_guard.pid"
+nohup python3 -m actor_monitor.model_monitor \
+  > "$HOME/.coworkguard/model_monitor.log" 2>&1 &
+echo $! > "$HOME/.coworkguard/model_monitor.pid"
+sleep 1
+echo -e "${GREEN}✓ Agent guard monitoring AI actors and local models${NC}"
+
 # ── Enable system proxy ───────────────────────────────────────────────
 echo -e "${CYAN}→ Enabling system proxy...${NC}"
 

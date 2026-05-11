@@ -1,6 +1,6 @@
 {
   "name": "coworkguard",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "CoworkGuard — Privacy protection for AI agents",
   "scripts": {
     "tauri": "tauri",
