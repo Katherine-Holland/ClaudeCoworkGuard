@@ -107,36 +107,48 @@ def _parse_lsof_output(output: str) -> List[Dict]:
     """
     Parse output of: lsof -iTCP -sTCP:ESTABLISHED -n -P
     Returns list of connection dicts.
+
+    macOS lsof output has variable column counts — NAME is always last.
+    Format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
+    NAME field: local->remote (ESTABLISHED)
     """
     connections = []
     for line in output.splitlines():
         parts = line.split()
+        # Need at least COMMAND PID USER FD TYPE DEVICE SIZE NODE NAME
         if len(parts) < 9:
             continue
-        # Skip header
         if parts[0] == "COMMAND":
             continue
         try:
-            command = parts[0]
-            pid     = int(parts[1])
-            # Name field contains local->remote or local<->remote
-            name_field = parts[-1]
+            command    = parts[0]
+            pid        = int(parts[1])
+            name_field = parts[-1]  # NAME is always last
+
+            # Must contain -> (ESTABLISHED connection)
             if "->" not in name_field:
                 continue
+
+            # Strip trailing state e.g. "(ESTABLISHED)" if present
+            name_field = name_field.split("(")[0].strip()
+
             local, remote = name_field.split("->", 1)
-            # Parse remote host:port
-            if ":" in remote:
-                # Handle IPv6 [::1]:port
-                if remote.startswith("["):
-                    match = re.match(r'\[([^\]]+)\]:(\d+)', remote)
-                    if match:
-                        remote_host = match.group(1)
-                        remote_port = match.group(2)
-                    else:
-                        continue
+
+            # Parse remote host:port — handle IPv6 [addr]:port
+            if remote.startswith("["):
+                m = re.match(r'\[([^\]]+)\]:(\d+)', remote)
+                if m:
+                    remote_host = m.group(1)
+                    remote_port = m.group(2)
                 else:
-                    remote_host, remote_port = remote.rsplit(":", 1)
+                    continue
+            elif ":" in remote:
+                remote_host, remote_port = remote.rsplit(":", 1)
             else:
+                continue
+
+            # Skip if port not numeric
+            if not remote_port.isdigit():
                 continue
 
             connections.append({
