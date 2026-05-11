@@ -291,16 +291,27 @@ fn build_menu(app: &AppHandle, running: bool, quiet: bool) -> tauri::Result<Menu
     let toggle_label = if running { "Stop Protection" } else { "Start Protection" };
     let status_label = if running { "● PROTECTION ON" } else { "○ Protection off" };
     let quiet_label  = if quiet { "✓ Quiet Mode — notifications off" } else { "Quiet Mode" };
+    // Use a unique prefix per build so re-registering IDs doesn't panic in Tauri 2.x.
+    // The on_menu_event handler matches on the suffix after the first '-'.
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    let toggle_id   = format!("{}-toggle",    ts);
+    let dash_id     = format!("{}-dashboard", ts);
+    let quiet_id    = format!("{}-quiet",     ts);
+    let about_id    = format!("{}-about",     ts);
+    let quit_id     = format!("{}-quit",      ts);
     let menu       = Menu::new(app)?;
     let status     = MenuItem::new(app, status_label, false, None::<&str>)?;
     let sep1       = PredefinedMenuItem::separator(app)?;
-    let toggle     = MenuItem::with_id(app, "toggle",    toggle_label,        true, None::<&str>)?;
-    let dash       = MenuItem::with_id(app, "dashboard", "Open Dashboard →",  true, None::<&str>)?;
+    let toggle     = MenuItem::with_id(app, &toggle_id,   toggle_label,        true, None::<&str>)?;
+    let dash       = MenuItem::with_id(app, &dash_id,     "Open Dashboard →",  true, None::<&str>)?;
     let sep2       = PredefinedMenuItem::separator(app)?;
-    let quiet_item = MenuItem::with_id(app, "quiet",     quiet_label,         true, None::<&str>)?;
+    let quiet_item = MenuItem::with_id(app, &quiet_id,    quiet_label,         true, None::<&str>)?;
     let sep3       = PredefinedMenuItem::separator(app)?;
-    let about      = MenuItem::with_id(app, "about",     "About CoworkGuard", true, None::<&str>)?;
-    let quit       = MenuItem::with_id(app, "quit",      "Quit",              true, None::<&str>)?;
+    let about      = MenuItem::with_id(app, &about_id,    "About CoworkGuard", true, None::<&str>)?;
+    let quit       = MenuItem::with_id(app, &quit_id,     "Quit",              true, None::<&str>)?;
     menu.append(&status)?;
     menu.append(&sep1)?;
     menu.append(&toggle)?;
@@ -314,16 +325,22 @@ fn build_menu(app: &AppHandle, running: bool, quiet: bool) -> tauri::Result<Menu
 }
 
 fn rebuild_menu(app: &AppHandle, running: bool) -> tauri::Result<()> {
-    let quiet = *app.state::<AppState>().quiet_mode.lock().unwrap();
-    if let Some(tray) = app.tray_by_id("main") {
-        let menu = build_menu(app, running, quiet)?;
-        tray.set_menu(Some(menu))?;
-        tray.set_tooltip(Some(if running {
-            "CoworkGuard — Protection ON"
-        } else {
-            "CoworkGuard — Click to start"
-        }))?;
-    }
+    let app = app.clone();
+    // Tray/menu APIs must run on the main thread. Calling them from a
+    // background thread panics inside tao's event loop dispatcher.
+    let _ = app.run_on_main_thread(move || {
+        let quiet = *app.state::<AppState>().quiet_mode.lock().unwrap();
+        if let Some(tray) = app.tray_by_id("main") {
+            if let Ok(menu) = build_menu(&app, running, quiet) {
+                let _ = tray.set_menu(Some(menu));
+            }
+            let _ = tray.set_tooltip(Some(if running {
+                "CoworkGuard — Protection ON"
+            } else {
+                "CoworkGuard — Click to start"
+            }));
+        }
+    });
     Ok(())
 }
 
@@ -369,7 +386,11 @@ fn main() {
                 .menu(&menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {
-                    match event.id().as_ref() {
+                    // IDs are formatted as "{timestamp}-{action}" to avoid duplicate
+                    // registration panics in Tauri 2.x. Match on the suffix only.
+                    let id = event.id().as_ref();
+                    let action = id.splitn(2, '-').nth(1).unwrap_or(id);
+                    match action {
                         "toggle" => {
                             let running = *app.state::<AppState>().is_running.lock().unwrap();
                             if running { stop_coworkguard(app); } else { start_coworkguard(app); }
