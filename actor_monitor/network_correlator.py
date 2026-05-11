@@ -51,19 +51,52 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 # ─────────────────────────────────────────────
 
 KNOWN_AI_HOSTS = {
+    # Anthropic
     "api.anthropic.com",
+    # OpenAI
     "api.openai.com",
-    "generativelanguage.googleapis.com",
+    "oaidalleapiprodscus.blob.core.windows.net",  # DALL-E image delivery
+    # Google
+    "generativelanguage.googleapis.com",          # Gemini API
+    "aiplatform.googleapis.com",                  # Vertex AI
+    # Perplexity
     "api.perplexity.ai",
+    # Groq
     "api.groq.com",
+    # Mistral
     "api.mistral.ai",
+    # Cohere
     "api.cohere.com",
     "api.cohere.ai",
+    # HuggingFace
     "huggingface.co",
+    "api-inference.huggingface.co",
+    # Together AI
     "api.together.xyz",
+    # xAI / Grok
     "api.x.ai",
+    # Cursor
     "api.cursor.sh",
+    # GitHub Copilot
     "copilot-proxy.githubusercontent.com",
+    "api.githubcopilot.com",
+    # AWS Bedrock (Claude, Llama, Titan via AWS)
+    "bedrock-runtime.us-east-1.amazonaws.com",
+    "bedrock-runtime.us-west-2.amazonaws.com",
+    "bedrock-runtime.eu-west-1.amazonaws.com",
+    # Azure OpenAI
+    "openai.azure.com",
+    # Ollama (local — medium severity via _classify_destination localhost rule)
+    # LM Studio (local — same)
+    # Replicate
+    "api.replicate.com",
+    # Fireworks AI
+    "api.fireworks.ai",
+    # Deepseek
+    "api.deepseek.com",
+    # Windsurf / Codeium
+    "api.codeium.com",
+    "server.codeium.com",
 }
 
 CORRELATION_TTL  = 10    # seconds — AX event expires after this
@@ -91,10 +124,18 @@ def _classify_destination(host: str, port: str) -> Tuple[str, str]:
             host_lower.startswith("172.")):
         return "localhost", "MEDIUM"
 
-    # Known AI API
+    # Known AI API — exact match or subdomain
     for ai_host in KNOWN_AI_HOSTS:
         if host_lower == ai_host or host_lower.endswith("." + ai_host):
             return "known_ai_api", "CRITICAL"
+
+    # AWS Bedrock — regional pattern: bedrock-runtime.<region>.amazonaws.com
+    if re.match(r'^bedrock(-runtime)?[\.\-][a-z0-9\-]+\.amazonaws\.com$', host_lower):
+        return "known_ai_api", "CRITICAL"
+
+    # Azure OpenAI — tenant subdomains: <resource>.openai.azure.com
+    if host_lower.endswith(".openai.azure.com"):
+        return "known_ai_api", "CRITICAL"
 
     return "unknown_external", "HIGH"
 
@@ -121,16 +162,20 @@ def _parse_lsof_output(output: str) -> List[Dict]:
         if parts[0] == "COMMAND":
             continue
         try:
-            command    = parts[0]
-            pid        = int(parts[1])
-            name_field = parts[-1]  # NAME is always last
+            command = parts[0]
+            pid     = int(parts[1])
 
-            # Must contain -> (ESTABLISHED connection)
-            if "->" not in name_field:
+            # NAME field contains "->". On macOS it is the last column with
+            # state appended ("addr->addr (ESTABLISHED)"). On Linux the state
+            # is a separate trailing column so NAME may be parts[-2].
+            # Scan in reverse to find the first part containing "->".
+            name_field = None
+            for part in reversed(parts):
+                if "->" in part:
+                    name_field = part.split("(")[0].strip()
+                    break
+            if not name_field:
                 continue
-
-            # Strip trailing state e.g. "(ESTABLISHED)" if present
-            name_field = name_field.split("(")[0].strip()
 
             local, remote = name_field.split("->", 1)
 
