@@ -42,6 +42,7 @@
       "entitlements": "entitlements.plist"
     },
     "resources": {
+      "../../requirements.txt": "requirements.txt",
       "../../scanner.py": "scanner.py",
       "../../skill_scanner.py": "skill_scanner.py",
       "../../proxy.py": "proxy.py",

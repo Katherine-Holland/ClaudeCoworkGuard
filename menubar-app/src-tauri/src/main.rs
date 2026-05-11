@@ -183,6 +183,7 @@ fn start_coworkguard(app: &AppHandle) {
         let proxy = Command::new(&mitmproxy_bin)
             .args(["-s", "proxy.py", "--listen-port", "8080", "--quiet"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match proxy {
             Ok(child) => { *state.proxy_process.lock().unwrap() = Some(child); }
@@ -192,6 +193,7 @@ fn start_coworkguard(app: &AppHandle) {
         let server = Command::new(&python_bin)
             .args(["server.py"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match server {
             Ok(child) => { *state.server_process.lock().unwrap() = Some(child); }
@@ -224,6 +226,7 @@ fn start_coworkguard(app: &AppHandle) {
         let agent_guard = Command::new(&python_bin)
             .args(["-m", "actor_monitor.agent_guard"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match agent_guard {
             Ok(child) => { *state.agent_guard_process.lock().unwrap() = Some(child); }
@@ -232,6 +235,7 @@ fn start_coworkguard(app: &AppHandle) {
         let model_monitor = Command::new(&python_bin)
             .args(["-m", "actor_monitor.model_monitor"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match model_monitor {
             Ok(child) => { *state.model_monitor_process.lock().unwrap() = Some(child); }
