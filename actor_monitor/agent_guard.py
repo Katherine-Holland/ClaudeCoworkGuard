@@ -30,6 +30,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -54,7 +55,9 @@ SETTINGS_FILE = Path.home() / ".coworkguard" / "settings.json"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 POLL_INTERVAL    = 30    # seconds between scans
+ALERT_TTL        = 86400 # seconds — re-alert after 24h (handles permission re-grants)
 CORRELATION_TTL  = 10    # seconds — AX access + network within this = CRITICAL
+                         # TODO: network correlation — Track 2C
 
 # macOS TCC database — stores app permission grants
 TCC_DB_PATHS = [
@@ -132,6 +135,24 @@ def _get_running_bundle_id(pid: int) -> Optional[str]:
     return None
 
 
+def _build_bundle_cache() -> Dict[int, str]:
+    """
+    Build a pid→bundle_id map once per scan cycle.
+    Avoids spawning one lsappinfo subprocess per process across multiple callers.
+    """
+    if not HAS_PSUTIL:
+        return {}
+    cache: Dict[int, str] = {}
+    for proc in psutil.process_iter(['pid']):
+        try:
+            bid = _get_running_bundle_id(proc.info['pid'])
+            if bid:
+                cache[proc.info['pid']] = bid
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return cache
+
+
 def _get_parent_actor_id(proc, registry: ActorRegistry) -> Optional[str]:
     """Get the actor_id of a process's parent if it's a known AI actor."""
     try:
@@ -145,9 +166,11 @@ def _get_parent_actor_id(proc, registry: ActorRegistry) -> Optional[str]:
 
 
 def scan_running_actors(registry: ActorRegistry,
-                         tcc: Dict[str, Set[str]]) -> List[Dict]:
+                         tcc: Dict[str, Set[str]],
+                         bundle_cache: Dict[int, str]) -> List[Dict]:
     """
     Scan all running processes and return those matching known AI actors.
+    bundle_cache should be built once per poll cycle via _build_bundle_cache().
     """
     if not HAS_PSUTIL:
         return []
@@ -160,8 +183,8 @@ def scan_running_actors(registry: ActorRegistry,
             name = proc.info['name'] or ''
             pid  = proc.info['pid']
 
-            # Get bundle_id for better matching
-            bundle_id = _get_running_bundle_id(pid)
+            # Use pre-built cache — avoids one lsappinfo subprocess per process
+            bundle_id = bundle_cache.get(pid)
 
             # Get parent for MCP tool matching
             parent_actor_id = _get_parent_actor_id(proc, registry)
@@ -213,30 +236,6 @@ def scan_running_actors(registry: ActorRegistry,
     return running
 
 
-def scan_sensitive_apps() -> List[Dict]:
-    """
-    Return list of sensitive apps currently running.
-    """
-    if not HAS_PSUTIL:
-        return []
-
-    running = []
-    for proc in psutil.process_iter(['pid', 'name']):
-        try:
-            bundle_id = _get_running_bundle_id(proc.info['pid'])
-            if not bundle_id:
-                continue
-            # Check against known sensitive bundle list via registry
-            # (we pass registry in from caller — this is a helper)
-            running.append({
-                "pid": proc.info['pid'],
-                "name": proc.info['name'],
-                "bundle_id": bundle_id,
-            })
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-    return running
-
 
 def _assess_risk(actor: Actor, permissions: List[str]) -> str:
     """
@@ -266,11 +265,29 @@ def _assess_risk(actor: Actor, permissions: List[str]) -> str:
 # ─────────────────────────────────────────────
 
 def _notify(title: str, message: str) -> None:
+    # Sanitise — double quotes in title/message break the osascript string
+    safe_title   = title.replace('"', "'")
+    safe_message = message.replace('"', "'")
     try:
         subprocess.run([
             "osascript", "-e",
-            f'display notification "{message}" with title "⚠️ CoworkGuard" subtitle "{title}"'
+            f'display notification "{safe_message}" with title "⚠️ CoworkGuard" subtitle "{safe_title}"'
         ], timeout=3, capture_output=True)
+    except Exception:
+        pass
+
+
+def _post_to_dashboard(payload: bytes) -> None:
+    """Send event to dashboard server. Runs on a daemon thread — never blocks the poll loop."""
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "http://localhost:7070/api/log-event",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        urllib.request.urlopen(req, timeout=2)
     except Exception:
         pass
 
@@ -300,31 +317,30 @@ def _write_log(event_type: str, severity: str, actor_id: str,
     with open(log_file, "a") as fh:
         fh.write(json.dumps(entry) + "\n")
 
-    # Report to dashboard
-    try:
-        import urllib.request
-        payload = json.dumps({
-            "type":       event_type,
-            "severity":   severity,
-            "action":     "FLAGGED",
-            "actor_id":   actor_id,
-            "actor_name": actor_name,
-            "timestamp":  entry["timestamp"],
-            "message":    detail,
-        }).encode()
-        req = urllib.request.Request(
-            "http://localhost:7070/api/log-event",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        urllib.request.urlopen(req, timeout=2)
-    except Exception:
-        pass
+    # Report to dashboard on a daemon thread — avoids blocking the poll loop
+    # if the dashboard server is unavailable
+    payload = json.dumps({
+        "type":       event_type,
+        "severity":   severity,
+        "action":     "FLAGGED",
+        "actor_id":   actor_id,
+        "actor_name": actor_name,
+        "timestamp":  entry["timestamp"],
+        "message":    detail,
+    }).encode()
+    threading.Thread(target=_post_to_dashboard, args=(payload,), daemon=True).start()
+
+
+def _reap_alerted(alerted: Dict[str, float]) -> None:
+    """Remove alert keys older than ALERT_TTL so re-grants trigger fresh alerts."""
+    now = time.monotonic()
+    expired = [k for k, t in alerted.items() if now - t > ALERT_TTL]
+    for k in expired:
+        del alerted[k]
 
 
 def check_permission_risks(actors: List[Dict], registry: ActorRegistry,
-                            alerted: Set[str]) -> None:
+                            alerted: Dict[str, float]) -> None:
     """Alert when an actor has a risky permission combination."""
     for actor_info in actors:
         perms = actor_info.get("permissions", [])
@@ -334,13 +350,13 @@ def check_permission_risks(actors: List[Dict], registry: ActorRegistry,
         has_ax  = "accessibility" in perms
         has_fda = "full_disk"     in perms
 
-        # Dedupe alerts — only fire once per actor per session
+        # Dedupe alerts — suppress within ALERT_TTL window
         alert_key = f"perm:{actor_id}:{':'.join(sorted(perms))}"
         if alert_key in alerted:
             continue
 
         if has_ax and has_fda:
-            alerted.add(alert_key)
+            alerted[alert_key] = time.monotonic()
             detail = f"{actor_name} has Accessibility and Full Disk Access"
             log.warning("PERM_RISK [%s] %s", actor_id, detail)
             _write_log("PERM_RISK_CRITICAL", "CRITICAL", actor_id, actor_name, detail)
@@ -350,7 +366,7 @@ def check_permission_risks(actors: List[Dict], registry: ActorRegistry,
                 "Review in CoworkGuard Agent Guard tab."
             )
         elif has_ax:
-            alerted.add(alert_key)
+            alerted[alert_key] = time.monotonic()
             detail = f"{actor_name} has Accessibility access"
             log.info("AX_ACCESS [%s] %s", actor_id, detail)
             _write_log("AX_ACCESS_DETECTED", "HIGH", actor_id, actor_name, detail)
@@ -358,19 +374,21 @@ def check_permission_risks(actors: List[Dict], registry: ActorRegistry,
 
 def check_sensitive_cooccurrence(actors: List[Dict],
                                    registry: ActorRegistry,
-                                   alerted: Set[str]) -> None:
+                                   alerted: Dict[str, float],
+                                   bundle_cache: Dict[int, str]) -> None:
     """
     Alert when an AI actor and a sensitive app are running simultaneously.
     MVP: detect co-occurrence, not actual AX reads.
+    bundle_cache should be built once per poll cycle via _build_bundle_cache().
     """
     if not HAS_PSUTIL:
         return
 
-    # Get all running bundle IDs
+    # Build bundle_id -> process name from the shared cache
     running_bundles: Dict[str, str] = {}  # bundle_id -> process name
     for proc in psutil.process_iter(['pid', 'name']):
         try:
-            bid = _get_running_bundle_id(proc.info['pid'])
+            bid = bundle_cache.get(proc.info['pid'])
             if bid:
                 running_bundles[bid.lower()] = proc.info['name']
         except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -397,7 +415,7 @@ def check_sensitive_cooccurrence(actors: List[Dict],
             if not has_ax:
                 continue
 
-            alerted.add(alert_key)
+            alerted[alert_key] = time.monotonic()
             detail = (f"{actor_name} has Accessibility access while "
                       f"{sb.display_name} is running")
             severity = sb.risk
@@ -450,7 +468,7 @@ def main() -> None:
         registry.actor_count(), registry.sensitive_bundle_count(), POLL_INTERVAL
     )
 
-    alerted: Set[str] = set()  # dedupe alerts within session
+    alerted: Dict[str, float] = {}  # alert_key -> monotonic timestamp; reaped after ALERT_TTL
 
     while True:
         try:
@@ -459,11 +477,17 @@ def main() -> None:
                 time.sleep(POLL_INTERVAL)
                 continue
 
+            # Reap stale alert keys so re-grants trigger fresh alerts after ALERT_TTL
+            _reap_alerted(alerted)
+
             # Read TCC permissions
             tcc = _read_tcc_permissions()
 
+            # Build bundle ID cache once — shared by all scanners this cycle
+            bundle_cache = _build_bundle_cache()
+
             # Scan running AI actors
-            actors = scan_running_actors(registry, tcc)
+            actors = scan_running_actors(registry, tcc, bundle_cache)
 
             if actors:
                 log.info(
@@ -475,7 +499,7 @@ def main() -> None:
             check_permission_risks(actors, registry, alerted)
 
             # Check sensitive app co-occurrence
-            check_sensitive_cooccurrence(actors, registry, alerted)
+            check_sensitive_cooccurrence(actors, registry, alerted, bundle_cache)
 
         except Exception as e:
             log.error("Agent Guard error: %s", e)
