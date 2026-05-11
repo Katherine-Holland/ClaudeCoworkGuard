@@ -784,6 +784,21 @@ def get_actors():
         return jsonify({"actors": [], "count": 0, "error": str(e)})
 
 
+
+@app.route("/api/clear-skill-scans", methods=["POST"])
+def clear_skill_scans():
+    """Delete all skill scan history files."""
+    try:
+        deleted = 0
+        for f in LOG_DIR.glob("skill_scan_*.jsonl"):
+            f.unlink()
+            deleted += 1
+        app.logger.info("Cleared %d skill scan files", deleted)
+        return jsonify({"ok": True, "deleted": deleted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/clear", methods=["POST"])
 def clear_logs():
     for lf in LOG_DIR.glob("audit_*.jsonl"):

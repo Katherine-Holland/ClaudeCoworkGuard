@@ -377,6 +377,7 @@
       <div style="font-size:13px;color:var(--muted2);margin-top:4px">Skills scanned before execution — Cowork, OpenClaw, MCP</div>
     </div>
     <button class="btn" onclick="loadSkillScans()" style="font-size:11px">Refresh</button>
+    <button class="btn" onclick="clearSkillScans()" style="font-size:11px;margin-left:8px;border-color:var(--danger);color:var(--danger)">Clear all</button>
   </div>
 
   <!-- Skill stats row -->
@@ -757,6 +758,8 @@ const EVENT_INFO = {
   'SUSPICIOUS_API_WRAP':{ icon:'🚨', title:'A browser extension may be reading your AI conversations', summary:'Something modified how your browser handles AI requests on this page. This is a technique used by some extensions to read and record AI conversations without your knowledge.', style:'blocked', steps:['Open your browser and go to Extensions (in Chrome: click the three dots menu → Extensions → Manage Extensions).','Look for any extensions you do not recognise or did not install intentionally.','Remove any suspicious extensions.','Only install browser extensions from sources you trust.'] },
   'WINDOW_AI_DETECTED':{ icon:'🤖', title:'A website used your devices built-in AI', summary:'A website activated the AI model built into your browser. The AI ran on your device — your data was not sent to the internet for this.', style:'info', steps:['No action needed if this was expected.','If you are not sure which website did this, check the location shown in the details below.'] },
   'MCP_TOOL_INSTALLED':{ icon:'🔧', title:'A new tool was added to your AI app', summary:'A new tool has been installed in your AI app. Tools can read files, run commands, and access services on your behalf.', style:'flagged', steps:['Open your AI app and check which tools are currently enabled.','If you do not recognise this tool, disable or remove it.','Only use tools from sources you trust.'] },
+  'MCP_TOOL_RESPONSE':  { icon:'🛡️', title:'CoworkGuard blocked a tool response', summary:'An AI tool sent back a response containing something suspicious — hidden instructions, sensitive data, or content designed to change how your AI behaves. CoworkGuard blocked it before it reached the AI.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','The tool that sent this response may be compromised or malicious.','Consider removing or disabling this tool in your AI app settings.','If you did not install this tool yourself, remove it immediately.'] },
+  'MCP_STDOUT_SENSITIVE_DATA': { icon:'🛡️', title:'CoworkGuard blocked sensitive data from a tool', summary:'An AI tool sent back a response containing sensitive information — like a password, API key, or personal data. CoworkGuard blocked it before it reached the AI.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','Check which tool sent this response and whether it should have had access to that data.','Review your allowed folders in CoworkGuard Settings to limit what tools can read.'] },
   'PENDING':           { icon:'⏳', title:'CoworkGuard is holding a request', summary:'A request was flagged and CoworkGuard is waiting for your decision before allowing it through.', style:'flagged', steps:['Review the findings below.','If the request looks safe, click Allow Once in the audit log to let it through.','If you are not sure, let it expire — it will be blocked automatically after 60 seconds.'] },
   'DEFAULT':           { icon:'ℹ️', title:'Activity detected', summary:'CoworkGuard logged this event for your records.', style:'info', steps:['Review the details below if you want more information.'] },
 };
@@ -777,6 +780,12 @@ function _getEventInfo(e) {
   if (type === 'SUSPICIOUS_API_WRAP') return EVENT_INFO['SUSPICIOUS_API_WRAP'];
   if (type === 'WINDOW_AI_DETECTED') return EVENT_INFO['WINDOW_AI_DETECTED'];
   if (type === 'MCP_TOOL_INSTALLED' || type === 'MCP_CONFIG_CHANGED') return EVENT_INFO['MCP_TOOL_INSTALLED'];
+  if (type === 'MCP_TOOL_RESPONSE' || type === 'MCP_STDOUT_SENSITIVE_DATA') {
+    // Check findings to pick best description
+    if (findingTypes.some(t => t.includes('INJECT') || t.includes('OVERRIDE') || t.includes('HIJACK') || t.includes('EXFIL') || t.includes('INSTRUCTION'))) return EVENT_INFO['BLOCKED_INJECT'];
+    if (findingTypes.some(t => t.includes('SSN') || t.includes('KEY') || t.includes('TOKEN') || t.includes('SECRET') || t.includes('CRED') || t.includes('CERT'))) return EVENT_INFO['MCP_STDOUT_SENSITIVE_DATA'];
+    return EVENT_INFO['MCP_TOOL_RESPONSE'];
+  }
   if (action === 'PENDING') return EVENT_INFO['PENDING'];
   if (action === 'BLOCKED' || action === 'FLAGGED') {
     if (findingTypes.some(t => t.includes('SSN') || t.includes('PASSPORT') || t.includes('CREDIT'))) return EVENT_INFO['BLOCKED_SSN'];
@@ -790,7 +799,7 @@ function _getEventInfo(e) {
 function openModal(ts) {
   // Look up by timestamp — stable across auto-refreshes unlike array index
   const e = allEvents.find(ev => ev.timestamp === ts); if (!e) return;
-  const action = esc(e.action||'UNKNOWN');
+  const action = (e.action==='BLOCK'||e.action==='BLOCKED')?'BLOCKED':(e.action==='FLAGGED')?'FLAGGED':e.action==='PENDING'?'PENDING':esc(e.action||'UNKNOWN');
   const info = _getEventInfo(e);
   const tsFormatted = new Date(e.timestamp).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
   const findings = e.findings||[];
@@ -1281,6 +1290,22 @@ fetchAll();
 setInterval(fetchAll, 5000);
 window.addEventListener('resize', ()=>drawChart([]));
 
+// ── Skill Scans ──
+async function clearSkillScans() {
+  if (!confirm('Clear all skill scan history? This cannot be undone.')) return;
+  try {
+    const r = await fetch(API + '/api/clear-skill-scans', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      showToast('Skill scan history cleared');
+      loadSkillScans();
+    } else {
+      showToast('Could not clear skill scans', true);
+    }
+  } catch(e) {
+    showToast('Could not reach server', true);
+  }
+}
 // ── Skill Scans ──
 let allSkillScans = [], currentSkillFilter = 'ALL';
 
