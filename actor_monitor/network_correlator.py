@@ -103,6 +103,10 @@ CORRELATION_TTL  = 10    # seconds — AX event expires after this
 POLL_INTERVAL    = 2     # seconds between lsof polls
 ALERT_COOLDOWN   = 300   # seconds before same correlation re-alerts
 
+# DNS hostname cache — avoids repeated reverse lookups for the same IP
+_dns_cache: Dict[str, str] = {}
+_dns_lock = threading.Lock()
+
 
 # ─────────────────────────────────────────────
 # Classify destination
@@ -117,11 +121,20 @@ def _classify_destination(host: str, port: str) -> Tuple[str, str]:
     """
     host_lower = host.lower()
 
-    # Localhost / private ranges
+    # Localhost / private ranges (RFC 1918 + loopback)
+    # 172.16.0.0–172.31.255.255 only — not all 172.x.x.x
+    _172_private = False
+    if host_lower.startswith("172."):
+        try:
+            second_octet = int(host_lower.split(".")[1])
+            _172_private = 16 <= second_octet <= 31
+        except (IndexError, ValueError):
+            pass
+
     if (host_lower in ("localhost", "127.0.0.1", "::1") or
             host_lower.startswith("192.168.") or
             host_lower.startswith("10.") or
-            host_lower.startswith("172.")):
+            _172_private):
         return "localhost", "MEDIUM"
 
     # Known AI API — exact match or subdomain
@@ -208,14 +221,42 @@ def _parse_lsof_output(output: str) -> List[Dict]:
     return connections
 
 
+def _resolve_hostname(ip: str) -> str:
+    """
+    Reverse-DNS lookup with cache. Returns hostname if resolved, original IP otherwise.
+    Cached indefinitely per session — AI API IPs don't change frequently.
+    """
+    with _dns_lock:
+        if ip in _dns_cache:
+            return _dns_cache[ip]
+    try:
+        import socket
+        hostname = socket.gethostbyaddr(ip)[0]
+    except Exception:
+        hostname = ip
+    with _dns_lock:
+        _dns_cache[ip] = hostname
+    return hostname
+
+
 def poll_network_connections() -> List[Dict]:
-    """Run lsof and return current TCP connections."""
+    """
+    Run lsof and return current TCP connections.
+    Uses hostnames (not -n) so AI API domains are identifiable.
+    Reverse DNS is cached per session to avoid per-poll latency.
+    """
     try:
         result = subprocess.run(
-            ["lsof", "-iTCP", "-sTCP:ESTABLISHED", "-n", "-P"],
+            ["lsof", "-iTCP", "-sTCP:ESTABLISHED", "-P"],
             capture_output=True, text=True, timeout=5
         )
-        return _parse_lsof_output(result.stdout)
+        connections = _parse_lsof_output(result.stdout)
+        # For any remaining raw IPs, attempt cached reverse DNS
+        for conn in connections:
+            host = conn["remote_host"]
+            if re.match(r'^[\d\.]+$', host) or ":" in host:  # IPv4 or IPv6
+                conn["remote_host"] = _resolve_hostname(host)
+        return connections
     except Exception as e:
         log.debug("lsof failed: %s", e)
         return []
