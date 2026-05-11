@@ -89,7 +89,20 @@ fn disable_proxy() {
     let _ = Command::new("networksetup").args(["-setsecurewebproxystate", &svc, "off"]).output();
 }
 
-fn find_install_dir() -> PathBuf {
+fn find_install_dir(app: &AppHandle) -> PathBuf {
+    // Use Tauri's resource_dir() — the authoritative location for bundled files.
+    // Falls back to manual path construction and home directory for shell installs.
+    if let Ok(res_dir) = app.path().resource_dir() {
+        if res_dir.join("proxy.py").exists() {
+            return res_dir;
+        }
+        // Tauri 2.x may place resources in a _up_ subdirectory
+        let up = res_dir.join("_up_");
+        if up.join("proxy.py").exists() {
+            return up;
+        }
+    }
+    // Manual bundle path fallback
     if let Ok(exe) = std::env::current_exe() {
         let bundle_resources = exe
             .parent().unwrap_or(&exe)
@@ -99,6 +112,7 @@ fn find_install_dir() -> PathBuf {
             return bundle_resources;
         }
     }
+    // Shell install fallback
     let home = std::env::var("HOME").unwrap_or_default();
     let home_path = std::path::Path::new(&home);
     for dir in &["ClaudeCoworkGuard", "CoworkGuard"] {
@@ -161,7 +175,7 @@ fn install_dependencies(python_bin: &str, dir: &std::path::Path) -> bool {
 }
 
 fn start_coworkguard(app: &AppHandle) {
-    let dir = find_install_dir();
+    let dir = find_install_dir(app);
     if !dir.join("proxy.py").exists() {
         eprintln!("[CoworkGuard] proxy.py not found in {:?}", dir);
         if let Some(tray) = app.tray_by_id("main") {
