@@ -420,7 +420,7 @@ def check_sensitive_cooccurrence(actors: List[Dict],
             detail = (f"{actor_name} has Accessibility access while "
                       f"{sb.display_name} is running")
             severity = sb.risk
-            actor_pid = actor_info.get("pid", 0)
+            actor_pid = actor_info.get("pid")
 
             log.info("AX_COOCCUR [%s] %s", actor_id, detail)
             _write_log(
@@ -434,13 +434,15 @@ def check_sensitive_cooccurrence(actors: List[Dict],
                 f"{sb.display_name} is open."
             )
             # Feed into network correlator — Track 2C
-            network_correlator.record_ax_event(
-                actor_id=actor_id,
-                actor_pid=actor_pid,
-                actor_name=actor_name,
-                target_app=sb.display_name,
-                target_bundle_id=bid,
-            )
+            # Only record if we have a valid PID — pid=0 is the kernel process
+            if actor_pid:
+                network_correlator.record_ax_event(
+                    actor_id=actor_id,
+                    actor_pid=actor_pid,
+                    actor_name=actor_name,
+                    target_app=sb.display_name,
+                    target_bundle_id=bid,
+                )
 
 
 # ─────────────────────────────────────────────
