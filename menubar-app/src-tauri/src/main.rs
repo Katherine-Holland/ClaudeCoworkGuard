@@ -19,6 +19,7 @@ struct AppState {
     clipboard_monitor_process:  Mutex<Option<Child>>,
     file_write_monitor_process: Mutex<Option<Child>>,
     agent_guard_process:        Mutex<Option<Child>>,
+    model_monitor_process:      Mutex<Option<Child>>,
     is_running:                 Mutex<bool>,
     quiet_mode:                 Mutex<bool>,
 }
@@ -27,6 +28,8 @@ fn find_mitmproxy() -> String {
     let candidates = [
         "/opt/homebrew/bin/mitmdump",
         "/usr/local/bin/mitmdump",
+        "/Library/Frameworks/Python.framework/Versions/3.14/bin/mitmdump",
+        "/Library/Frameworks/Python.framework/Versions/3.13/bin/mitmdump",
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/mitmdump",
         "/Library/Frameworks/Python.framework/Versions/3.11/bin/mitmdump",
     ];
@@ -42,6 +45,8 @@ fn find_python() -> String {
     let candidates = [
         "/opt/homebrew/bin/python3",
         "/usr/local/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
         "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
         "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
         "/usr/bin/python3",
@@ -229,7 +234,7 @@ fn start_coworkguard(app: &AppHandle) {
             .current_dir(&dir)
             .spawn();
         match model_monitor {
-            Ok(child) => { *state.agent_guard_process.lock().unwrap() = Some(child); }
+            Ok(child) => { *state.model_monitor_process.lock().unwrap() = Some(child); }
             Err(e) => eprintln!("[CoworkGuard] model_monitor failed: {}", e),
         }
         enable_proxy();
@@ -247,6 +252,7 @@ fn stop_coworkguard(app: &AppHandle) {
     if let Some(mut c) = state.clipboard_monitor_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.file_write_monitor_process.lock().unwrap().take() { let _ = c.kill(); }
     if let Some(mut c) = state.agent_guard_process.lock().unwrap().take() { let _ = c.kill(); }
+    if let Some(mut c) = state.model_monitor_process.lock().unwrap().take() { let _ = c.kill(); }
     let _ = Command::new("pkill").args(["-f", "mitmdump"]).output();
     let _ = Command::new("pkill").args(["-f", "mitmproxy"]).output();
     let _ = Command::new("pkill").args(["-f", "server.py"]).output();
@@ -328,6 +334,7 @@ fn main() {
             clipboard_monitor_process:  Mutex::new(None),
             file_write_monitor_process: Mutex::new(None),
             agent_guard_process:        Mutex::new(None),
+            model_monitor_process:      Mutex::new(None),
             is_running:                 Mutex::new(false),
             quiet_mode:                 Mutex::new(false),
         })
