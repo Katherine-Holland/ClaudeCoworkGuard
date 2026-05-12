@@ -381,7 +381,7 @@
 
   <!-- Skill stats row -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" id="skill-stats">
-    <div class="stat-card blocked"><div class="stat-label">Blocked</div><div class="stat-value" id="ss-blocked">–</div><div class="stat-sub">CRITICAL findings</div></div>
+    <div class="stat-card blocked"><div class="stat-label">Blocked</div><div class="stat-value" id="ss-blocked">–</div><div class="stat-sub">High risk findings</div></div>
     <div class="stat-card flagged"><div class="stat-label">Flagged</div><div class="stat-value" id="ss-flagged">–</div><div class="stat-sub">HIGH findings</div></div>
     <div class="stat-card clean"><div class="stat-label">Clean</div><div class="stat-value" id="ss-clean">–</div><div class="stat-sub">No issues found</div></div>
     <div class="stat-card warnings"><div class="stat-label">Total Scanned</div><div class="stat-value" id="ss-total">–</div><div class="stat-sub">All skill files</div></div>
@@ -417,23 +417,23 @@
       <div class="panel-header"><span class="panel-title">Blocking Rules</span></div>
       <div class="settings-body">
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Block Critical Severity</div><div class="setting-desc">SSNs, credit cards, private keys, raw API keys.<br>Recommended: always on.</div></div>
+          <div class="setting-info"><div class="setting-label">Block passwords and personal data</div><div class="setting-desc">Stops requests containing Social Security Numbers, credit card numbers, passwords, and API keys from reaching AI services. Recommended: keep this on.</div></div>
           <label class="toggle"><input type="checkbox" id="s-block-critical" checked><span class="toggle-slider"></span></label>
         </div>
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Block High Severity</div><div class="setting-desc">JWTs, bearer tokens, GitHub tokens, Stripe keys.<br>May cause false positives.</div></div>
+          <div class="setting-info"><div class="setting-label">Block access tokens and service keys</div><div class="setting-desc">Stops requests containing login tokens, GitHub access keys, and payment service credentials. May occasionally flag legitimate requests.</div></div>
           <label class="toggle"><input type="checkbox" id="s-block-high"><span class="toggle-slider"></span></label>
         </div>
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Block Medium Severity</div><div class="setting-desc">Emails, phone numbers, IP addresses.<br>High false positive rate — use with caution.</div></div>
+          <div class="setting-info"><div class="setting-label">Block contact information</div><div class="setting-desc">Stops requests containing email addresses, phone numbers, and internal network addresses. Not recommended for most users — may block normal requests.</div></div>
           <label class="toggle"><input type="checkbox" id="s-block-medium"><span class="toggle-slider"></span></label>
         </div>
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Domain Navigation Alerts</div><div class="setting-desc">Warn when Cowork is active and you navigate to a sensitive domain.</div></div>
+          <div class="setting-info"><div class="setting-label">Warn on sensitive websites</div><div class="setting-desc">Shows a warning when you visit sensitive pages — like your email, cloud console, or banking — while an AI session is active.</div></div>
           <label class="toggle"><input type="checkbox" id="s-domain-alert" checked><span class="toggle-slider"></span></label>
         </div>
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Confirm Before Send</div><div class="setting-desc">Hold blocked requests for your review instead of blocking immediately. An Allow Once button appears in the audit log.</div></div>
+          <div class="setting-info"><div class="setting-label">Ask me before blocking</div><div class="setting-desc">Instead of blocking automatically, CoworkGuard pauses the request and asks you to decide. The AI app will wait up to 60 seconds for your answer.</div></div>
           <label class="toggle"><input type="checkbox" id="s-confirm"><span class="toggle-slider"></span></label>
         </div>
       </div>
@@ -444,13 +444,13 @@
       <div class="panel-header"><span class="panel-title">Custom Patterns</span></div>
       <div class="settings-body">
         <div class="setting-row" style="flex-direction:column;align-items:flex-start">
-          <div class="setting-label" style="margin-bottom:4px">Custom Regex Patterns</div>
-          <div class="setting-desc">One pattern per line. Applied at MEDIUM severity.<br>Example: <code style="color:var(--accent)">ACME-[0-9]{6}</code></div>
+          <div class="setting-label" style="margin-bottom:4px">Custom detection patterns</div>
+          <div class="setting-desc">Add your own patterns to detect company-specific data — like internal project codes or employee IDs. One pattern per line. For technical users only.</div>
           <textarea class="textarea-field" id="s-custom-patterns" placeholder="# One regex per line&#10;ACME-[0-9]{6}"></textarea>
         </div>
         <div class="setting-row" style="flex-direction:column;align-items:flex-start">
-          <div class="setting-label" style="margin-bottom:4px">Custom Blocked Domains</div>
-          <div class="setting-desc">Domains that trigger a warning when visited while Cowork is active.</div>
+          <div class="setting-label" style="margin-bottom:4px">Extra sensitive websites</div>
+          <div class="setting-desc">Add websites you want CoworkGuard to watch — for example, your company intranet or internal tools. You'll get a warning if you visit them while an AI session is active.</div>
           <textarea class="textarea-field" id="s-custom-domains" placeholder="app.mycompany.com&#10;internal.tools.io"></textarea>
         </div>
       </div>
@@ -461,11 +461,11 @@
       <div class="panel-header"><span class="panel-title">Proxy Configuration</span></div>
       <div class="settings-body">
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Proxy Port</div><div class="setting-desc">Port mitmproxy listens on. Default: 8080.<br>Restart proxy after changing.</div></div>
+          <div class="setting-info"><div class="setting-label">Network port</div><div class="setting-desc">The port CoworkGuard uses to monitor your network traffic. Default is 8080 — only change this if something else on your Mac is using that port.</div></div>
           <input id="s-proxy-port" type="number" value="8080" style="width:80px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:12px;text-align:center"/>
         </div>
         <div class="setting-row">
-          <div class="setting-info"><div class="setting-label">Max Log Entries</div><div class="setting-desc">Maximum audit log entries to keep. Older entries rotate out.</div></div>
+          <div class="setting-info"><div class="setting-label">History size</div><div class="setting-desc">How many events to keep in your activity history. Older events are removed automatically when the limit is reached. Default: 1000.</div></div>
           <input id="s-max-logs" type="number" value="1000" style="width:80px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:12px;text-align:center"/>
         </div>
       </div>
@@ -476,8 +476,8 @@
       <div class="panel-header"><span class="panel-title">Folder Access Control</span></div>
       <div class="settings-body">
         <div class="setting-row" style="flex-direction:column;align-items:flex-start">
-          <div class="setting-label" style="margin-bottom:4px">Allowed Folders</div>
-          <div class="setting-desc">AI tools can only send data from these folders via API calls. Content from all other folders is blocked at exit. Leave empty to allow all folders.</div>
+          <div class="setting-label" style="margin-bottom:4px">Approved folders</div>
+          <div class="setting-desc">Limit which folders on your Mac AI tools are allowed to read from. Content from any other folder will be blocked before it can be sent to an AI service. Leave empty to allow access to all folders.</div>
           <div class="folder-list" id="folder-list"></div>
           <div class="folder-add-row">
             <input class="folder-input" id="folder-input" placeholder="~/projects or /Users/you/work" type="text"/>
@@ -739,6 +739,35 @@ function updateCoworkStatus(cowork) {
 }
 
 // ── Modal ──
+
+// Plain English finding type names
+const FINDING_NAMES = {
+  'SSN': 'Social Security Number',
+  'CREDIT_CARD': 'Credit card number',
+  'AWS_KEY': 'AWS access key',
+  'AWS_SECRET': 'AWS secret key',
+  'GITHUB_TOKEN': 'GitHub access token',
+  'STRIPE_KEY': 'Stripe API key',
+  'JWT': 'Login token (JWT)',
+  'PRIVATE_KEY': 'Private encryption key',
+  'CERTIFICATE': 'Security certificate',
+  'CONNECTION_STR': 'Database connection string',
+  'API_KEY': 'API key',
+  'BEARER_TOKEN': 'Bearer token',
+  'PASSWORD': 'Password',
+  'EMAIL': 'Email address',
+  'PHONE': 'Phone number',
+  'PASSPORT': 'Passport number',
+  'INSTRUCTION_OVERRIDE': 'Hidden AI instruction',
+  'EXFIL_ENDPOINT': 'Data exfiltration attempt',
+  'EXFIL_CREDENTIALS': 'Credential theft attempt',
+  'ROLE_HIJACK': 'AI role hijack attempt',
+  'SYSTEM_MARKER': 'System prompt manipulation',
+};
+function friendlyFindingType(t) {
+  return FINDING_NAMES[t] || t.replace(/_/g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+}
+
 // ── Plain English event descriptions ──
 const EVENT_INFO = {
   // Outbound blocks
@@ -759,7 +788,7 @@ const EVENT_INFO = {
   'MCP_TOOL_INSTALLED':{ icon:'🔧', title:'A new tool was added to your AI app', summary:'A new tool has been installed in your AI app. Tools can read files, run commands, and access services on your behalf.', style:'flagged', steps:['Open your AI app and check which tools are currently enabled.','If you do not recognise this tool, disable or remove it.','Only use tools from sources you trust.'] },
   'MCP_TOOL_RESPONSE':  { icon:'🛡️', title:'CoworkGuard blocked a tool response', summary:'An AI tool sent back a response containing something suspicious — hidden instructions, sensitive data, or content designed to change how your AI behaves. CoworkGuard blocked it before it reached the AI.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','The tool that sent this response may be compromised or malicious.','Consider removing or disabling this tool in your AI app settings.','If you did not install this tool yourself, remove it immediately.'] },
   'MCP_STDOUT_SENSITIVE_DATA': { icon:'🛡️', title:'CoworkGuard blocked sensitive data from a tool', summary:'An AI tool sent back a response containing sensitive information — like a password, API key, or personal data. CoworkGuard blocked it before it reached the AI.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','Check which tool sent this response and whether it should have had access to that data.','Review your allowed folders in CoworkGuard Settings to limit what tools can read.'] },
-  'PENDING':           { icon:'⏳', title:'CoworkGuard is holding a request', summary:'A request was flagged and CoworkGuard is waiting for your decision before allowing it through.', style:'flagged', steps:['Review the findings below.','If the request looks safe, click Allow Once in the audit log to let it through.','If you are not sure, let it expire — it will be blocked automatically after 60 seconds.'] },
+  'PENDING':           { icon:'⏳', title:'CoworkGuard is holding a request — your decision needed', summary:'CoworkGuard detected something in a request and has paused it before sending. The AI app is waiting for your answer. If you take no action it will be blocked automatically after 60 seconds.', style:'flagged', steps:['Look at the detected findings below — they show exactly what was found in the request.','If this looks like a mistake — for example, you intentionally shared this information — click Allow Once in the audit log row to let it through.','If you did not expect this data to be in the request, click the X to close this and let it expire. It will be blocked automatically.','To avoid this in future, check which files or documents your AI tool has access to.'] },
   'DEFAULT':           { icon:'ℹ️', title:'Activity detected', summary:'CoworkGuard logged this event for your records.', style:'info', steps:['Review the details below if you want more information.'] },
 };
 
@@ -828,7 +857,7 @@ function openModal(ts) {
     ${findings.length ? `<div style="margin-top:12px">
       ${findings.map(f=>`<div class="finding-row">
         <span class="badge ${esc(f.severity)}">${esc(f.severity)}</span>
-        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text);min-width:120px">${esc(f.type)}</span>
+        <span style="font-size:12px;color:var(--text);min-width:120px">${friendlyFindingType(esc(f.type))}</span>
         <span class="finding-preview">${esc(f.preview||f.match_preview||'–')}</span>
         ${f.blocked?'<span class="finding-blocked-tag">BLOCKED</span>':''}
       </div>`).join('')}
