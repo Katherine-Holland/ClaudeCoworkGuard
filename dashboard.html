@@ -51,7 +51,7 @@
   /* Stats */
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:28px 0 20px}
   .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
-  .stat-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .stat-card{cursor:default}
   .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
   .stat-card.blocked::after{background:var(--danger)}.stat-card.flagged::after{background:var(--warn)}
   .stat-card.clean::after{background:var(--success)}.stat-card.warnings::after{background:var(--accent)}
@@ -285,10 +285,10 @@
   </div>
 
   <div class="stats-grid">
-    <div class="stat-card blocked" onclick="setFilter('BLOCKED',null);showView('logs',null)" style="cursor:pointer" title="Click to filter blocked requests"><div class="stat-label">Requests Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">Click to view ↓</div></div>
-    <div class="stat-card flagged" onclick="setFilter('FLAGGED',null);showView('logs',null)" style="cursor:pointer" title="Click to filter flagged requests"><div class="stat-label">Requests Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">Click to view ↓</div></div>
-    <div class="stat-card clean" onclick="setFilter('CLEAN',null);showView('logs',null)" style="cursor:pointer" title="Click to view clean requests"><div class="stat-label">Clean Requests</div><div class="stat-value" id="stat-clean">–</div><div class="stat-sub">Click to view ↓</div></div>
-    <div class="stat-card warnings" onclick="setFilter('DOMAIN_WARNING',null);showView('logs',null)" style="cursor:pointer" title="Click to view domain warnings"><div class="stat-label">Domain Warnings</div><div class="stat-value" id="stat-warnings">–</div><div class="stat-sub">Click to view ↓</div></div>
+    <div class="stat-card blocked"><div class="stat-label">Requests Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">CRITICAL / HIGH severity</div></div>
+    <div class="stat-card flagged"><div class="stat-label">Requests Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">Allowed with warning</div></div>
+    <div class="stat-card clean"><div class="stat-label">Clean Requests</div><div class="stat-value" id="stat-clean">–</div><div class="stat-sub">No issues detected</div></div>
+    <div class="stat-card warnings"><div class="stat-label">Domain Warnings</div><div class="stat-value" id="stat-warnings">–</div><div class="stat-sub">Sensitive pages visited</div></div>
   </div>
 
   <div class="panel" style="margin-bottom:20px">
