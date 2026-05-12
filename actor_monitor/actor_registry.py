@@ -244,12 +244,19 @@ class ActorRegistry:
             if name_lower in actor.process_names:
                 return actor
 
-        # 3. Partial process_name match (for helpers)
+        # 3. Partial process_name match (for helpers only)
+        # Requires the actor name to appear as a whole word at the start of the
+        # process name — e.g. "claude" matches "claude helper" but NOT "searchpartyd"
+        # This prevents short actor names like "arc", "code", "node" matching
+        # unrelated system processes that happen to contain those letters.
         for actor in self._actors.values():
             if actor.requires_parent_match:
                 continue
             for pname in actor.process_names:
-                if pname in name_lower:  # helper suffix only e.g. "claude helper" matches "claude"
+                # Only match if process name starts with actor name
+                # e.g. "claude helper" starts with "claude" ✓
+                # "searchpartyd" starts with "arc"? No ✓
+                if name_lower.startswith(pname):
                     return actor
 
         # 4. Parent-matched actors (python_mcp, node_mcp)
