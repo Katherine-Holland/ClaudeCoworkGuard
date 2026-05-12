@@ -285,10 +285,10 @@
   </div>
 
   <div class="stats-grid">
-    <div class="stat-card blocked"><div class="stat-label">Requests Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">CRITICAL / HIGH severity</div></div>
-    <div class="stat-card flagged"><div class="stat-label">Requests Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">Allowed with warning</div></div>
-    <div class="stat-card clean"><div class="stat-label">Clean Requests</div><div class="stat-value" id="stat-clean">–</div><div class="stat-sub">No issues detected</div></div>
-    <div class="stat-card warnings"><div class="stat-label">Domain Warnings</div><div class="stat-value" id="stat-warnings">–</div><div class="stat-sub">Sensitive pages visited</div></div>
+    <div class="stat-card blocked" onclick="setFilter('BLOCKED',null);showView('logs',null)" style="cursor:pointer" title="Click to filter blocked requests"><div class="stat-label">Requests Blocked</div><div class="stat-value" id="stat-blocked">–</div><div class="stat-sub">Click to view ↓</div></div>
+    <div class="stat-card flagged" onclick="setFilter('FLAGGED',null);showView('logs',null)" style="cursor:pointer" title="Click to filter flagged requests"><div class="stat-label">Requests Flagged</div><div class="stat-value" id="stat-flagged">–</div><div class="stat-sub">Click to view ↓</div></div>
+    <div class="stat-card clean" onclick="setFilter('CLEAN',null);showView('logs',null)" style="cursor:pointer" title="Click to view clean requests"><div class="stat-label">Clean Requests</div><div class="stat-value" id="stat-clean">–</div><div class="stat-sub">Click to view ↓</div></div>
+    <div class="stat-card warnings" onclick="setFilter('DOMAIN_WARNING',null);showView('logs',null)" style="cursor:pointer" title="Click to view domain warnings"><div class="stat-label">Domain Warnings</div><div class="stat-value" id="stat-warnings">–</div><div class="stat-sub">Click to view ↓</div></div>
   </div>
 
   <div class="panel" style="margin-bottom:20px">
@@ -377,7 +377,6 @@
       <div style="font-size:13px;color:var(--muted2);margin-top:4px">Skills scanned before execution — Cowork, OpenClaw, MCP</div>
     </div>
     <button class="btn" onclick="loadSkillScans()" style="font-size:11px">Refresh</button>
-    <button class="btn" onclick="clearSkillScans()" style="font-size:11px;margin-left:8px;border-color:var(--danger);color:var(--danger)">Clear all</button>
   </div>
 
   <!-- Skill stats row -->
@@ -657,7 +656,7 @@ function showToast(msg, error=false) {
 function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active'); renderLog();
+  if (btn) btn.classList.add('active'); renderLog();
 }
 
 function renderLog() {
@@ -747,7 +746,7 @@ const EVENT_INFO = {
   'BLOCKED_CRED':     { icon:'🛡️', title:'CoworkGuard blocked a password or key', summary:'A request to an AI service contained what looks like a password, API key, or login credential. CoworkGuard stopped it before it was sent.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','If this was a real credential, consider changing it as a precaution.','Check which app sent the request and whether it should have had access to that file.'] },
   'BLOCKED_INJECT':   { icon:'🛡️', title:'CoworkGuard blocked a hidden instruction', summary:'An AI tool sent back a response containing a hidden instruction — something designed to change how your AI behaves without you knowing. CoworkGuard stopped it.', style:'blocked', steps:['No immediate action needed — CoworkGuard already blocked it.','Consider removing or disabling the tool that sent this response in your AI app settings.','If you do not recognise this tool, check which tools are installed in your AI app.'] },
   // Flagged
-  'CLIPBOARD_WARNING':{ icon:'📋', title:'Sensitive data was copied to your clipboard', summary:'Something containing personal or sensitive information — like a password, ID number, or financial detail — was copied to your clipboard. Be careful where you paste it.', style:'flagged', steps:['Avoid pasting this into an AI chat or any website you do not fully trust.','To clear your clipboard, click the button below. This replaces the sensitive data with something harmless.'], clipboard:true },
+  'CLIPBOARD_WARNING':{ icon:'📋', title:'Sensitive data was copied to your clipboard', summary:'Something containing personal or sensitive information — like a password, ID number, or financial detail — was copied to your clipboard. Be careful where you paste it.', style:'flagged', steps:['Avoid pasting this into an AI chat or any website you do not fully trust.','To clear your clipboard, use the button above. This replaces the sensitive data with something harmless.'], clipboard:true },
   'FILE_WRITE_WARNING':{ icon:'📄', title:'An AI tool saved sensitive data outside your approved folders', summary:'An AI tool wrote a file containing sensitive information to a location outside the folders you have approved. This could mean data is being stored somewhere unexpected.', style:'flagged', steps:['Find the file at the location shown in the details below.','Open it and check what it contains.','If you did not expect it to be there, delete it.','To prevent this in future, go to Settings → Folder Access in CoworkGuard.'] },
   'DOMAIN_WARNING':   { icon:'⚠️', title:'You visited a sensitive page while an AI session was active', summary:'You navigated to a page — like your email, cloud console, or banking — while an AI tool was running. There is a risk the AI could access content from that page.', style:'flagged', steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.','You can manage which domains trigger this warning in Settings.'] },
   // Agent Guard
@@ -839,8 +838,8 @@ function openModal(ts) {
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-summary ${info.style}">
       <div class="modal-summary-desc">${info.summary}</div>
-      ${clipboardBtn}
     </div>
+    ${clipboardBtn}
     <div class="modal-what-to-do">
       <div class="modal-what-to-do-title">What to do</div>
       ${stepsHtml}
@@ -1290,22 +1289,6 @@ fetchAll();
 setInterval(fetchAll, 5000);
 window.addEventListener('resize', ()=>drawChart([]));
 
-// ── Skill Scans ──
-async function clearSkillScans() {
-  if (!confirm('Clear all skill scan history? This cannot be undone.')) return;
-  try {
-    const r = await fetch(API + '/api/clear-skill-scans', { method: 'POST' });
-    const d = await r.json();
-    if (d.ok) {
-      showToast('Skill scan history cleared');
-      loadSkillScans();
-    } else {
-      showToast('Could not clear skill scans', true);
-    }
-  } catch(e) {
-    showToast('Could not reach server', true);
-  }
-}
 // ── Skill Scans ──
 let allSkillScans = [], currentSkillFilter = 'ALL';
 
