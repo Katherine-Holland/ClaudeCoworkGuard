@@ -277,7 +277,7 @@
   <!-- Partial protection banner — shown when proxy not running -->
   <div id="partial-banner" style="display:none;margin:16px 0 0;background:rgba(240,160,48,.08);border:1px solid rgba(240,160,48,.25);border-left:3px solid #f0a030;border-radius:10px;padding:16px 20px;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
     <div>
-      <div style="font-size:13px;font-weight:600;color:#f0a030;margin-bottom:4px">⚠️ Finish your installation — proxy not running</div>
+      <div style="font-size:13px;font-weight:600;color:#f0a030;margin-bottom:4px">Finish your installation — proxy not running</div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted2)">You have domain warnings but payload scanning is off. Download the macOS app to get full protection — one click to start and stop, no terminal needed.</div>
     </div>
     <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/tag/v1.0.2"
@@ -324,7 +324,7 @@
       </div>
       <div class="log-col-header"><span>Timestamp</span><span>Action</span><span>Type</span><span>Detail</span></div>
       <div class="event-log" id="event-log">
-        <div class="empty-state"><div class="empty-icon">🛡️</div><div>Loading…</div></div>
+        <div class="empty-state"><div class="empty-icon"><i class="ph ph-shield-check" style="font-size:32px;color:var(--muted)"></i></div><div>Loading…</div></div>
       </div>
     </div>
 
@@ -679,8 +679,8 @@ function renderLog() {
     const msg = !serverAvailable
       ? '<div class="empty-icon"><i class="ph ph-plug-slash" style="font-size:32px;color:var(--muted)"></i></div><div>Server offline — make sure CoworkGuard is running</div>'
       : currentFilter === 'ALL'
-        ? '<div class="empty-icon">🛡️</div><div>No events yet — protection is active and scanning</div>'
-        : '<div class="empty-icon">🔍</div><div>No events match this filter</div>';
+        ? '<div class="empty-icon"><i class="ph ph-shield-check" style="font-size:32px;color:var(--muted)"></i></div><div>No events yet — protection is active and scanning</div>'
+        : '<div class="empty-icon"><i class="ph ph-magnifying-glass" style="font-size:32px;color:var(--muted)"></i></div><div>No events match this filter</div>';
     log.innerHTML = `<div class="empty-state">${msg}</div>`; return;
   }
   log.innerHTML = filtered.map((e,i) => {
@@ -690,15 +690,15 @@ function renderLog() {
     const action = e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILEWRITE':e.type==='WINDOW_AI_DETECTED'?'WINDOWAI':e.type==='SUSPICIOUS_API_WRAP'?'SUSPICIOUS':e.action==='PENDING'?'PENDING':(e.action||'UNKNOWN').replace(/[^A-Z0-9_]/gi,'');
     const type   = e.type==='DOMAIN_WARNING'?'DOMAIN':e.type==='CLIPBOARD_WARNING'?'CLIPBOARD':e.type==='FILE_WRITE_WARNING'?'FILE':e.type==='WINDOW_AI_DETECTED'?'LOCAL AI':e.type==='SUSPICIOUS_API_WRAP'?'EXTENSION':'API';
     let detail = e.type==='DOMAIN_WARNING'
-      ? `⚠️ Navigated to <strong style="color:var(--warn)">${esc(e.domain||e.url)}</strong> while AI agent active`
+      ? `Navigated to <strong style="color:var(--warn)">${esc(e.domain||e.url)}</strong> while AI agent active`
       : e.type==='CLIPBOARD_WARNING'
-        ? `📋 Clipboard contains sensitive data: ${e.findings?.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')||'unknown'}`
+        ? `Clipboard contains sensitive data: ${e.findings?.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')||'unknown'}`
       : e.type==='FILE_WRITE_WARNING'
-        ? `📄 File written outside allowed folders: <strong style="color:var(--warn)">${esc((e.url||'').split('/').pop())}</strong>${e.findings?.length?` — ${e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')}`:''}`
+        ? `File written outside allowed folders: <strong style="color:var(--warn)">${esc((e.url||'').split('/').pop())}</strong>${e.findings?.length?` — ${e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')}`:''}`
       : e.type==='WINDOW_AI_DETECTED'
-        ? `🤖 Chrome built-in AI (Gemini Nano) used via <strong style="color:#38bdf8">${esc(e.path||'window.ai')}</strong> on ${esc((e.url||'').replace(/https?:\/\//,'').split('/')[0])}`
+        ? `Chrome built-in AI (Gemini Nano) used via <strong style="color:#38bdf8">${esc(e.path||'window.ai')}</strong> on ${esc((e.url||'').replace(/https?:\/\//,'').split('/')[0])}`
       : e.type==='SUSPICIOUS_API_WRAP'
-        ? `🚨 Extension overriding ${[e.fetchWrapped&&'fetch()',e.xhrWrapped&&'XMLHttpRequest'].filter(Boolean).join(' and ')||'fetch() or XMLHttpRequest'} on AI page — possible conversation harvesting`
+        ? `Extension overriding ${[e.fetchWrapped&&'fetch()',e.xhrWrapped&&'XMLHttpRequest'].filter(Boolean).join(' and ')||'fetch() or XMLHttpRequest'} on AI page — possible conversation harvesting`
       : e.findings?.length
         ? e.findings.map(f=>`<span class="finding-tag">${esc(f.type)}</span>`).join('')
         : `<span style="color:var(--muted)">No sensitive data detected</span>`;
@@ -853,7 +853,7 @@ function openModal(ts) {
   ).join('');
 
   const clipboardBtn = info.clipboard
-    ? `<button class="clear-clipboard-btn" onclick="clearClipboard()">📋 Click to clear your clipboard</button>`
+    ? `<button class="clear-clipboard-btn" onclick="clearClipboard()"><i class="ph ph-clipboard" style="margin-right:6px"></i>Click to clear your clipboard</button>`
     : '';
 
   // Technical details section
@@ -1109,9 +1109,9 @@ const ACTOR_TYPES = {
   python_mcp: 'AI Tool Process', node_mcp: 'AI Tool Process', electron_ai: 'AI App',
 };
 const ACTOR_ICONS = {
-  chrome:'🌐', brave:'🦁', arc:'🌈', edge:'🌀', safari:'🧭',
-  claude_desktop:'🤖', cursor:'⚡', vscode:'💻', windsurf:'🏄', zed:'⚡',
-  raycast:'🚀', ollama:'🦙', lm_studio:'🔬', python_mcp:'🐍', node_mcp:'📦', electron_ai:'⚛️',
+  chrome:'globe', brave:'shield-check', arc:'browsers', edge:'browsers', safari:'compass',
+  claude_desktop:'robot', cursor:'lightning', vscode:'code', windsurf:'waves', zed:'lightning',
+  raycast:'rocket', ollama:'cpu', lm_studio:'flask', python_mcp:'terminal', node_mcp:'package', electron_ai:'atom',
 };
 const ACTOR_DESC = {
   chrome: 'Your browser. Chrome can run AI features locally using a built-in AI model.',
@@ -1143,7 +1143,7 @@ function renderAgActors() {
     const risk = VALID_RISKS.includes(a.risk) ? a.risk : 'low';
     const perms = a.permissions || [];
     const actorId = a.actor_id || '';
-    const icon = ACTOR_ICONS[actorId] || '🤖';
+    const icon = ACTOR_ICONS[actorId] || 'robot';
     const typeLabel = ACTOR_TYPES[actorId] || 'AI App';
     const desc = ACTOR_DESC[actorId] || a.display_name;
 
@@ -1157,7 +1157,7 @@ function renderAgActors() {
 
     return `<div class="ag-actor-row" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="ag-actor-icon" style="background:rgba(${risk==='critical'?'240,80,96':risk==='high'?'240,160,48':'61,214,140'},.1)">${icon}</div>
+        <div class="ag-actor-icon" style="background:rgba(${risk==='critical'?'240,80,96':risk==='high'?'240,160,48':'61,214,140'},.1)"><i class="ph ph-${icon}" style="font-size:16px"></i></div>
         <div style="flex:1">
           <div class="ag-actor-name">${esc(a.display_name)}</div>
           <div class="ag-actor-sub">${esc(typeLabel)}</div>
@@ -1169,7 +1169,7 @@ function renderAgActors() {
       <div class="ag-actor-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text);line-height:1.6">
         <p>${esc(desc)}</p>
         ${perms.includes('accessibility')?'<p style="margin-top:8px;color:var(--warn)">⚠️ This app can see and interact with other apps on your screen. Go to System Settings → Privacy & Security → Accessibility to review.</p>':''}
-        ${risk==='critical'?'<p style="margin-top:8px;color:var(--danger)">🚨 This app has unusually broad access to your Mac. Go to System Settings → Privacy & Security to review its permissions.</p>':''}
+        ${risk==='critical'?'<p style="margin-top:8px;color:var(--danger)">This app has unusually broad access to your Mac. Go to System Settings → Privacy & Security to review its permissions.</p>':''}
       </div>
     </div>`;
   }).join('');
@@ -1352,7 +1352,7 @@ function renderSkillLog() {
 
   if (!filtered.length) {
     log.innerHTML = `<div style="padding:48px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:13px">
-      <div style="font-size:32px;margin-bottom:12px">🔍</div>
+      <div style="font-size:32px;margin-bottom:12px"><i class="ph ph-magnifying-glass" style="font-size:32px;color:var(--muted)"></i></div>
       <div>No skill scans yet — scanner watches for new skills automatically</div>
     </div>`;
     return;
