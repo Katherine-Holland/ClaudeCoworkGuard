@@ -563,6 +563,31 @@ def response(flow: http.HTTPFlow):
         findings_summary = ", ".join(
             f"{f.pattern_name}({f.severity})" for f in secret_result.findings if f.blocked
         )
+
+        # Write to audit log — was missing, causing events not to appear in dashboard
+        _log_file_path = _log_file()
+        audit_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "MCP_TOOL_RESPONSE",
+            "url": flow.request.pretty_url,
+            "tool_name": tool_name,
+            "action": "BLOCKED",
+            "blocked": True,
+            "payload_hash": secret_result.payload_hash,
+            "finding_count": len([f for f in secret_result.findings if f.blocked]),
+            "findings": [
+                {
+                    "type": f.pattern_name,
+                    "severity": f.severity,
+                    "preview": f.match_preview,
+                    "blocked": f.blocked,
+                }
+                for f in secret_result.findings if f.blocked
+            ],
+        }
+        with open(_log_file_path, "a") as fh:
+            fh.write(json.dumps(audit_entry) + "\n")
+
         body = json.dumps({
             "error": {
                 "type": "coworkguard_mcp_secret_blocked",
