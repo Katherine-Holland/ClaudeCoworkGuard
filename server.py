@@ -452,7 +452,7 @@ def post_settings():
     validated = {}
 
     # Booleans
-    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain"):
+    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain", "confirm_before_send", "quiet_mode"):
         if key in data:
             validated[key] = bool(data[key])
 
