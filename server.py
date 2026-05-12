@@ -452,7 +452,7 @@ def post_settings():
     validated = {}
 
     # Booleans
-    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain", "confirm_before_send", "quiet_mode"):
+    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain"):
         if key in data:
             validated[key] = bool(data[key])
 
@@ -670,18 +670,26 @@ def pending_requests():
 def allow_request(request_id: str):
     """
     Allow a held request to proceed.
-    Sets the threading.Event in the proxy hook so the blocked flow resumes.
+    Writes to a shared file that proxy.py polls — works across separate processes.
     """
     if not request_id or not re.fullmatch(r'[0-9a-f]{32}', request_id):
         return jsonify({"ok": False, "error": "invalid request_id"}), 400
     try:
-        if not HAS_PROXY:
-            return jsonify({"ok": False, "error": "proxy not running"}), 503
-        ok = _proxy.allow_request(request_id)
-        if ok:
-            app.logger.info(f"User allowed request {request_id[:8]}")
-            return jsonify({"ok": True, "request_id": request_id})
-        return jsonify({"ok": False, "error": "request not found or expired"}), 404
+        allow_file = Path.home() / ".coworkguard" / "pending_allow.json"
+        allow_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = []
+        if allow_file.exists():
+            try:
+                existing = json.loads(allow_file.read_text())
+            except Exception:
+                existing = []
+        existing.append({
+            "request_id": request_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        allow_file.write_text(json.dumps(existing))
+        app.logger.info(f"User allowed request {request_id[:8]}")
+        return jsonify({"ok": True, "request_id": request_id})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
