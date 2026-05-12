@@ -206,7 +206,7 @@ def host_label(host: str) -> str:
 # Audit log writer (JSONL — one event per line)
 # ─────────────────────────────────────────────
 
-def write_audit(result: ScanResult, url: str, method: str, ai_provider: str):
+def write_audit(result: ScanResult, url: str, method: str, ai_provider: str, request_id: str = None):
     entry = {
         "timestamp": result.timestamp,
         "url": url,
@@ -217,6 +217,7 @@ def write_audit(result: ScanResult, url: str, method: str, ai_provider: str):
         "payload_hash": result.payload_hash,
         "payload_size_bytes": result.payload_size_bytes,
         "finding_count": len(result.findings),
+        "request_id": request_id,
         "findings": [
             {
                 "type": f.pattern_name,
@@ -256,7 +257,7 @@ def blocked_response(flow: http.HTTPFlow, result: ScanResult):
 
 
 
-def hold_for_confirmation(flow, result, url: str, method: str, provider: str) -> str:
+def hold_for_confirmation(flow, result, url: str, method: str, provider: str, request_id: str = None) -> str:
     """
     Block the mitmproxy hook until the user allows or the TTL expires.
 
@@ -267,7 +268,7 @@ def hold_for_confirmation(flow, result, url: str, method: str, provider: str) ->
 
     If the TTL expires without user action the request is dropped (403).
     """
-    request_id = uuid.uuid4().hex
+    request_id = request_id or uuid.uuid4().hex
     allow_event = threading.Event()
 
     with _pending_lock:
@@ -388,10 +389,13 @@ def request(flow: http.HTTPFlow):
     if result.blocked:
         settings_now = load_settings()
         if settings_now.get("confirm_before_send", False):
-            # Write PENDING audit entry before blocking the hook thread
+            # Generate request_id upfront — needed in audit log before blocking
+            pending_id = uuid.uuid4().hex
             result.action = "PENDING"
-            write_audit(result, url, method, provider)
-            request_id, allowed = hold_for_confirmation(flow, result, url, method, provider)
+            write_audit(result, url, method, provider, request_id=pending_id)
+            request_id, allowed = hold_for_confirmation(
+                flow, result, url, method, provider, request_id=pending_id
+            )
             if allowed:
                 result.action = "ALLOWED"
                 write_audit(result, url, method, provider)
