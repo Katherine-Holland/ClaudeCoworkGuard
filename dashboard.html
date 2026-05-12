@@ -959,7 +959,10 @@ async function loadAgentGuard() {
     updateAgMetrics();
 
   } catch(e) {
-    console.error('Agent Guard load error:', e);
+    // Server not running — show empty state, don't log error to console
+    document.getElementById('ag-models-list').innerHTML =
+      '<div class="ag-empty" style="color:var(--muted2)">Start protection to enable Agent Guard monitoring</div>';
+    document.getElementById('ag-events-list').innerHTML = '';
   }
 
   // Load actor inventory from registry endpoint
