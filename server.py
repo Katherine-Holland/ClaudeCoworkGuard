@@ -452,7 +452,7 @@ def post_settings():
     validated = {}
 
     # Booleans
-    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain"):
+    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain", "confirm_before_send", "quiet_mode"):
         if key in data:
             validated[key] = bool(data[key])
 
@@ -504,8 +504,6 @@ def post_settings():
                         pass
             validated["allowed_folders"] = safe
 
-    if "quiet_mode" in data:
-        validated["quiet_mode"] = bool(data["quiet_mode"])
 
     saved = save_settings(validated)
     sig = Path.home() / ".coworkguard" / ".settings_updated"
