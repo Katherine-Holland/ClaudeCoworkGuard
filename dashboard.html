@@ -155,7 +155,6 @@
         <button class="filter-pill prevented" onclick="setActivityFilter('blocked',this)">Prevented</button>
         <button class="filter-pill review" onclick="setActivityFilter('review',this)">Needs Review</button>
         <button class="filter-pill allowed" onclick="setActivityFilter('allowed',this)">Allowed</button>
-        <button class="filter-pill" onclick="setActivityFilter('pending',this)">Pending</button>
       </div>
       <span class="log-count" id="activity-count" style="color:#536176"></span>
     </div>
@@ -482,36 +481,60 @@ async function clearClipboardAction(){try{await navigator.clipboard.writeText('C
 function selectEvent(e,scroll=true){
   selectedEvent=e;
   const k=kind(e);
-  const title=eventTitle(e);
-  const isCorr=e.type==='NETWORK_AFTER_SENSITIVE_ACCESS';
-  const kBadge = k==='critical'||k==='blocked' ? 'background:rgba(239,68,68,.12);color:#c0392b' : k==='review' ? 'background:rgba(255,138,0,.12);color:#b45309' : 'background:rgba(34,197,94,.12);color:#1a7f37';
-  const content = `
-    <div style="display:inline-flex;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.03em;margin-bottom:10px;${kBadge}">${esc(statusLabel(e).toUpperCase())}</div>
-    <span style="float:right;color:#64748b;font-size:12px">${esc(new Date(e.timestamp||Date.now()).toLocaleTimeString())}</span>
-    <h3 style="font-size:20px;line-height:1.25;margin:10px 0 16px;letter-spacing:-.03em;clear:both">${esc(appName(e))}<br><span style="font-weight:500">${esc(isCorr?'accessed '+(e.target_app||'a sensitive app')+', then connected externally':title)}</span></h3>
-    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px">
-      <div style="width:52px;height:52px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#ff8a00,#ff6b35);color:#fff;font-size:26px">✺</div>
-      <div style="font-size:24px;color:#94a3b8">→</div>
-      <div style="width:52px;height:52px;border-radius:14px;background:#eef2f7;display:grid;place-items:center;color:#0066cc;font-size:24px">${isCorr?'&#9673;':'&#128274;'}</div>
+  const a=(e.action||'').toUpperCase();
+  const isPending=a==='PENDING';
+  const info=getEventInfo(e);
+  const findings=e.findings||[];
+  const ts=new Date(e.timestamp||Date.now());
+
+  const kBadge=k==='critical'||k==='blocked'?'background:rgba(239,68,68,.1);color:#c0392b;border:1px solid rgba(239,68,68,.2)':k==='review'?'background:rgba(255,138,0,.1);color:#b45309;border:1px solid rgba(255,138,0,.2)':'background:rgba(34,197,94,.1);color:#166534;border:1px solid rgba(34,197,94,.2)';
+
+  const summaryHtml=`<div class="modal-summary ${info.style}" style="padding:14px 16px;border-radius:12px;margin-bottom:16px;font-size:13px;line-height:1.6;color:#344258">${esc(info.summary)}</div>`;
+
+  const clipBtn=info.clipboard?`<button class="clear-clipboard-btn" onclick="clearClipboardAction()" style="display:flex;align-items:center;gap:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#166534;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:14px">Click to clear your clipboard</button>`:'';
+
+  const stepsHtml=`<div style="margin-bottom:16px">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8798;margin-bottom:10px">What to do</div>
+    ${info.steps.map((s,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:#344258;line-height:1.5"><span style="width:20px;height:20px;border-radius:50%;background:rgba(10,132,255,.1);color:#005bd3;border:1px solid rgba(10,132,255,.2);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${i+1}</span><span>${s}</span></div>`).join('')}
+  </div>`;
+
+  const techMeta=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Time</div><div style="font-size:12px;font-family:var(--mono)">${esc(ts.toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}))}</div></div>
+      <div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Event type</div><div style="font-size:12px;font-family:var(--mono)">${esc(e.type||'API_REQUEST')}</div></div>
+      ${e.payload_hash?`<div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Fingerprint</div><div style="font-size:11px;font-family:var(--mono)">${esc(e.payload_hash)}</div></div>`:''}
+      ${e.payload_size_bytes?`<div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Data size</div><div style="font-size:12px;font-family:var(--mono)">${(e.payload_size_bytes/1024).toFixed(1)} KB</div></div>`:''}
     </div>
-    <div style="background:linear-gradient(145deg,rgba(255,248,237,.96),rgba(255,255,255,.82));border:1px solid rgba(255,138,0,.18);border-radius:13px;padding:16px;line-height:1.55;font-size:14px;margin-bottom:18px">
-      <strong style="display:block;margin-bottom:6px">What happened?</strong>
-      ${esc(explainEvent(e))}
-    </div>
-    <div style="border-top:1px solid #f1f5f9;padding-top:14px">
-      <div style="font-size:12px;font-weight:600;color:#334155;margin-bottom:10px">Details</div>
-      <div class="kv"><span>Actor</span><strong>${esc(appName(e))}</strong></div>
-      <div class="kv"><span>Action</span><strong>${esc(title)}</strong></div>
-      <div class="kv"><span>Target</span><strong>${esc(target(e))}</strong></div>
-      <div class="kv"><span>Process</span><strong>${esc(e.process||e.source_process||(e.actor_pid?'PID '+e.actor_pid:'')||'—')}</strong></div>
-      <div class="kv"><span>Time</span><strong>${esc(new Date(e.timestamp||Date.now()).toLocaleString())}</strong></div>
-      <div class="kv"><span>Policy</span><strong>${esc(e.policy||'Allowed (Visibility Mode)')}</strong></div>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #f1f5f9">
-      <button class="btn" onclick="exportSelected()" style="flex:1">Export Event</button>
+    ${(e.url||e.path||e.destination)?`<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Destination</div><div style="font-size:11px;font-family:var(--mono);word-break:break-all">${esc(e.url||e.path||e.destination)}</div></div>`:''}
+    ${findings.length?`<div>${findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px"><span style="display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:${f.severity==='CRITICAL'?'rgba(239,68,68,.1)':f.severity==='HIGH'?'rgba(255,138,0,.1)':'rgba(0,0,0,.05)'};color:${f.severity==='CRITICAL'?'#c0392b':f.severity==='HIGH'?'#b45309':'#536176'};border:1px solid ${f.severity==='CRITICAL'?'rgba(239,68,68,.2)':f.severity==='HIGH'?'rgba(255,138,0,.2)':'var(--line)'}">${esc(f.severity)}</span><span style="font-weight:600;color:#1e293b;min-width:140px">${friendlyFinding(esc(f.type||''))}</span><span style="color:#536176;font-family:var(--mono);font-size:11px">${esc(f.preview||f.match_preview||'')}</span>${f.blocked&&a!=='PENDING'?'<span style="font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto">BLOCKED</span>':f.blocked?'<span style="font-size:10px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);padding:2px 8px;border-radius:6px;margin-left:auto">DETECTED</span>':''}</div>`).join('')}</div>`:''}
+  `;
+
+  const actionBtns=isPending&&e.request_id?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#166534" onclick="allowRequest('${e.request_id}');closeEventModal()">Allow Once</button>
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="closeEventModal()">Block (let expire)</button>
+    </div>`:`
+    <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <button class="btn" onclick="exportSelected()" style="flex:1">Export</button>
       <button class="btn" onclick="closeEventModal()" style="flex:1">Close</button>
     </div>`;
-  document.getElementById('event-modal-body').innerHTML = content;
+
+  const content=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span style="display:inline-flex;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.03em;${kBadge}">${esc(statusLabel(e).toUpperCase())}</span>
+      <span style="color:#7b8798;font-size:12px">${esc(ts.toLocaleTimeString())}</span>
+    </div>
+    <h3 style="font-size:18px;line-height:1.25;margin:0 0 14px;letter-spacing:-.03em;color:#111827">${esc(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS'?appName(e)+' accessed '+(e.target_app||'a sensitive app')+', then connected externally':eventTitle(e))}</h3>
+    ${summaryHtml}
+    ${clipBtn}
+    ${stepsHtml}
+    <div style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#7b8798;font-size:12px;font-family:var(--mono);padding:10px 0;border-top:1px solid var(--line);margin-top:4px" onclick="const s=this.nextElementSibling;s.style.display=s.style.display==='none'?'block':'none';this.querySelector('span').textContent=s.style.display==='none'?'▶':'▼'">
+      <span>▶</span> Show technical details
+    </div>
+    <div style="display:none">${techMeta}</div>
+    ${actionBtns}`;
+
+  document.getElementById('event-modal-body').innerHTML=content;
   document.getElementById('event-modal-overlay').classList.add('open');
 }
 async function allowRequest(requestId){
@@ -526,7 +549,7 @@ async function allowRequest(requestId){
 function closeEventModal(ev){if(!ev||ev.target===document.getElementById('event-modal-overlay'))document.getElementById('event-modal-overlay').classList.remove('open')}
 function explainEvent(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return `${appName(e)} accessed ${e.target_app||'a sensitive app'} and then made an outbound connection to ${target(e)} shortly after. This does not prove data left your device, but it is important context for review.`;if(e.type==='AX_ACCESS_DETECTED')return `${appName(e)} used macOS Accessibility to interact with ${target(e)}. This can allow an app to read visible screen content.`;if(e.type==='WINDOW_AI_DETECTED')return `A website started or requested local AI capability inside your browser. CoworkGuard logged this so you have visibility.`;if(e.type==='SUSPICIOUS_API_WRAP')return `A browser extension appears to have modified fetch or XMLHttpRequest on an AI page. This can be used to inspect conversations.`;return e.detail||e.message||`CoworkGuard recorded this event for transparency and review.`}
 function collapseDetail(){document.getElementById('detail-panel').style.display='none'}function addAllowListHint(){toast('Allow-list controls should be wired to your policy engine.')}function exportSelected(){if(!selectedEvent)return;const blob=new Blob([JSON.stringify(selectedEvent,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='coworkguard-event.json';a.click();URL.revokeObjectURL(a.href)}
-function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=s.flagged??allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active';
+function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=(s.flagged??0)+(allEvents.filter(e=>(e.action||''). toUpperCase()==='PENDING').length)||allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active';
     // Update overview protection status panel
     const g2=id=>document.getElementById(id);
     const settings2=status?.settings||{};
@@ -537,7 +560,16 @@ function updateStats(data,status){const s=data.stats||{};const prevented=s.block
     if(g2('ov-ext-status')){const ext=status?.extension?.connected;g2('ov-ext-status').textContent=ext?'Connected':'Not detected';g2('ov-ext-status').style.color=ext?'#166534':'#7b8798';}
     if(g2('ov-log-file'))g2('ov-log-file').textContent=status?.log_file||'~/.coworkguard/logs/';}
 async function loadActors(){try{const r=await fetch(API+'/api/actors');const d=await r.json();const actors=d.actors||[];document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>`<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(a.display_name||a.actor_id)}</div><div style="color:var(--sub);font-size:13px;margin-top:4px">PID ${esc(a.pid||'—')}</div></div><span class="tag allowed">Detected</span></div><div class="chips">${(a.capabilities||[]).slice(0,6).map(c=>`<span class="chip">${esc(c.replaceAll('_',' '))}</span>`).join('')}</div></div>`).join(''):`<div class="empty">No AI actors detected right now.</div>`}catch{document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load actors. Is CoworkGuard running?</div>`}}
-async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;allEvents=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
+async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
+    // Dedupe by request_id — keep the latest entry (BLOCKED supersedes PENDING)
+    const seen={};
+    allEvents=raw.filter(e=>{
+      const rid=e.request_id;
+      if(!rid)return true; // no request_id — keep all
+      if(seen[rid])return false; // already have a newer entry for this request
+      seen[rid]=true;
+      return true;
+    });document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
 async function saveSettings(msgId){
   const payload={
