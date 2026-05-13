@@ -549,7 +549,7 @@ async function allowRequest(requestId){
 function closeEventModal(ev){if(!ev||ev.target===document.getElementById('event-modal-overlay'))document.getElementById('event-modal-overlay').classList.remove('open')}
 function explainEvent(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return `${appName(e)} accessed ${e.target_app||'a sensitive app'} and then made an outbound connection to ${target(e)} shortly after. This does not prove data left your device, but it is important context for review.`;if(e.type==='AX_ACCESS_DETECTED')return `${appName(e)} used macOS Accessibility to interact with ${target(e)}. This can allow an app to read visible screen content.`;if(e.type==='WINDOW_AI_DETECTED')return `A website started or requested local AI capability inside your browser. CoworkGuard logged this so you have visibility.`;if(e.type==='SUSPICIOUS_API_WRAP')return `A browser extension appears to have modified fetch or XMLHttpRequest on an AI page. This can be used to inspect conversations.`;return e.detail||e.message||`CoworkGuard recorded this event for transparency and review.`}
 function collapseDetail(){document.getElementById('detail-panel').style.display='none'}function addAllowListHint(){toast('Allow-list controls should be wired to your policy engine.')}function exportSelected(){if(!selectedEvent)return;const blob=new Blob([JSON.stringify(selectedEvent,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='coworkguard-event.json';a.click();URL.revokeObjectURL(a.href)}
-function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=(s.flagged??0)+(allEvents.filter(e=>(e.action||''). toUpperCase()==='PENDING').length)||allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active';
+function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active';
     // Update overview protection status panel
     const g2=id=>document.getElementById(id);
     const settings2=status?.settings||{};
@@ -561,13 +561,29 @@ function updateStats(data,status){const s=data.stats||{};const prevented=s.block
     if(g2('ov-log-file'))g2('ov-log-file').textContent=status?.log_file||'~/.coworkguard/logs/';}
 async function loadActors(){try{const r=await fetch(API+'/api/actors');const d=await r.json();const actors=d.actors||[];document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>`<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(a.display_name||a.actor_id)}</div><div style="color:var(--sub);font-size:13px;margin-top:4px">PID ${esc(a.pid||'—')}</div></div><span class="tag allowed">Detected</span></div><div class="chips">${(a.capabilities||[]).slice(0,6).map(c=>`<span class="chip">${esc(c.replaceAll('_',' '))}</span>`).join('')}</div></div>`).join(''):`<div class="empty">No AI actors detected right now.</div>`}catch{document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load actors. Is CoworkGuard running?</div>`}}
 async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
-    // Dedupe by request_id — keep the latest entry (BLOCKED supersedes PENDING)
-    const seen={};
+    // Dedupe: 1) by request_id, 2) hide PENDING if a resolved entry exists for same URL within 120s
+    const seenRid={};
+    const resolvedUrls={}; // url -> timestamp of resolution
+    // First pass: collect resolved entries
+    raw.forEach(e=>{
+      const a=(e.action||'').toUpperCase();
+      if(a==='ALLOWED'||a==='BLOCKED'||a==='PREVENTED'){
+        const key=(e.url||e.path||'')+'|'+(e.payload_hash||'');
+        if(key.length>1)resolvedUrls[key]=new Date(e.timestamp||0).getTime();
+      }
+    });
     allEvents=raw.filter(e=>{
+      // Dedupe by request_id
       const rid=e.request_id;
-      if(!rid)return true; // no request_id — keep all
-      if(seen[rid])return false; // already have a newer entry for this request
-      seen[rid]=true;
+      if(rid){if(seenRid[rid])return false;seenRid[rid]=true;}
+      // Hide stale PENDING entries that have been resolved
+      const a=(e.action||'').toUpperCase();
+      if(a==='PENDING'){
+        const key=(e.url||e.path||'')+'|'+(e.payload_hash||'');
+        const resolvedAt=resolvedUrls[key];
+        const pendingAt=new Date(e.timestamp||0).getTime();
+        if(resolvedAt&&resolvedAt>pendingAt)return false; // resolved — hide
+      }
       return true;
     });document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
