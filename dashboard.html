@@ -92,12 +92,53 @@
           </div>
           <section class="panel activity-panel">
             <div class="panel-head"><div class="panel-title">Recent Activity</div><button class="btn" onclick="showView('activity')">View all activity →</button></div>
-            <div class="activity-table"><div class="thead"><span>Time</span><span>App / Tool</span><span>Event</span><span>Target</span><span>Result</span><span></span></div><div class="activity-scroll"><div id="recent-rows"></div></div><div class="activity-mode"><div><span class="mini-shield"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span><strong>CoworkGuard is in Visibility Mode</strong><br><span class="muted-white">You're seeing all activity. No actions are being blocked.</span></span></div><button class="btn" onclick="showView('settings')">Change Mode</button></div></div>
+            <div class="activity-table"><div class="thead"><span>Time</span><span>App / Tool</span><span>Event</span><span>Target</span><span>Result</span><span></span></div><div class="activity-scroll"><div id="recent-rows"></div></div></div>
           </section>
           <div class="cards3">
             <div class="mini-card"><h3>Activity by AI App</h3><p>Past 7 days</p><div class="donut-wrap"><div class="donut"></div><div class="legend"><div><i style="background:#ff8a00"></i>Claude Desktop 45%</div><div><i style="background:#7c3aed"></i>Cursor IDE 25%</div><div><i style="background:#0a84ff"></i>VS Code 15%</div><div><i style="background:#cbd5e1"></i>Others 15%</div></div></div></div>
             <div class="mini-card"><h3>Top Destinations</h3><p>Past 7 days</p><div id="destinations"></div></div>
             <div class="mini-card"><h3>Risk Summary</h3><p>Past 7 days</p><div class="barline"><span>Prevented</span><div></div><strong id="rs-prevented">0</strong></div><div class="barline"><span>Needs Review</span><div></div><strong id="rs-review">0</strong></div><div class="barline"><span>Allowed</span><div></div><strong id="rs-allowed">0</strong></div><div class="barline"><span>Total Events</span><div></div><strong id="rs-total">0</strong></div></div>
+          </div>
+
+          <!-- Protection Status + Top Patterns -->
+          <div class="cards3" style="margin-top:16px">
+            <div class="mini-card">
+              <h3>Protection Status</h3>
+              <p>Current configuration</p>
+              <div id="proxy-status-rows">
+                <div class="barline" style="grid-template-columns:120px 1fr"><span>Proxy</span><strong id="ov-proxy-status" style="color:#7b8798">—</strong></div>
+                <div class="barline" style="grid-template-columns:120px 1fr"><span>Port</span><strong id="ov-proxy-port" style="font-family:var(--mono);font-size:12px">—</strong></div>
+                <div class="barline" style="grid-template-columns:120px 1fr"><span>Block passwords</span><strong id="ov-block-crit" style="color:#7b8798">—</strong></div>
+                <div class="barline" style="grid-template-columns:120px 1fr"><span>Block tokens</span><strong id="ov-block-high" style="color:#7b8798">—</strong></div>
+                <div class="barline" style="grid-template-columns:120px 1fr"><span>Extension</span><strong id="ov-ext-status" style="color:#7b8798">—</strong></div>
+                <div class="barline" style="grid-template-columns:120px 1fr"><span>Log file</span><strong id="ov-log-file" style="font-family:var(--mono);font-size:10px;color:#7b8798">—</strong></div>
+              </div>
+              <button onclick="showView('settings',document.querySelector('[data-view=settings]'))" style="margin-top:14px;background:rgba(10,132,255,.08);border:1px solid rgba(10,132,255,.2);color:#005bd3;border-radius:8px;padding:7px 14px;font:600 12px var(--font);cursor:pointer;width:100%">Change Settings →</button>
+            </div>
+            <div class="mini-card">
+              <h3>Top Patterns Detected</h3>
+              <p>Most common findings</p>
+              <div id="top-patterns-list"><div style="color:var(--sub);font-size:13px">No findings yet</div></div>
+            </div>
+            <div class="mini-card">
+              <h3>API Targets</h3>
+              <p>Endpoints being monitored</p>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">
+                <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.anthropic.com</div>
+                <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.openai.com</div>
+                <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>generativelanguage.googleapis.com</div>
+                <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.mistral.ai</div>
+                <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.groq.com</div>
+                <div id="extra-endpoints" style="display:none;flex-direction:column;gap:5px">
+                  <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.perplexity.ai</div>
+                  <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.cohere.com</div>
+                  <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.together.xyz</div>
+                  <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>api.x.ai</div>
+                  <div style="font-size:12px;color:#344258;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span>huggingface.co</div>
+                </div>
+                <button onclick="const el=document.getElementById('extra-endpoints');const show=el.style.display==='none';el.style.display=show?'flex':'none';this.textContent=show?'Show less ↑':'+ 5 more endpoints'" style="background:none;border:none;color:#005bd3;font-size:12px;font-weight:600;cursor:pointer;padding:4px 0;text-align:left;margin-top:2px">+ 5 more endpoints</button>
+              </div>
+            </div>
           </div>
           <div class="tip">Review requests that need your attention to keep your data private and secure. <a class="small-link" href="#" onclick="showView('settings')">Review activity →</a></div>
         </div>
@@ -472,7 +513,16 @@ function selectEvent(e,scroll=true){
 function closeEventModal(ev){if(!ev||ev.target===document.getElementById('event-modal-overlay'))document.getElementById('event-modal-overlay').classList.remove('open')}
 function explainEvent(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return `${appName(e)} accessed ${e.target_app||'a sensitive app'} and then made an outbound connection to ${target(e)} shortly after. This does not prove data left your device, but it is important context for review.`;if(e.type==='AX_ACCESS_DETECTED')return `${appName(e)} used macOS Accessibility to interact with ${target(e)}. This can allow an app to read visible screen content.`;if(e.type==='WINDOW_AI_DETECTED')return `A website started or requested local AI capability inside your browser. CoworkGuard logged this so you have visibility.`;if(e.type==='SUSPICIOUS_API_WRAP')return `A browser extension appears to have modified fetch or XMLHttpRequest on an AI page. This can be used to inspect conversations.`;return e.detail||e.message||`CoworkGuard recorded this event for transparency and review.`}
 function collapseDetail(){document.getElementById('detail-panel').style.display='none'}function addAllowListHint(){toast('Allow-list controls should be wired to your policy engine.')}function exportSelected(){if(!selectedEvent)return;const blob=new Blob([JSON.stringify(selectedEvent,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='coworkguard-event.json';a.click();URL.revokeObjectURL(a.href)}
-function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=s.flagged??allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active'}
+function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=s.flagged??allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active';
+    // Update overview protection status panel
+    const g2=id=>document.getElementById(id);
+    const settings2=status?.settings||{};
+    if(g2('ov-proxy-status')){g2('ov-proxy-status').textContent=proxy?'Running':'Stopped';g2('ov-proxy-status').style.color=proxy?'#166534':'#c0392b';}
+    if(g2('ov-proxy-port'))g2('ov-proxy-port').textContent=settings2.proxy_port||'8080';
+    if(g2('ov-block-crit')){const on=settings2.block_on_critical!==false;g2('ov-block-crit').textContent=on?'Enabled':'Disabled';g2('ov-block-crit').style.color=on?'#166534':'#c0392b';}
+    if(g2('ov-block-high')){const on=settings2.block_on_high;g2('ov-block-high').textContent=on?'Enabled':'Disabled';g2('ov-block-high').style.color=on?'#166534':'#7b8798';}
+    if(g2('ov-ext-status')){const ext=status?.extension?.connected;g2('ov-ext-status').textContent=ext?'Connected':'Not detected';g2('ov-ext-status').style.color=ext?'#166534':'#7b8798';}
+    if(g2('ov-log-file'))g2('ov-log-file').textContent=status?.log_file||'~/.coworkguard/logs/';}
 async function loadActors(){try{const r=await fetch(API+'/api/actors');const d=await r.json();const actors=d.actors||[];document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>`<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(a.display_name||a.actor_id)}</div><div style="color:var(--sub);font-size:13px;margin-top:4px">PID ${esc(a.pid||'—')}</div></div><span class="tag allowed">Detected</span></div><div class="chips">${(a.capabilities||[]).slice(0,6).map(c=>`<span class="chip">${esc(c.replaceAll('_',' '))}</span>`).join('')}</div></div>`).join(''):`<div class="empty">No AI actors detected right now.</div>`}catch{document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load actors. Is CoworkGuard running?</div>`}}
 async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;allEvents=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
