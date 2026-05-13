@@ -148,8 +148,8 @@
 
     <section id="view-activity" class="view">
   <div class="top"><div><div class="headline"><h2>Activity</h2></div><p>All CoworkGuard events from your local audit log.</p></div><button class="btn" onclick="clearLog()">Clear activity</button></div>
-  <div class="panel activity-light">
-    <div class="filter-bar">
+  <div class="panel" style="overflow:visible">
+    <div class="filter-bar" style="background:#fff;border-radius:18px 18px 0 0">
       <div class="filter-pills">
         <button class="filter-pill active" onclick="setActivityFilter('all',this)">All</button>
         <button class="filter-pill prevented" onclick="setActivityFilter('blocked',this)">Prevented</button>
@@ -157,10 +157,12 @@
         <button class="filter-pill allowed" onclick="setActivityFilter('allowed',this)">Allowed</button>
         <button class="filter-pill" onclick="setActivityFilter('pending',this)">Pending</button>
       </div>
-      <span class="log-count" id="activity-count"></span>
+      <span class="log-count" id="activity-count" style="color:#536176"></span>
     </div>
-    <div class="thead"><span>Timestamp</span><span>Result</span><span>Type</span><span>Detail</span></div>
-    <div class="activity-log-scroll"><div id="all-rows"></div></div>
+    <div class="activity-light" style="border-radius:0 0 18px 18px;overflow:hidden">
+      <div class="thead"><span>Timestamp</span><span>Result</span><span>Type</span><span>Detail</span></div>
+      <div class="activity-log-scroll"><div id="all-rows"></div></div>
+    </div>
   </div>
 </section>
     <section id="view-actors" class="view"><div class="top"><div><div class="headline"><h2>AI Apps & Tools</h2></div><p>Detected local AI actors, agents, tools and model runtimes.</p></div><button class="btn" onclick="loadActors()">Refresh</button></div><div class="actor-grid" id="actor-grid"></div></section>
