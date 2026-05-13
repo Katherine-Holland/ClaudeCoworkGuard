@@ -11,21 +11,69 @@
   --blue:#0a84ff;--green:#22c55e;--amber:#ff8a00;--red:#ef4444;--purple:#7c3aed;--shadow:0 18px 45px rgba(15,23,42,.08);
   --radius:18px;--font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,sans-serif;--mono:"SF Mono",ui-monospace,Menlo,Monaco,monospace;
 }
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#fff 0,#f6f8fc 28%,#edf2f8 100%);font-family:var(--font);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:rgba(248,250,253,.72);border-right:1px solid var(--line);backdrop-filter:blur(26px);padding:18px 16px;display:flex;flex-direction:column}.traffic{display:flex;gap:8px;margin:0 0 28px 2px}.dot{width:12px;height:12px;border-radius:999px}.r{background:#ff5f57}.y{background:#ffbd2e}.g{background:#28c840}.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;padding:0 10px}.brand-icon{width:48px;height:48px;border-radius:18px;background:linear-gradient(145deg,#e8f1ff,#fff);display:grid;place-items:center;color:var(--blue);box-shadow:inset 0 0 0 1px rgba(10,132,255,.15)}.brand h1{font-size:18px;margin:0;font-weight:700}.brand p{margin:2px 0 0;color:var(--sub);font-size:13px}.nav{display:flex;flex-direction:column;gap:7px}.nav button{border:0;background:transparent;color:#27364d;text-align:left;border-radius:12px;padding:12px 14px;font:500 15px var(--font);display:flex;gap:12px;align-items:center;cursor:pointer}.nav button.active{background:rgba(10,132,255,.10);color:#005bd3}.nav button:hover{background:rgba(10,132,255,.07)}.nav .ico{width:20px;text-align:center}.protected{margin-top:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 24px rgba(15,23,42,.05)}.protected strong{display:block;margin-bottom:8px}.protected p{margin:0 0 12px;color:var(--sub);font-size:13px}.small-link{color:#006ee6;text-decoration:none;font-weight:600;font-size:13px}.footer{display:flex;justify-content:space-between;align-items:center;color:var(--sub);font-size:12px;margin-top:14px;padding:0 10px}.online{display:inline-flex;align-items:center;gap:7px}.online::before{content:"";width:7px;height:7px;background:var(--green);border-radius:50%}.main{padding:46px 34px 26px;overflow:hidden}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:28px}.headline{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.headline h2{font-size:32px;line-height:1;margin:0;font-weight:750;letter-spacing:-.04em}.headline p{margin:14px 0 0;color:#344258;font-size:16px}.pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 14px;font-weight:650;font-size:14px;background:rgba(34,197,94,.10);color:#03842e;border:1px solid rgba(34,197,94,.20)}.pill::before{content:"";width:8px;height:8px;border-radius:99px;background:var(--green)}.last{color:#334155;font-size:13px;display:flex;align-items:center;gap:12px}.refresh{border:0;background:transparent;font-size:20px;cursor:pointer;color:#526176}.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:24px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}.metric{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow);min-height:156px}.metric-top{display:flex;gap:15px;align-items:center;margin-bottom:14px}.metric-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:25px}.metric.green .metric-icon{background:rgba(34,197,94,.18);color:#089a3a}.metric.amber .metric-icon{background:rgba(255,138,0,.18);color:#db6600}.metric.blue .metric-icon{background:rgba(10,132,255,.14);color:var(--blue)}.metric.purple .metric-icon{background:rgba(124,58,237,.16);color:var(--purple)}.metric-num{font-size:31px;font-weight:780;letter-spacing:-.04em}.metric-label{font-size:14px;color:#27364d;margin-top:2px}.metric-sub{margin:12px 0 0;color:var(--sub);font-size:13px}.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.activity-panel{background:linear-gradient(160deg,rgba(39,48,62,.93),rgba(25,31,42,.91));color:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px rgba(15,23,42,.20);margin-bottom:20px}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px}.panel-title{font-size:17px;font-weight:750;letter-spacing:-.02em}.btn{border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:10px;padding:9px 14px;font:600 13px var(--font);color:#0f172a;cursor:pointer}.activity-panel .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.17);color:#fff}.activity-table{padding:0 20px 14px}.row,.thead{display:grid;grid-template-columns:90px 190px 1fr 190px 110px 22px;gap:14px;align-items:center}.thead{background:rgba(255,255,255,.07);border-radius:0;padding:12px 14px;color:rgba(255,255,255,.76);font-size:12px}.row{padding:14px;border-bottom:1px solid rgba(255,255,255,.09);font-size:14px;cursor:pointer}.row:last-of-type{border-bottom:0}.row:hover{background:rgba(255,255,255,.04);border-radius:12px}.time{font-variant-numeric:tabular-nums;color:rgba(255,255,255,.88)}.appcell{display:flex;gap:10px;align-items:center}.glyph{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff8a00,#ff6b35)}.glyph.cursor{background:linear-gradient(135deg,#5476ff,#8b5cf6)}.glyph.generic{background:linear-gradient(135deg,#64748b,#94a3b8)}.event-main{font-weight:700}.event-sub{color:rgba(255,255,255,.70);font-size:13px;margin-top:2px}.target{color:rgba(255,255,255,.90);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tag{display:inline-flex;align-items:center;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700}.tag.allowed,.tag.clean{background:rgba(34,197,94,.18);color:#9ff0bc}.tag.review,.tag.flagged,.tag.warning{background:rgba(255,138,0,.18);color:#ffbd72}.tag.blocked,.tag.critical,.tag.high{background:rgba(239,68,68,.18);color:#ffaaaa}.activity-mode{display:flex;align-items:center;justify-content:space-between;margin:4px 0 0;padding:14px 16px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.055)}.activity-mode div{display:flex;gap:12px;align-items:center}.mini-shield{width:36px;height:36px;border-radius:13px;display:grid;place-items:center;background:rgba(10,132,255,.20);color:#9ccaff}.muted-white{color:rgba(255,255,255,.72);font-size:13px;margin-top:3px}.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.mini-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-height:150px}.mini-card h3{margin:0 0 2px;font-size:16px}.mini-card p{margin:0 0 16px;color:var(--sub);font-size:13px}.barline{display:grid;grid-template-columns:120px 1fr 38px;gap:10px;align-items:center;font-size:13px;margin:9px 0}.bar{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#5e9fff);border-radius:99px}.donut-wrap{display:flex;align-items:center;gap:16px}.donut{width:92px;height:92px;border-radius:50%;background:conic-gradient(#ff8a00 0 45%,#7c3aed 45% 70%,#0a84ff 70% 85%,#cbd5e1 85%);position:relative}.donut::after{content:"";position:absolute;inset:22px;background:#fff;border-radius:50%}.legend{font-size:13px;color:#344258}.legend div{margin:8px 0}.legend i{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:8px}.detail{position:sticky;top:28px;background:rgba(255,255,255,.82);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.detail-head{display:flex;justify-content:space-between;padding:22px 22px 10px}.detail-body{padding:16px 22px 20px}.status-review{display:inline-flex;background:rgba(255,138,0,.14);color:#e56f00;border-radius:8px;padding:5px 9px;font-weight:800;font-size:11px;letter-spacing:.02em}.detail-time{float:right;color:var(--sub);font-size:12px;margin-top:5px}.detail h3{font-size:22px;line-height:1.22;margin:22px 0;letter-spacing:-.03em}.flow{display:flex;gap:18px;align-items:center;margin:18px 0 24px}.big-glyph{width:54px;height:54px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#ff8a00,#ff6b35);color:#fff;font-size:28px}.target-icon{width:54px;height:54px;border-radius:14px;background:#eef2f7;display:grid;place-items:center;color:var(--blue);font-size:27px}.explain{background:linear-gradient(145deg,rgba(255,248,237,.96),rgba(255,255,255,.82));border:1px solid rgba(255,138,0,.18);border-radius:13px;padding:16px;line-height:1.55;font-size:14px}.explain strong{display:block;margin-bottom:8px}.details{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}.kv{display:grid;grid-template-columns:82px 1fr;gap:12px;font-size:13px;margin:14px 0}.kv span{color:var(--sub)}.detail-actions{border-top:1px solid var(--line);padding:16px;display:flex;gap:10px}.view{display:none}.view.active{display:block}.full-panel{padding:20px}.activity-light .row,.activity-light .thead{grid-template-columns:140px 130px 140px 1fr}.activity-light .row{color:#111827;border-bottom:1px solid var(--line)}.activity-light .thead{background:#f8fafc;color:var(--sub)}.activity-light .event-sub{color:var(--sub)}.actor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.actor-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}.actor-top{display:flex;justify-content:space-between;gap:10px}.actor-name{font-weight:750}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.chip{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:5px 8px;color:#344258;background:rgba(255,255,255,.6)}.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}.setting-row{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.setting-row:last-child{border-bottom:0}.setting-row p{margin:4px 0 0;color:var(--sub);font-size:13px}.toggle{position:relative;width:46px;height:26px;flex:none}.toggle input{display:none}.slider{position:absolute;inset:0;background:#cbd5e1;border-radius:999px;transition:.2s}.slider::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 5px rgba(0,0,0,.18)}.toggle input:checked+.slider{background:var(--blue)}.toggle input:checked+.slider::after{transform:translateX(20px)}.tip{margin-top:16px;border:1px solid rgba(10,132,255,.18);background:rgba(10,132,255,.055);border-radius:14px;padding:13px 16px;color:#344258;font-size:13px}.empty{padding:38px;text-align:center;color:var(--sub)}@media(max-width:1180px){.layout{grid-template-columns:1fr}.detail{position:relative;top:0}.metrics,.cards3{grid-template-columns:repeat(2,1fr)}}@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.main{padding:24px 16px}.metrics,.cards3{grid-template-columns:1fr}.row,.thead{grid-template-columns:72px 1fr 110px}.row .target,.thead span:nth-child(4),.row span:nth-child(4),.thead span:nth-child(6),.row span:nth-child(6){display:none}}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#fff 0,#f6f8fc 28%,#edf2f8 100%);font-family:var(--font);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:rgba(248,250,253,.72);border-right:1px solid var(--line);backdrop-filter:blur(26px);padding:18px 16px;display:flex;flex-direction:column}.traffic{display:flex;gap:8px;margin:0 0 28px 2px}.dot{width:12px;height:12px;border-radius:999px}.r{background:#ff5f57}.y{background:#ffbd2e}.g{background:#28c840}.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;padding:0 10px}.brand-icon{width:48px;height:48px;border-radius:18px;background:linear-gradient(145deg,#e8f1ff,#fff);display:grid;place-items:center;color:var(--blue);box-shadow:inset 0 0 0 1px rgba(10,132,255,.15)}.brand h1{font-size:18px;margin:0;font-weight:700}.brand p{margin:2px 0 0;color:var(--sub);font-size:13px}.nav{display:flex;flex-direction:column;gap:7px}.nav button{border:0;background:transparent;color:#27364d;text-align:left;border-radius:12px;padding:12px 14px;font:500 15px var(--font);display:flex;gap:12px;align-items:center;cursor:pointer}.nav button.active{background:rgba(10,132,255,.10);color:#005bd3}.nav button:hover{background:rgba(10,132,255,.07)}.nav svg{flex-shrink:0;opacity:.7}.nav button.active svg,.nav button:hover svg{opacity:1}.protected{margin-top:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 24px rgba(15,23,42,.05)}.protected strong{display:block;margin-bottom:8px}.protected p{margin:0 0 12px;color:var(--sub);font-size:13px}.small-link{color:#006ee6;text-decoration:none;font-weight:600;font-size:13px}.footer{display:flex;justify-content:space-between;align-items:center;color:var(--sub);font-size:12px;margin-top:14px;padding:0 10px}.online{display:inline-flex;align-items:center;gap:7px}.online::before{content:"";width:7px;height:7px;background:var(--green);border-radius:50%}.main{padding:46px 34px 26px;overflow:hidden}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:28px}.headline{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.headline h2{font-size:32px;line-height:1;margin:0;font-weight:750;letter-spacing:-.04em}.headline p{margin:14px 0 0;color:#344258;font-size:16px}.pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 14px;font-weight:650;font-size:14px;background:rgba(34,197,94,.10);color:#03842e;border:1px solid rgba(34,197,94,.20)}.pill::before{content:"";width:8px;height:8px;border-radius:99px;background:var(--green)}.last{color:#334155;font-size:13px;display:flex;align-items:center;gap:12px}.refresh{border:0;background:transparent;font-size:20px;cursor:pointer;color:#526176}.layout{display:grid;grid-template-columns:1fr;gap:24px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}.metric{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow);min-height:156px}.metric-top{display:flex;gap:15px;align-items:center;margin-bottom:14px}.metric-icon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:25px}.metric.green .metric-icon{background:rgba(34,197,94,.15);color:#166534}.metric.amber .metric-icon{background:rgba(255,138,0,.18);color:#db6600}.metric.blue .metric-icon{background:rgba(10,132,255,.14);color:var(--blue)}.metric.purple .metric-icon{background:rgba(124,58,237,.16);color:var(--purple)}.metric-num{font-size:31px;font-weight:780;letter-spacing:-.04em}.metric-label{font-size:14px;color:#27364d;margin-top:2px}.metric-sub{margin:12px 0 0;color:var(--sub);font-size:13px}.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.activity-panel{background:linear-gradient(160deg,rgba(39,48,62,.93),rgba(25,31,42,.91));color:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 50px rgba(15,23,42,.20);margin-bottom:20px}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px}.panel-title{font-size:17px;font-weight:750;letter-spacing:-.02em}.btn{border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:10px;padding:9px 14px;font:600 13px var(--font);color:#0f172a;cursor:pointer}.activity-panel .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.17);color:#fff}.activity-table{padding:0 20px 14px}.activity-scroll{max-height:340px;overflow-y:auto}.activity-scroll::-webkit-scrollbar{width:4px}.activity-scroll::-webkit-scrollbar-track{background:transparent}.activity-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}.row,.thead{display:grid;grid-template-columns:90px 190px 1fr 190px 110px 22px;gap:14px;align-items:center}.thead{background:rgba(255,255,255,.07);border-radius:0;padding:12px 14px;color:rgba(255,255,255,.76);font-size:12px}.row{padding:14px;border-bottom:1px solid rgba(255,255,255,.09);font-size:14px;cursor:pointer}.row:last-of-type{border-bottom:0}.row:hover{background:rgba(255,255,255,.04);border-radius:12px}.time{font-variant-numeric:tabular-nums;color:rgba(255,255,255,.88)}.appcell{display:flex;gap:10px;align-items:center}.glyph{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff8a00,#ff6b35)}.glyph.cursor{background:linear-gradient(135deg,#5476ff,#8b5cf6)}.glyph.generic{background:linear-gradient(135deg,#64748b,#94a3b8)}.event-main{font-weight:700}.event-sub{color:rgba(255,255,255,.70);font-size:13px;margin-top:2px}.target{color:rgba(255,255,255,.90);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tag{display:inline-flex;align-items:center;border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700}.tag.allowed,.tag.clean{background:rgba(34,197,94,.18);color:#4ade80}.tag.review,.tag.flagged,.tag.warning{background:rgba(255,138,0,.18);color:#ffbd72}.tag.blocked,.tag.critical,.tag.high{background:rgba(239,68,68,.18);color:#ffaaaa}.activity-mode{display:flex;align-items:center;justify-content:space-between;margin:4px 0 0;padding:14px 16px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.055)}.activity-mode div{display:flex;gap:12px;align-items:center}.mini-shield{width:36px;height:36px;border-radius:13px;display:grid;place-items:center;background:rgba(10,132,255,.20);color:#9ccaff}.muted-white{color:rgba(255,255,255,.72);font-size:13px;margin-top:3px}.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.mini-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-height:150px}.mini-card h3{margin:0 0 2px;font-size:16px}.mini-card p{margin:0 0 16px;color:var(--sub);font-size:13px}.barline{display:grid;grid-template-columns:120px 1fr 38px;gap:10px;align-items:center;font-size:13px;margin:9px 0}.bar{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#5e9fff);border-radius:99px}.donut-wrap{display:flex;align-items:center;gap:16px}.donut{width:92px;height:92px;border-radius:50%;background:conic-gradient(#ff8a00 0 45%,#7c3aed 45% 70%,#0a84ff 70% 85%,#cbd5e1 85%);position:relative}.donut::after{content:"";position:absolute;inset:22px;background:#fff;border-radius:50%}.legend{font-size:13px;color:#344258}.legend div{margin:8px 0}.legend i{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:8px}.detail{position:sticky;top:28px;background:rgba(255,255,255,.82);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.detail-head{display:flex;justify-content:space-between;padding:22px 22px 10px}.detail-body{padding:16px 22px 20px}.status-review{display:inline-flex;background:rgba(255,138,0,.14);color:#e56f00;border-radius:8px;padding:5px 9px;font-weight:800;font-size:11px;letter-spacing:.02em}.detail-time{float:right;color:var(--sub);font-size:12px;margin-top:5px}.detail h3{font-size:22px;line-height:1.22;margin:22px 0;letter-spacing:-.03em}.flow{display:flex;gap:18px;align-items:center;margin:18px 0 24px}.big-glyph{width:54px;height:54px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#ff8a00,#ff6b35);color:#fff;font-size:28px}.target-icon{width:54px;height:54px;border-radius:14px;background:#eef2f7;display:grid;place-items:center;color:var(--blue);font-size:27px}.explain{background:linear-gradient(145deg,rgba(255,248,237,.96),rgba(255,255,255,.82));border:1px solid rgba(255,138,0,.18);border-radius:13px;padding:16px;line-height:1.55;font-size:14px}.explain strong{display:block;margin-bottom:8px}.details{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}.kv{display:grid;grid-template-columns:82px 1fr;gap:12px;font-size:13px;margin:14px 0}.kv span{color:var(--sub)}.detail-actions{border-top:1px solid var(--line);padding:16px;display:flex;gap:10px}.view{display:none}.view.active{display:block}.full-panel{padding:20px}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line);align-items:center;justify-content:space-between}
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.filter-pill{padding:5px 14px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--line);background:transparent;color:#536176;transition:all .15s;font-family:var(--font)}
+.filter-pill:hover{border-color:#0066cc;color:#0066cc}
+.filter-pill.active{background:rgba(10,132,255,.1);border-color:rgba(10,132,255,.3);color:#005bd3;font-weight:600}
+.filter-pill.prevented.active{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#c0392b}
+.filter-pill.review.active{background:rgba(255,138,0,.1);border-color:rgba(255,138,0,.3);color:#b45309}
+.filter-pill.allowed.active{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#166534}
+.activity-log-scroll{max-height:600px;overflow-y:auto}
+.activity-log-scroll::-webkit-scrollbar{width:4px}
+.activity-log-scroll::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+.log-count{font-size:12px;color:var(--sub)}.activity-light .row,.activity-light .thead{grid-template-columns:140px 130px 140px 1fr}.activity-light .row{color:#111827;border-bottom:1px solid var(--line)}.activity-light .thead{background:#f8fafc;color:var(--sub)}.activity-light .event-sub{color:var(--sub)}.actor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.actor-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}.actor-top{display:flex;justify-content:space-between;gap:10px}.actor-name{font-weight:750}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.chip{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:5px 8px;color:#344258;background:rgba(255,255,255,.6)}.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}.setting-row{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.setting-row:last-child{border-bottom:0}.setting-row p{margin:4px 0 0;color:var(--sub);font-size:13px}.toggle{position:relative;width:46px;height:26px;flex:none}.toggle input{display:none}.slider{position:absolute;inset:0;background:#cbd5e1;border-radius:999px;transition:.2s}.slider::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 5px rgba(0,0,0,.18)}.toggle input:checked+.slider{background:var(--blue)}.toggle input:checked+.slider::after{transform:translateX(20px)}.event-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.event-modal-overlay.open{display:flex}
+.event-modal{background:#fff;border-radius:20px;width:100%;max-width:540px;max-height:85vh;overflow-y:auto;box-shadow:0 32px 80px rgba(15,23,42,.18);animation:modalIn .2s ease}
+.event-modal::-webkit-scrollbar{width:4px}
+.event-modal::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+.event-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0}
+.event-modal-close{width:30px;height:30px;border-radius:50%;background:#f1f5f9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:16px;transition:background .15s}
+.event-modal-close:hover{background:#e2e8f0}
+.event-modal-body{padding:16px 22px 22px}
+.modal-summary{padding:14px 16px;border-radius:12px;margin-bottom:16px;font-size:14px;line-height:1.6;color:#344258}
+.modal-summary.blocked{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15)}
+.modal-summary.review{background:rgba(255,138,0,.07);border:1px solid rgba(255,138,0,.15)}
+.modal-summary.info{background:rgba(10,132,255,.07);border:1px solid rgba(10,132,255,.15)}
+.modal-summary.ok{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15)}
+.what-to-do{margin-bottom:16px}
+.what-to-do-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8798;margin-bottom:10px}
+.what-to-do-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:#344258;line-height:1.5}
+.what-to-do-step:last-child{border-bottom:none}
+.step-num{width:20px;height:20px;border-radius:50%;background:rgba(10,132,255,.1);color:#005bd3;border:1px solid rgba(10,132,255,.2);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.tech-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;color:#7b8798;font-size:12px;font-family:var(--mono);padding:10px 0;border-top:1px solid var(--line);margin-top:4px;transition:color .15s}
+.tech-toggle:hover{color:#344258}
+.tech-section{display:none;margin-top:10px}
+.tech-section.open{display:block}
+.finding-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px}
+.finding-row:last-child{border-bottom:none}
+.finding-sev{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;white-space:nowrap}
+.finding-sev.CRITICAL{background:rgba(239,68,68,.1);color:#c0392b;border:1px solid rgba(239,68,68,.2)}
+.finding-sev.HIGH{background:rgba(255,138,0,.1);color:#b45309;border:1px solid rgba(255,138,0,.2)}
+.finding-sev.MEDIUM{background:rgba(10,132,255,.08);color:#005bd3;border:1px solid rgba(10,132,255,.18)}
+.finding-sev.LOW{background:rgba(0,0,0,.04);color:#536176;border:1px solid var(--line)}
+.finding-type{color:#1e293b;font-weight:600;min-width:160px}
+.finding-preview{color:#536176;font-family:var(--mono);font-size:11px}
+.finding-blocked{font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto;white-space:nowrap}
+.clear-clipboard-btn{display:flex;align-items:center;gap:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#166534;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;transition:all .15s}
+.clear-clipboard-btn:hover{background:rgba(34,197,94,.14)}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}.tip{margin-top:16px;border:1px solid rgba(10,132,255,.18);background:rgba(10,132,255,.055);border-radius:14px;padding:13px 16px;color:#344258;font-size:13px}.empty{padding:38px;text-align:center;color:var(--sub)}@media(max-width:1180px){.layout{grid-template-columns:1fr}.detail{position:relative;top:0}.metrics,.cards3{grid-template-columns:repeat(2,1fr)}}@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.main{padding:24px 16px}.metrics,.cards3{grid-template-columns:1fr}.row,.thead{grid-template-columns:72px 1fr 110px}.row .target,.thead span:nth-child(4),.row span:nth-child(4),.thead span:nth-child(6),.row span:nth-child(6){display:none}}
 </style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="traffic"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
-    <div class="brand"><div class="brand-icon">🛡</div><div><h1>CoworkGuard</h1><p>AI Privacy Protection</p></div></div>
+    <div class="brand"><div class="brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><h1>CoworkGuard</h1><p>AI Privacy Protection</p></div></div>
     <nav class="nav">
-      <button class="active" data-view="overview"><span class="ico">⌂</span>Overview</button>
-      <button data-view="activity"><span class="ico">▦</span>Activity</button>
-      <button data-view="actors"><span class="ico">🤖</span>AI Apps & Tools</button>
-      <button data-view="sensitive"><span class="ico">🔒</span>Sensitive Apps</button>
-      <button data-view="network"><span class="ico">⌁</span>Network</button>
-      <button data-view="settings"><span class="ico">⚙</span>Settings</button>
+      <button class="active" data-view="overview"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Overview</button>
+      <button data-view="activity"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Activity</button>
+      <button data-view="actors"><span class="ico"></span>AI Apps & Tools</button>
+
+      <button data-view="network"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Network</button>
+      <button data-view="skills"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Skill Scans</button>
+      <button data-view="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
     </nav>
     <div class="protected"><strong>You're protected</strong><p id="protection-copy">All systems normal</p><a class="small-link" href="#" data-view-link="settings">Protection details →</a></div>
     <div class="footer"><span>v1.0.0</span><span class="online" id="proxy-mini">Checking</span></div>
@@ -37,31 +85,237 @@
       <div class="layout">
         <div>
           <div class="metrics">
-            <div class="metric green"><div class="metric-top"><div class="metric-icon">🛡</div><div><div class="metric-num" id="m-prevented">0</div><div class="metric-label">Prevented</div></div></div><div class="metric-sub">No data leaks blocked</div></div>
-            <div class="metric amber"><div class="metric-top"><div class="metric-icon">!</div><div><div class="metric-num" id="m-review">0</div><div class="metric-label">Needs Review</div></div></div><div class="metric-sub">Review recommended</div></div>
-            <div class="metric blue"><div class="metric-top"><div class="metric-icon">⌁</div><div><div class="metric-num" id="m-ai">0</div><div class="metric-label">AI Sessions</div></div></div><div class="metric-sub">Monitored sessions</div></div>
-            <div class="metric purple"><div class="metric-top"><div class="metric-icon">◉</div><div><div class="metric-num" id="m-connections">0</div><div class="metric-label">Connections</div></div></div><div class="metric-sub">Outbound connections</div></div>
+            <div class="metric green"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="metric-num" id="m-prevented">0</div><div class="metric-label">Prevented</div></div></div><div class="metric-sub">No sensitive data detected</div></div>
+            <div class="metric amber"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><div class="metric-num" id="m-review">0</div><div class="metric-label">Needs Review</div></div></div><div class="metric-sub">Review recommended</div></div>
+            <div class="metric blue"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="metric-num" id="m-ai">0</div><div class="metric-label">AI Sessions</div></div></div><div class="metric-sub">Monitored sessions</div></div>
+            <div class="metric purple"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><div><div class="metric-num" id="m-connections">0</div><div class="metric-label">Connections</div></div></div><div class="metric-sub">Outbound connections</div></div>
           </div>
           <section class="panel activity-panel">
             <div class="panel-head"><div class="panel-title">Recent Activity</div><button class="btn" onclick="showView('activity')">View all activity →</button></div>
-            <div class="activity-table"><div class="thead"><span>Time</span><span>App / Tool</span><span>Event</span><span>Target</span><span>Result</span><span></span></div><div id="recent-rows"></div><div class="activity-mode"><div><span class="mini-shield">🛡</span><span><strong>CoworkGuard is in Visibility Mode</strong><br><span class="muted-white">You're seeing all activity. No actions are being blocked.</span></span></div><button class="btn" onclick="showView('settings')">Change Mode</button></div></div>
+            <div class="activity-table"><div class="thead"><span>Time</span><span>App / Tool</span><span>Event</span><span>Target</span><span>Result</span><span></span></div><div class="activity-scroll"><div id="recent-rows"></div></div><div class="activity-mode"><div><span class="mini-shield"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span><strong>CoworkGuard is in Visibility Mode</strong><br><span class="muted-white">You're seeing all activity. No actions are being blocked.</span></span></div><button class="btn" onclick="showView('settings')">Change Mode</button></div></div>
           </section>
           <div class="cards3">
             <div class="mini-card"><h3>Activity by AI App</h3><p>Past 7 days</p><div class="donut-wrap"><div class="donut"></div><div class="legend"><div><i style="background:#ff8a00"></i>Claude Desktop 45%</div><div><i style="background:#7c3aed"></i>Cursor IDE 25%</div><div><i style="background:#0a84ff"></i>VS Code 15%</div><div><i style="background:#cbd5e1"></i>Others 15%</div></div></div></div>
             <div class="mini-card"><h3>Top Destinations</h3><p>Past 7 days</p><div id="destinations"></div></div>
             <div class="mini-card"><h3>Risk Summary</h3><p>Past 7 days</p><div class="barline"><span>Prevented</span><div></div><strong id="rs-prevented">0</strong></div><div class="barline"><span>Needs Review</span><div></div><strong id="rs-review">0</strong></div><div class="barline"><span>Allowed</span><div></div><strong id="rs-allowed">0</strong></div><div class="barline"><span>Total Events</span><div></div><strong id="rs-total">0</strong></div></div>
           </div>
-          <div class="tip">💡 Review items that need attention to keep your data private and secure. <a class="small-link" href="#" onclick="showView('settings')">View policies →</a></div>
+          <div class="tip">Review requests that need your attention to keep your data private and secure. <a class="small-link" href="#" onclick="showView('settings')">Review activity →</a></div>
         </div>
         <aside class="detail" id="detail-panel"><div class="detail-head"><strong>Activity Details</strong><button class="refresh" onclick="collapseDetail()">⌃</button></div><div class="detail-body" id="detail-body"></div><div class="detail-actions"><button class="btn" onclick="addAllowListHint()">＋ Add to Allow List</button><button class="btn" onclick="exportSelected()">⇧ Export Event</button></div></aside>
       </div>
     </section>
 
-    <section id="view-activity" class="view"><div class="top"><div><div class="headline"><h2>Activity</h2></div><p>All CoworkGuard events from your local audit log.</p></div><button class="btn" onclick="clearLog()">Clear activity</button></div><div class="panel full-panel activity-light"><div class="thead"><span>Timestamp</span><span>Result</span><span>Type</span><span>Detail</span></div><div id="all-rows"></div></div></section>
+    <section id="view-activity" class="view">
+  <div class="top"><div><div class="headline"><h2>Activity</h2></div><p>All CoworkGuard events from your local audit log.</p></div><button class="btn" onclick="clearLog()">Clear activity</button></div>
+  <div class="panel activity-light">
+    <div class="filter-bar">
+      <div class="filter-pills">
+        <button class="filter-pill active" onclick="setActivityFilter('all',this)">All</button>
+        <button class="filter-pill prevented" onclick="setActivityFilter('blocked',this)">Prevented</button>
+        <button class="filter-pill review" onclick="setActivityFilter('review',this)">Needs Review</button>
+        <button class="filter-pill allowed" onclick="setActivityFilter('allowed',this)">Allowed</button>
+        <button class="filter-pill" onclick="setActivityFilter('pending',this)">Pending</button>
+      </div>
+      <span class="log-count" id="activity-count"></span>
+    </div>
+    <div class="thead"><span>Timestamp</span><span>Result</span><span>Type</span><span>Detail</span></div>
+    <div class="activity-log-scroll"><div id="all-rows"></div></div>
+  </div>
+</section>
     <section id="view-actors" class="view"><div class="top"><div><div class="headline"><h2>AI Apps & Tools</h2></div><p>Detected local AI actors, agents, tools and model runtimes.</p></div><button class="btn" onclick="loadActors()">Refresh</button></div><div class="actor-grid" id="actor-grid"></div></section>
-    <section id="view-sensitive" class="view"><div class="top"><div><div class="headline"><h2>Sensitive Apps</h2></div><p>Apps that CoworkGuard treats as higher risk when AI tools interact with them.</p></div></div><div class="actor-grid" id="sensitive-grid"></div></section>
-    <section id="view-network" class="view"><div class="top"><div><div class="headline"><h2>Network</h2></div><p>Outbound activity connected to AI tools and sensitive-access events.</p></div></div><div class="panel full-panel activity-light"><div class="thead"><span>Timestamp</span><span>Result</span><span>Type</span><span>Destination</span></div><div id="network-rows"></div></div></section>
-    <section id="view-settings" class="view"><div class="top"><div><div class="headline"><h2>Settings</h2></div><p>Local policies and protection preferences.</p></div><button class="btn" onclick="saveSettings()">Save Changes</button></div><div class="settings-grid"><div class="panel full-panel"><h3>Protection Mode</h3><div class="setting-row"><div><strong>Visibility mode</strong><p>Monitor, explain and log activity without blocking.</p></div><label class="toggle"><input id="visibility-mode" type="checkbox" checked><span class="slider"></span></label></div><div class="setting-row"><div><strong>Ask before blocking</strong><p>Pause sensitive requests and ask for approval.</p></div><label class="toggle"><input id="confirm-mode" type="checkbox"><span class="slider"></span></label></div></div><div class="panel full-panel"><h3>Blocking Rules</h3><div class="setting-row"><div><strong>Block passwords and keys</strong><p>Stop credentials and personal data before they leave your Mac.</p></div><label class="toggle"><input id="block-critical" type="checkbox" checked><span class="slider"></span></label></div><div class="setting-row"><div><strong>Warn on sensitive websites</strong><p>Notify when sensitive sites are open during AI sessions.</p></div><label class="toggle"><input id="domain-alert" type="checkbox" checked><span class="slider"></span></label></div></div></div></section>
+    <section id="view-sensitive" class="view">
+  <div class="top"><div><div class="headline"><h2>Sensitive Apps</h2></div><p>CoworkGuard watches these apps. If an AI tool accesses one of them, you will be notified.</p></div></div>
+  <div style="background:rgba(10,132,255,.06);border:1px solid rgba(10,132,255,.15);border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#344258;line-height:1.6">
+    These are apps that contain private or sensitive information. CoworkGuard alerts you if an AI tool on your Mac interacts with any of them while an internet connection is active.
+  </div>
+  <div class="actor-grid" id="sensitive-grid"></div>
+</section>
+    <section id="view-network" class="view">
+  <div class="top">
+    <div><div class="headline"><h2>Network</h2></div><p>Every time an AI tool on your Mac connects to the internet, CoworkGuard logs it here.</p></div>
+  </div>
+
+  <!-- Status banner -->
+  <div id="network-status-banner" style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:14px;margin-bottom:20px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15)">
+    <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 0 3px rgba(34,197,94,.2)"></div>
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#166534" id="network-status-title">Network monitor is running</div>
+      <div style="font-size:12px;color:#536176;margin-top:2px" id="network-status-sub">Every outbound connection made by an AI tool is logged below. Most are normal API calls. The ones worth reviewing are connections that happened shortly after a private app was open.</div>
+    </div>
+  </div>
+
+  <!-- Stats row — inline card style to avoid .panel overflow:hidden clipping grid -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:6px">Total connections</div>
+      <div style="font-size:28px;font-weight:780;letter-spacing:-.04em;color:#111827" id="net-total">—</div>
+      <div style="font-size:12px;color:#536176;margin-top:6px;line-height:1.5">Every outbound connection made by an AI tool, logged automatically.</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:6px">Worth reviewing</div>
+      <div style="font-size:28px;font-weight:780;letter-spacing:-.04em;color:#b45309" id="net-sensitive">—</div>
+      <div style="font-size:12px;color:#536176;margin-top:6px;line-height:1.5">A private app was open shortly before this connection. Worth a closer look.</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:6px">AI service connections</div>
+      <div style="font-size:28px;font-weight:780;letter-spacing:-.04em;color:#005bd3" id="net-ai">—</div>
+      <div style="font-size:12px;color:#536176;margin-top:6px;line-height:1.5">Connections to known AI services. These are expected when AI tools are running.</div>
+    </div>
+  </div>
+
+  <!-- Connection log -->
+  <div style="background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:600;color:#111827">Connection Log</span>
+      <span style="font-size:12px;color:#7b8798" id="net-count"></span>
+    </div>
+    <div class="activity-light">
+      <div class="thead" style="grid-template-columns:140px 80px 1fr 140px"><span>Time</span><span>Result</span><span>Event</span><span>Destination</span></div>
+      <div class="activity-log-scroll" style="max-height:500px"><div id="network-rows"></div></div>
+    </div>
+  </div>
+</section>
+    <section id="view-skills" class="view">
+      <div class="top">
+        <div><div class="headline"><h2>Skill Supply Chain Scanner</h2></div><p>Skills scanned before execution — Cowork, OpenClaw, MCP</p></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="loadSkillScans()">Refresh</button>
+          <button class="btn" onclick="clearSkillScans()">Clear all</button>
+        </div>
+      </div>
+      <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+        <div class="metric green"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="metric-num" id="ss-blocked">0</div><div class="metric-label">Blocked</div></div></div><div class="metric-sub">High risk findings</div></div>
+        <div class="metric amber"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><div class="metric-num" id="ss-flagged">0</div><div class="metric-label">Flagged</div></div></div><div class="metric-sub">HIGH findings</div></div>
+        <div class="metric blue"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="metric-num" id="ss-clean">0</div><div class="metric-label">Clean</div></div></div><div class="metric-sub">No issues found</div></div>
+        <div class="metric purple"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div><div class="metric-num" id="ss-total">0</div><div class="metric-label">Total Scanned</div></div></div><div class="metric-sub">All skill files</div></div>
+      </div>
+      <div class="panel">
+        <div class="filter-bar">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:15px;font-weight:700;color:#111827">Scan Log</span>
+          </div>
+          <div class="filter-pills">
+            <button class="filter-pill active" onclick="setSkillFilter('ALL',this)">All</button>
+            <button class="filter-pill prevented" onclick="setSkillFilter('BLOCKED',this)">Blocked</button>
+            <button class="filter-pill review" onclick="setSkillFilter('FLAGGED',this)">Flagged</button>
+            <button class="filter-pill allowed" onclick="setSkillFilter('CLEAN',this)">Clean</button>
+          </div>
+        </div>
+        <div class="activity-light">
+          <div class="thead" style="grid-template-columns:140px 80px 1fr 80px"><span>Time</span><span>Result</span><span>File</span><span>Findings</span></div>
+          <div class="activity-log-scroll" style="max-height:500px"><div id="skill-log"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view">
+  <div class="top"><div><div class="headline"><h2>Settings</h2></div><p>Local policies and protection preferences.</p></div></div>
+  <div class="settings-grid">
+
+    <div class="panel full-panel">
+      <h3>Blocking Rules</h3>
+      <div class="setting-row">
+        <div><strong>Block passwords and personal data</strong><p>Stops requests containing Social Security Numbers, credit card numbers, passwords, and API keys from reaching AI services. Recommended: keep this on.</p></div>
+        <label class="toggle"><input id="block-critical" type="checkbox" checked><span class="slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><strong>Block access tokens and service keys</strong><p>Stops requests containing login tokens, GitHub access keys, and payment service credentials. May occasionally flag legitimate requests.</p></div>
+        <label class="toggle"><input id="block-high" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><strong>Block contact information</strong><p>Stops requests containing email addresses, phone numbers, and internal network addresses. Not recommended for most users — may block normal requests.</p></div>
+        <label class="toggle"><input id="block-medium" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><strong>Warn on sensitive websites</strong><p>Shows a warning when you visit sensitive pages — like your email, cloud console, or banking — while an AI session is active.</p></div>
+        <label class="toggle"><input id="domain-alert" type="checkbox" checked><span class="slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><strong>Ask me before blocking</strong><p>Instead of blocking automatically, CoworkGuard pauses the request and asks you to decide. The AI app will wait up to 60 seconds for your answer.</p></div>
+        <label class="toggle"><input id="confirm-mode" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div><strong>Quiet mode</strong><p>Suppress macOS notifications. Events are still logged in Activity.</p></div>
+        <label class="toggle"><input id="quiet-mode" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div style="padding:14px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px">
+        <span id="save-msg-1" style="font-size:13px;color:#089a3a;opacity:0;transition:opacity .3s">&#10003; Saved</span>
+        <button class="btn" onclick="saveSettings('save-msg-1')">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="panel full-panel">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px">
+        <h3 style="margin:0">Custom Patterns</h3>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;color:#536176;margin-bottom:4px">Useful for small business owners</div>
+          <a href="https://coworkguard.com/shield" target="_blank" style="font-size:12px;font-weight:600;color:#005bd3;text-decoration:none">Get CoworkGuard Shield →</a>
+        </div>
+      </div>
+      <div style="padding:14px 0">
+        <strong style="font-size:14px">Custom detection patterns</strong>
+        <p style="margin:4px 0 10px;color:var(--sub);font-size:13px">Add your own patterns to detect company-specific data — like internal project codes or employee IDs. One pattern per line. For technical users only.</p>
+        <textarea id="s-custom-patterns" style="width:100%;background:#f8fafc;border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px;resize:vertical;min-height:80px;outline:none" placeholder="# One pattern per line&#10;ACME-[0-9]{6}"></textarea>
+      </div>
+      <div style="padding:4px 0 14px">
+        <strong style="font-size:14px">Extra sensitive websites</strong>
+        <p style="margin:4px 0 10px;color:var(--sub);font-size:13px">Add websites you want CoworkGuard to watch — for example, your company intranet or internal tools. You'll get a warning if you visit them while an AI session is active.</p>
+        <textarea id="s-custom-domains" style="width:100%;background:#f8fafc;border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px;resize:vertical;min-height:60px;outline:none" placeholder="intranet.mycompany.com"></textarea>
+      </div>
+      <div style="padding:4px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px">
+        <span id="save-msg-2" style="font-size:13px;color:#089a3a;opacity:0;transition:opacity .3s">&#10003; Saved</span>
+        <button class="btn" onclick="saveSettings('save-msg-2')">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="panel full-panel">
+      <h3>Proxy Configuration</h3>
+      <div class="setting-row">
+        <div><strong>Network port</strong><p>The port CoworkGuard uses to monitor your network traffic. Default is 8080 — only change this if something else on your Mac is using that port.</p></div>
+        <input type="number" id="s-proxy-port" value="8080" style="width:72px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);font-family:var(--font);font-size:13px;background:#f8fafc;color:var(--text);outline:none"/>
+      </div>
+      <div class="setting-row">
+        <div><strong>History size</strong><p>How many events to keep in your activity history. Older events are removed automatically when the limit is reached. Default: 1000.</p></div>
+        <input type="number" id="s-max-logs" value="1000" style="width:72px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);font-family:var(--font);font-size:13px;background:#f8fafc;color:var(--text);outline:none"/>
+      </div>
+      <div style="padding:14px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px">
+        <span id="save-msg-3" style="font-size:13px;color:#089a3a;opacity:0;transition:opacity .3s">&#10003; Saved</span>
+        <button class="btn" onclick="saveSettings('save-msg-3')">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="panel full-panel">
+      <h3>Folder Access Control</h3>
+      <div style="padding:14px 0">
+        <strong style="font-size:14px">Approved folders</strong>
+        <p style="margin:4px 0 12px;color:var(--sub);font-size:13px">Limit which folders on your Mac AI tools are allowed to read from. Content from any other folder will be blocked before it can be sent to an AI service. Leave empty to allow access to all folders.</p>
+        <div id="folder-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="folder-input" placeholder="/Users/you/Documents/work" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--line);font-family:var(--mono);font-size:12px;background:#f8fafc;color:var(--text);outline:none"/>
+          <button class="btn" onclick="addFolder()">Add</button>
+        </div>
+      </div>
+      <div style="padding:4px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px">
+        <span id="save-msg-4" style="font-size:13px;color:#089a3a;opacity:0;transition:opacity .3s">&#10003; Saved</span>
+        <button class="btn" onclick="saveFolders()">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="panel full-panel">
+      <h3>About CoworkGuard</h3>
+      <div class="setting-row"><div><strong>Version</strong></div><span style="font-family:var(--mono);font-size:13px;color:var(--sub)">1.0.2</span></div>
+      <div class="setting-row"><div><strong>License</strong></div><span style="font-size:13px;color:var(--sub)">MIT + Commons Clause</span></div>
+      <div class="setting-row">
+        <div><strong>Data Retention</strong><p>All data stays on your machine. No telemetry. No cloud. Raw payload content is never stored — only hashes and redacted previews.</p></div>
+      </div>
+      <div style="padding:14px 0;display:flex;gap:8px">
+        <button class="btn" onclick="clearLog()">Clear activity log</button>
+        <button class="btn" onclick="resetSettings()">Reset All Settings</button>
+      </div>
+    </div>
+
+  </div>
+</section>
     <div id="toast" style="display:none;position:fixed;right:24px;bottom:24px;background:#111827;color:white;border-radius:12px;padding:12px 16px;box-shadow:var(--shadow);font-weight:650"></div>
   </main>
 </div>
@@ -69,7 +323,7 @@
 const API='http://localhost:7070';let allEvents=[],selectedEvent=null,serverAvailable=false;
 const SENSITIVE=[['1Password','CRITICAL'],['Keychain Access','CRITICAL'],['Apple Mail','HIGH'],['Messages','HIGH'],['Notes','HIGH'],['Outlook','HIGH'],['Slack','HIGH'],['WhatsApp','HIGH'],['Terminal','HIGH'],['Safari','MEDIUM'],['Chrome','MEDIUM']];
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
-function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();if(name==='settings')loadSettingsIntoForm();if(name==='skills')loadSkillScans();}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.viewLink)}));
 function kind(e){const t=(e.type||e.action||'').toUpperCase();if(t.includes('NETWORK_AFTER')||t.includes('CRITICAL')||e.severity==='CRITICAL')return 'critical';if((e.action||'').toUpperCase()==='BLOCKED')return 'blocked';if(t.includes('WARNING')||t.includes('FLAGGED')||t.includes('PENDING')||e.severity==='HIGH'||e.severity==='MEDIUM')return 'review';return 'allowed'}
 function appName(e){return e.actor_name||e.actor||e.app||e.process||e.source_process||guessActor(e)||'CoworkGuard'}
@@ -81,21 +335,261 @@ function statusLabel(e){const k=kind(e);if(k==='critical')return 'Critical';if(k
 function iconClass(e){const n=appName(e).toLowerCase();if(n.includes('cursor'))return 'glyph cursor';if(n.includes('code'))return 'glyph cursor';return n.includes('claude')?'glyph':'glyph generic'}
 function rowHtml(e,dark=true){const ts=new Date(e.timestamp||Date.now());const time=ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const k=kind(e);return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span class="time">${esc(time)}</span><span class="appcell"><span class="${iconClass(e)}">✺</span><span>${esc(appName(e))}</span></span><span><span class="event-main">${esc(eventTitle(e))}</span><br><span class="event-sub">${esc(eventSub(e))}</span></span><span class="target">${esc(target(e))}</span><span><span class="tag ${k}">${esc(statusLabel(e))}</span></span><span>›</span></div>`}
 function lightRowHtml(e){const ts=new Date(e.timestamp||Date.now());return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")});showView("overview")'><span>${esc(ts.toLocaleString())}</span><span><span class="tag ${kind(e)}">${esc(statusLabel(e))}</span></span><span>${esc(eventTitle(e))}</span><span>${esc(eventSub(e))} — ${esc(target(e))}</span></div>`}
-function renderRecent(){const rows=allEvents.slice(0,4);document.getElementById('recent-rows').innerHTML=rows.length?rows.map(e=>rowHtml(e)).join(''):`<div class="empty">No activity yet — protection is active.</div>`;if(rows[0])selectEvent(rows[0],false)}
-function renderAllRows(){document.getElementById('all-rows').innerHTML=allEvents.length?allEvents.map(lightRowHtml).join(''):`<div class="empty">No events yet.</div>`}
-function renderNetwork(){const n=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e)));document.getElementById('network-rows').innerHTML=n.length?n.map(lightRowHtml).join(''):`<div class="empty">No network events yet.</div>`}
-function renderSensitive(){document.getElementById('sensitive-grid').innerHTML=SENSITIVE.map(([n,r])=>`<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(n)}</div><div style="color:var(--sub);font-size:13px;margin-top:4px">Sensitive app</div></div><span class="tag ${r==='CRITICAL'?'critical':r==='HIGH'?'review':'allowed'}">${r}</span></div><div class="chips"><span class="chip">AX watch</span><span class="chip">Network correlation</span></div></div>`).join('')}
-function renderDestinations(){const counts={};allEvents.forEach(e=>{const t=target(e);if(t&&t!=='—')counts[t]=(counts[t]||0)+1});let top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);if(!top.length)top=[['api.anthropic.com',32],['api.openai.com',18],['localhost',15],['github.com',10],['Other',25]];const max=Math.max(...top.map(x=>x[1]),1);document.getElementById('destinations').innerHTML=top.map(([n,c])=>`<div class="barline"><span>${esc(n)}</span><div class="bar"><span style="width:${Math.max(8,c/max*100)}%"></span></div><strong>${esc(c)}</strong></div>`).join('')}
-function selectEvent(e,scroll=true){selectedEvent=e;const k=kind(e);const title=eventTitle(e);const isCorr=e.type==='NETWORK_AFTER_SENSITIVE_ACCESS';document.getElementById('detail-body').innerHTML=`<span class="status-review">${esc(statusLabel(e).toUpperCase())}</span><span class="detail-time">${esc(new Date(e.timestamp||Date.now()).toLocaleTimeString())}</span><h3>${esc(appName(e))}<br>${esc(isCorr?'accessed '+(e.target_app||'a sensitive app')+', then connected externally':title)}</h3><div class="flow"><div class="big-glyph">✺</div><div style="font-size:28px;color:#64748b">→</div><div class="target-icon">${isCorr?'◉':'🔒'}</div></div><div class="explain"><strong>💡 What happened?</strong>${esc(explainEvent(e))}<br><a class="small-link" href="#">Learn more →</a></div><div class="details"><div class="kv"><span>Actor</span><strong>${esc(appName(e))}</strong></div><div class="kv"><span>Action</span><strong>${esc(title)}</strong></div><div class="kv"><span>Target</span><strong>${esc(target(e))}</strong></div><div class="kv"><span>Process</span><strong>${esc(e.process||e.source_process||e.actor_pid||'—')}</strong></div><div class="kv"><span>Time</span><strong>${esc(new Date(e.timestamp||Date.now()).toLocaleString())}</strong></div><div class="kv"><span>Policy</span><strong>${esc(e.policy||'Allowed / Visibility Mode')}</strong></div></div>`}
+function renderRecent(){const rows=allEvents.slice(0,20);document.getElementById('recent-rows').innerHTML=rows.length?rows.map(e=>rowHtml(e)).join(''):`<div class="empty">No activity yet — protection is active.</div>`;if(rows[0])selectEvent(rows[0],false)}
+let activityFilter='all';
+function setActivityFilter(f,btn){
+  activityFilter=f;
+  document.querySelectorAll('.filter-pill').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderAllRows();
+}
+function renderAllRows(){
+  let filtered=allEvents;
+  if(activityFilter==='blocked')filtered=allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical');
+  else if(activityFilter==='review')filtered=allEvents.filter(e=>kind(e)==='review');
+  else if(activityFilter==='allowed')filtered=allEvents.filter(e=>kind(e)==='allowed');
+  else if(activityFilter==='pending')filtered=allEvents.filter(e=>(e.action||'').toUpperCase()==='PENDING');
+  const countEl=document.getElementById('activity-count');
+  if(countEl)countEl.textContent=filtered.length+' event'+(filtered.length!==1?'s':'')+(activityFilter!=='all'?' matching filter':'');
+  document.getElementById('all-rows').innerHTML=filtered.length?filtered.map(lightRowHtml).join(''):`<div class="empty">No events match this filter.</div>`;
+}
+function renderNetwork(){
+  const n=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e)));
+  const sensitive=n.filter(e=>e.type==='NETWORK_AFTER_SENSITIVE_ACCESS');
+  const aiEndpoints=n.filter(e=>/anthropic|openai|googleapis|mistral|groq|cohere|perplexity/i.test(JSON.stringify(e)));
+  const g=id=>document.getElementById(id);
+  if(g('net-total'))g('net-total').textContent=n.length||'0';
+  if(g('net-sensitive'))g('net-sensitive').textContent=sensitive.length||'0';
+  if(g('net-ai'))g('net-ai').textContent=aiEndpoints.length||'0';
+  if(g('net-count'))g('net-count').textContent=n.length+' event'+(n.length!==1?'s':'');
+  // Update banner based on proxy status
+  const banner=g('network-status-banner');
+  const sub=g('network-status-sub');
+  if(banner&&sub){
+    if(!serverAvailable){
+      banner.style.background='rgba(239,68,68,.07)';banner.style.borderColor='rgba(239,68,68,.15)';
+      banner.querySelector('div').style.background='#ef4444';
+      g('network-status-banner').querySelectorAll('div')[1].querySelector('div').style.color='#c0392b';
+      g('network-status-banner').querySelectorAll('div')[1].querySelector('div').textContent='Network monitor is not running';
+      sub.textContent='Start CoworkGuard to begin monitoring outbound connections from AI tools.';
+    }
+  }
+  document.getElementById('network-rows').innerHTML=n.length
+    ?n.map(e=>{
+        const ts=new Date(e.timestamp||Date.now()).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'});
+        const k=kind(e);
+        const dest=e.destination||e.url||target(e)||'—';
+        return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})' style="grid-template-columns:140px 80px 1fr 140px;color:#111827;border-bottom:1px solid var(--line)">
+          <span style="font-size:12px;color:var(--sub);font-family:var(--mono)">${esc(ts)}</span>
+          <span><span class="tag ${k}">${esc(statusLabel(e))}</span></span>
+          <span style="font-size:13px">${esc(eventTitle(e))}</span>
+          <span style="font-size:12px;color:var(--sub);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(dest)}">${esc(dest.replace(/https?:\/\//,'').split('/')[0].slice(0,30))}</span>
+        </div>`;
+      }).join('')
+    :`<div class="empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:#7b8798;display:block;margin:0 auto 10px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>No network events yet — connections will appear here once protection is active</div>`;
+}
+const APP_DESCRIPTIONS={"1Password":"Password manager — contains your logins and credentials","1Password 7":"Password manager — contains your logins and credentials","Keychain Access":"Stores passwords, certificates, and secure notes on your Mac","Apple Mail":"Your email — may contain personal and confidential information","Messages":"Your text messages and iMessage conversations","Notes":"Your personal notes — may contain sensitive information","Outlook":"Your work email — may contain confidential business information","Safari":"Your browser — may have access to logged-in accounts and sessions","Chrome":"Your browser — may have access to logged-in accounts and sessions","Slack":"Work messaging — may contain confidential conversations","WhatsApp":"Personal messaging — contains private conversations","System Settings":"Controls your Mac settings and privacy permissions","Terminal":"Command line — can run commands and access files on your Mac","iTerm2":"Command line — can run commands and access files on your Mac"};
+const RISK_LABELS={'CRITICAL':'Alert if accessed','HIGH':'Alert if accessed','MEDIUM':'Log if accessed'};
+function renderSensitive(){document.getElementById('sensitive-grid').innerHTML=SENSITIVE.map(([n,r])=>{
+  const desc=APP_DESCRIPTIONS[n]||'Contains information that could be sensitive if accessed by an AI tool';
+  const riskTag=r==='CRITICAL'?'blocked':r==='HIGH'?'review':'clean';
+  const riskLabel=RISK_LABELS[r]||r;
+  return `<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(n)}</div></div><span class="tag ${riskTag}">${riskLabel}</span></div><div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5">${esc(desc)}</div></div>`;
+}).join('')}
+function renderDestinations(){const counts={};allEvents.forEach(e=>{const t=target(e);if(t&&t!=='—')counts[t]=(counts[t]||0)+1});let top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);if(!top.length)top=[];const max=Math.max(...top.map(x=>x[1]),1);document.getElementById('destinations').innerHTML=top.map(([n,c])=>`<div class="barline"><span>${esc(n)}</span><div class="bar"><span style="width:${Math.max(8,c/max*100)}%"></span></div><strong>${esc(c)}</strong></div>`).join('')}
+
+// ── Plain English event info ──
+const FINDING_NAMES={'SSN':'Social Security Number','CREDIT_CARD':'Credit card number','AWS_KEY':'AWS access key','AWS_SECRET':'AWS secret key','GITHUB_TOKEN':'GitHub access token','STRIPE_KEY':'Stripe API key','JWT':'Login token (JWT)','PRIVATE_KEY':'Private encryption key','CERTIFICATE':'Security certificate','CONNECTION_STR':'Database connection string','API_KEY':'API key','BEARER_TOKEN':'Bearer token','PASSWORD':'Password','EMAIL':'Email address','PHONE':'Phone number','PASSPORT':'Passport number','INSTRUCTION_OVERRIDE':'Hidden AI instruction','EXFIL_ENDPOINT':'Data exfiltration attempt','EXFIL_CREDENTIALS':'Credential theft attempt'};
+function friendlyFinding(t){return FINDING_NAMES[t]||t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+
+const EVENT_INFO={
+  'FILE_WRITE_WARNING':{style:'review',summary:'An AI tool wrote a file containing sensitive information to a location outside the folders you have approved. This could mean data is being stored somewhere unexpected.',steps:['Find the file at the location shown in the details below.','Open it and check what it contains.','If you did not expect it to be there, delete it.','To prevent this in future, go to Settings → Folder Access in CoworkGuard.']},
+  'CLIPBOARD_WARNING':{style:'review',summary:'Something containing personal or sensitive information was copied to your clipboard. Be careful where you paste it.',steps:['Avoid pasting this into an AI chat or any website you do not fully trust.','To clear your clipboard, click the button below.'],clipboard:true},
+  'DOMAIN_WARNING':{style:'review',summary:'You navigated to a sensitive page while an AI session was active. There is a risk the AI could access content from that page.',steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.']},
+  'AX_ACCESS_DETECTED':{style:'review',summary:'An AI app has been granted permission to read and interact with other apps on your screen — including ones containing passwords, messages, or private data.',steps:['If you set this up intentionally, no action is needed.','If you did not, go to System Settings → Privacy & Security → Accessibility and remove the AI app from the list.','To open System Settings, click the Apple menu in the top-left corner of your screen.']},
+  'NETWORK_AFTER_SENSITIVE_ACCESS':{style:'blocked',summary:'An AI app opened a sensitive app on your Mac and then connected to the internet shortly after. This could mean data was read and sent online.',steps:['Go to System Settings → Privacy & Security → Accessibility on your Mac.','Find the AI app shown below and remove it from the list.','If you use this AI app regularly, consider only running it when you do not have sensitive apps open.']},
+  'LOCAL_MODEL_DOWNLOADED':{style:'info',summary:'An AI app has downloaded and installed an AI model directly onto your Mac. This lets it run AI features without sending data to the internet.',steps:['No action needed if you expected this.','If you did not expect it, you can remove the model file using the button in the AI Apps tab.','Removing the model without turning off the feature in the app may result in it being downloaded again.']},
+  'SUSPICIOUS_API_WRAP':{style:'blocked',summary:'Something modified how your browser handles AI requests on this page. This is a technique used by some extensions to read and record AI conversations without your knowledge.',steps:['Open your browser and go to Extensions.','Look for any extensions you do not recognise or did not install intentionally.','Remove any suspicious extensions.']},
+  'WINDOW_AI_DETECTED':{style:'info',summary:'A website activated the AI model built into your browser. The AI ran on your device — your data was not sent to the internet for this.',steps:['No action needed if this was expected.','If you are not sure which website did this, check the destination shown below.']},
+  'MCP_TOOL_RESPONSE':{style:'blocked',summary:'An AI tool sent back a response containing something suspicious — hidden instructions, sensitive data, or content designed to change how your AI behaves. CoworkGuard blocked it.',steps:['No immediate action needed — CoworkGuard already blocked it.','Consider removing or disabling the tool that sent this response in your AI app settings.','If you did not install this tool yourself, remove it immediately.']},
+  'PENDING':{style:'review',summary:'CoworkGuard detected something in a request and has paused it before sending. The AI app is waiting for your answer. If you take no action it will be blocked automatically after 60 seconds.',steps:['Look at the detected findings below — they show exactly what was found in the request.','If this looks like a mistake, click Allow Once in the activity list to let it through.','If you did not expect this data to be in the request, close this — it will be blocked automatically.']},
+  'DEFAULT':{style:'info',summary:'CoworkGuard logged this event for your records.',steps:['Review the technical details below if you want more information.']}
+};
+
+function getEventInfo(e){
+  const t=e.type||'';
+  const a=(e.action||'').toUpperCase();
+  const findings=e.findings||[];
+  const fTypes=findings.map(f=>(f.type||'').toUpperCase());
+  if(EVENT_INFO[t])return EVENT_INFO[t];
+  if(a==='PENDING')return EVENT_INFO['PENDING'];
+  if(a==='BLOCKED'||a==='PREVENTED'){
+    if(fTypes.some(f=>f.includes('INJECT')||f.includes('OVERRIDE')||f.includes('HIJACK')||f.includes('EXFIL')))return EVENT_INFO['MCP_TOOL_RESPONSE'];
+    return {style:'blocked',summary:'CoworkGuard blocked this request because it contained sensitive data. The data was not sent to any AI service.',steps:['No immediate action needed — CoworkGuard already blocked it.','If this keeps happening, check which files your AI tool has access to in Settings → Folder Access.']};
+  }
+  return EVENT_INFO['DEFAULT'];
+}
+
+function toggleTechDetails(el){const s=el.nextElementSibling;s.classList.toggle('open');el.querySelector('span').textContent=s.classList.contains('open')?'▼':'▶'}
+
+async function clearClipboardAction(){try{await navigator.clipboard.writeText('CoworkGuard is protecting this');toast('Clipboard cleared')}catch(e){const ta=document.createElement('textarea');ta.value='CoworkGuard is protecting this';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Clipboard cleared')}}
+
+function selectEvent(e,scroll=true){
+  selectedEvent=e;
+  const k=kind(e);
+  const title=eventTitle(e);
+  const isCorr=e.type==='NETWORK_AFTER_SENSITIVE_ACCESS';
+  const kBadge = k==='critical'||k==='blocked' ? 'background:rgba(239,68,68,.12);color:#c0392b' : k==='review' ? 'background:rgba(255,138,0,.12);color:#b45309' : 'background:rgba(34,197,94,.12);color:#1a7f37';
+  const content = `
+    <div style="display:inline-flex;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.03em;margin-bottom:10px;${kBadge}">${esc(statusLabel(e).toUpperCase())}</div>
+    <span style="float:right;color:#64748b;font-size:12px">${esc(new Date(e.timestamp||Date.now()).toLocaleTimeString())}</span>
+    <h3 style="font-size:20px;line-height:1.25;margin:10px 0 16px;letter-spacing:-.03em;clear:both">${esc(appName(e))}<br><span style="font-weight:500">${esc(isCorr?'accessed '+(e.target_app||'a sensitive app')+', then connected externally':title)}</span></h3>
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px">
+      <div style="width:52px;height:52px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#ff8a00,#ff6b35);color:#fff;font-size:26px">✺</div>
+      <div style="font-size:24px;color:#94a3b8">→</div>
+      <div style="width:52px;height:52px;border-radius:14px;background:#eef2f7;display:grid;place-items:center;color:#0066cc;font-size:24px">${isCorr?'&#9673;':'&#128274;'}</div>
+    </div>
+    <div style="background:linear-gradient(145deg,rgba(255,248,237,.96),rgba(255,255,255,.82));border:1px solid rgba(255,138,0,.18);border-radius:13px;padding:16px;line-height:1.55;font-size:14px;margin-bottom:18px">
+      <strong style="display:block;margin-bottom:6px">What happened?</strong>
+      ${esc(explainEvent(e))}
+    </div>
+    <div style="border-top:1px solid #f1f5f9;padding-top:14px">
+      <div style="font-size:12px;font-weight:600;color:#334155;margin-bottom:10px">Details</div>
+      <div class="kv"><span>Actor</span><strong>${esc(appName(e))}</strong></div>
+      <div class="kv"><span>Action</span><strong>${esc(title)}</strong></div>
+      <div class="kv"><span>Target</span><strong>${esc(target(e))}</strong></div>
+      <div class="kv"><span>Process</span><strong>${esc(e.process||e.source_process||(e.actor_pid?'PID '+e.actor_pid:'')||'—')}</strong></div>
+      <div class="kv"><span>Time</span><strong>${esc(new Date(e.timestamp||Date.now()).toLocaleString())}</strong></div>
+      <div class="kv"><span>Policy</span><strong>${esc(e.policy||'Allowed (Visibility Mode)')}</strong></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #f1f5f9">
+      <button class="btn" onclick="exportSelected()" style="flex:1">Export Event</button>
+      <button class="btn" onclick="closeEventModal()" style="flex:1">Close</button>
+    </div>`;
+  document.getElementById('event-modal-body').innerHTML = content;
+  document.getElementById('event-modal-overlay').classList.add('open');
+}
+function closeEventModal(ev){if(!ev||ev.target===document.getElementById('event-modal-overlay'))document.getElementById('event-modal-overlay').classList.remove('open')}
 function explainEvent(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return `${appName(e)} accessed ${e.target_app||'a sensitive app'} and then made an outbound connection to ${target(e)} shortly after. This does not prove data left your device, but it is important context for review.`;if(e.type==='AX_ACCESS_DETECTED')return `${appName(e)} used macOS Accessibility to interact with ${target(e)}. This can allow an app to read visible screen content.`;if(e.type==='WINDOW_AI_DETECTED')return `A website started or requested local AI capability inside your browser. CoworkGuard logged this so you have visibility.`;if(e.type==='SUSPICIOUS_API_WRAP')return `A browser extension appears to have modified fetch or XMLHttpRequest on an AI page. This can be used to inspect conversations.`;return e.detail||e.message||`CoworkGuard recorded this event for transparency and review.`}
 function collapseDetail(){document.getElementById('detail-panel').style.display='none'}function addAllowListHint(){toast('Allow-list controls should be wired to your policy engine.')}function exportSelected(){if(!selectedEvent)return;const blob=new Blob([JSON.stringify(selectedEvent,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='coworkguard-event.json';a.click();URL.revokeObjectURL(a.href)}
 function updateStats(data,status){const s=data.stats||{};const prevented=s.blocked??allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;const review=s.flagged??allEvents.filter(e=>kind(e)==='review').length;const clean=s.clean??allEvents.filter(e=>kind(e)==='allowed').length;const ai=allEvents.filter(e=>/AI|WINDOW|PROMPT|MCP|AX|CLAUDE|CURSOR/i.test(JSON.stringify(e))).length;const net=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e))).length;document.getElementById('m-prevented').textContent=prevented;document.getElementById('m-review').textContent=review;document.getElementById('m-ai').textContent=ai;document.getElementById('m-connections').textContent=net;document.getElementById('rs-prevented').textContent=prevented;document.getElementById('rs-review').textContent=review;document.getElementById('rs-allowed').textContent=clean;document.getElementById('rs-total').textContent=allEvents.length;const proxy=status?.proxy?.running;document.getElementById('proxy-mini').textContent=proxy?'Proxy running':'Proxy stopped';document.getElementById('protection-copy').textContent=proxy?'All systems normal':'Proxy is stopped';document.getElementById('active-pill').textContent=status?.cowork?.active?'AI Session Active':'Protection Active'}
 async function loadActors(){try{const r=await fetch(API+'/api/actors');const d=await r.json();const actors=d.actors||[];document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>`<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(a.display_name||a.actor_id)}</div><div style="color:var(--sub);font-size:13px;margin-top:4px">PID ${esc(a.pid||'—')}</div></div><span class="tag allowed">Detected</span></div><div class="chips">${(a.capabilities||[]).slice(0,6).map(c=>`<span class="chip">${esc(c.replaceAll('_',' '))}</span>`).join('')}</div></div>`).join(''):`<div class="empty">No AI actors detected right now.</div>`}catch{document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load actors. Is CoworkGuard running?</div>`}}
 async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;allEvents=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
-async function saveSettings(){const payload={block_on_critical:document.getElementById('block-critical').checked,confirm_before_block:document.getElementById('confirm-mode').checked,domain_alert_enabled:document.getElementById('domain-alert').checked};try{await fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});toast('Settings saved')}catch{toast('Could not save settings',true)}}
+async function saveSettings(msgId){
+  const payload={
+    block_on_critical: document.getElementById('block-critical')?.checked ?? true,
+    block_on_high: document.getElementById('block-high')?.checked ?? false,
+    block_on_medium: document.getElementById('block-medium')?.checked ?? false,
+    alert_on_domain: document.getElementById('domain-alert')?.checked ?? true,
+    confirm_before_send: document.getElementById('confirm-mode')?.checked ?? false,
+    quiet_mode: document.getElementById('quiet-mode')?.checked ?? false,
+    proxy_port: parseInt(document.getElementById('s-proxy-port')?.value)||8080,
+    max_log_entries: parseInt(document.getElementById('s-max-logs')?.value)||1000,
+    custom_patterns: document.getElementById('s-custom-patterns')?.value.split('\n').map(s=>s.trim()).filter(Boolean)||[],
+    custom_blocked_domains: document.getElementById('s-custom-domains')?.value.split('\n').map(s=>s.trim()).filter(Boolean)||[],
+  };
+  try{
+    await fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(msgId){const m=document.getElementById(msgId);if(m){m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2500);}}
+    else toast('Settings saved');
+  }catch{toast('Could not save settings',true)}
+}
+function resetSettings(){if(!confirm('Reset all settings to defaults?'))return;fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(()=>location.reload()).catch(()=>toast('Error',true))}
+function clearLog(){if(!confirm('Clear all activity? This cannot be undone.'))return;fetch(API+'/api/clear',{method:'POST'}).then(()=>{allEvents=[];renderAllRows();toast('Log cleared')}).catch(()=>toast('Error',true))}
+function addFolder(){const inp=document.getElementById('folder-input');if(!inp?.value.trim())return;allowedFolders.push(inp.value.trim());inp.value='';renderFolderList()}
+function removeFolder(i){allowedFolders.splice(i,1);renderFolderList()}
+function renderFolderList(){const el=document.getElementById('folder-list');if(!el)return;if(!allowedFolders.length){el.innerHTML='<span style="font-size:13px;color:var(--sub)">No folders set — all folders allowed.</span>';return;}el.innerHTML=allowedFolders.map((f,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:var(--mono);font-size:12px"><span>${esc(f)}</span><button onclick="removeFolder(${i})" style="background:none;border:none;cursor:pointer;color:var(--sub);font-size:16px;line-height:1">&#215;</button></div>`).join('')}
+async function saveFolders(){const payload={allowed_folders:allowedFolders};try{await fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const m=document.getElementById('save-msg-4');if(m){m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2500)}}catch{toast('Error saving folders',true)}}
+let allowedFolders=[];
 function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.style.background=err?'#ef4444':'#111827';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
 fetchAll();loadActors();renderSensitive();setInterval(fetchAll,5000);
+
+let allSkillScans=[];let skillFilter='ALL';
+
+function setSkillFilter(f,btn){skillFilter=f;document.querySelectorAll('.filter-pill').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderSkillLog();}
+
+function renderSkillLog(){
+  const el=document.getElementById('skill-log');if(!el)return;
+  let scans=allSkillScans;
+  if(skillFilter==='BLOCKED')scans=allSkillScans.filter(s=>s.action==='BLOCKED');
+  else if(skillFilter==='FLAGGED')scans=allSkillScans.filter(s=>s.action==='FLAGGED');
+  else if(skillFilter==='CLEAN')scans=allSkillScans.filter(s=>s.action==='CLEAN'||s.action==='ALLOWED');
+  if(!scans.length){el.innerHTML='<div class="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:#7b8798;display:block;margin:0 auto 10px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>No skill scans yet — start protection to enable the skill scanner</div>';return;}
+  el.innerHTML=scans.map(s=>{
+    const ts=new Date(s.timestamp||Date.now()).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'});
+    const k=s.action==='BLOCKED'?'blocked':s.action==='FLAGGED'?'review':'clean';
+    const label=s.action==='BLOCKED'?'Blocked':s.action==='FLAGGED'?'Flagged':'Clean';
+    const findings=s.findings||[];
+    const fname=(s.url||s.path||'unknown').split('/').pop();
+    return `<div class="row activity-light" onclick='selectEvent(${JSON.stringify(s).replace(/'/g,"&#39;")})' style="grid-template-columns:140px 80px 1fr 80px;color:#111827;border-bottom:1px solid var(--line)">
+      <span style="font-size:12px;color:var(--sub);font-family:var(--mono)">${esc(ts)}</span>
+      <span><span class="tag ${k}">${label}</span></span>
+      <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(s.url||s.path||'')}">${esc(fname)}</span>
+      <span style="font-size:12px;color:var(--sub)">${findings.length} finding${findings.length!==1?'s':''}</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadSkillScans(){
+  try{
+    const r=await fetch(API+'/api/skill-scans');
+    const d=await r.json();
+    allSkillScans=(d.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
+    const blocked=allSkillScans.filter(s=>s.action==='BLOCKED').length;
+    const flagged=allSkillScans.filter(s=>s.action==='FLAGGED').length;
+    const clean=allSkillScans.filter(s=>s.action==='CLEAN'||s.action==='ALLOWED').length;
+    const g=id=>document.getElementById(id);
+    if(g('ss-blocked'))g('ss-blocked').textContent=blocked;
+    if(g('ss-flagged'))g('ss-flagged').textContent=flagged;
+    if(g('ss-clean'))g('ss-clean').textContent=clean;
+    if(g('ss-total'))g('ss-total').textContent=allSkillScans.length;
+    renderSkillLog();
+  }catch(e){
+    const el=document.getElementById('skill-log');
+    if(el)el.innerHTML='<div class="empty">Could not load skill scans — make sure CoworkGuard is running</div>';
+  }
+}
+
+async function clearSkillScans(){
+  if(!confirm('Clear all skill scan history? This cannot be undone.'))return;
+  try{
+    const r=await fetch(API+'/api/clear-skill-scans',{method:'POST'});
+    const d=await r.json();
+    if(d.ok){allSkillScans=[];renderSkillLog();['ss-blocked','ss-flagged','ss-clean','ss-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='0';});toast('Skill scan history cleared');}
+    else toast('Could not clear scans',true);
+  }catch(e){toast('Error',true);}
+}
+
+async function loadSettingsIntoForm(){
+  try{
+    const r=await fetch(API+'/api/settings');
+    const s=await r.json();
+    const g=id=>document.getElementById(id);
+    if(g('block-critical'))g('block-critical').checked=!!s.block_on_critical;
+    if(g('block-high'))g('block-high').checked=!!s.block_on_high;
+    if(g('block-medium'))g('block-medium').checked=!!s.block_on_medium;
+    if(g('domain-alert'))g('domain-alert').checked=!!s.alert_on_domain;
+    if(g('confirm-mode'))g('confirm-mode').checked=!!s.confirm_before_send;
+    if(g('quiet-mode'))g('quiet-mode').checked=!!s.quiet_mode;
+    if(g('s-proxy-port'))g('s-proxy-port').value=s.proxy_port||8080;
+    if(g('s-max-logs'))g('s-max-logs').value=s.max_log_entries||1000;
+    if(g('s-custom-patterns'))g('s-custom-patterns').value=(s.custom_patterns||[]).join('\n');
+    if(g('s-custom-domains'))g('s-custom-domains').value=(s.custom_blocked_domains||[]).join('\n');
+    allowedFolders=s.allowed_folders||[];
+    renderFolderList();
+  }catch(e){}
+}
 </script>
+
+<div class="event-modal-overlay" id="event-modal-overlay" onclick="closeEventModal(event)">
+  <div class="event-modal" onclick="event.stopPropagation()">
+    <div class="event-modal-header">
+      <strong style="font-size:16px;color:#111827">Activity Detail</strong>
+      <button class="event-modal-close" onclick="closeEventModal()">&#10005;</button>
+    </div>
+    <div class="event-modal-body" id="event-modal-body"></div>
+  </div>
+</div>
 </body>
 </html>
