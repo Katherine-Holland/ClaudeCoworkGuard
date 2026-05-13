@@ -81,7 +81,7 @@
 
   <main class="main">
     <section id="view-overview" class="view active">
-      <div class="top"><div><div class="headline"><h2>Good morning, Katherine</h2><span class="pill" id="active-pill">Protection Active</span></div><p>CoworkGuard is monitoring AI activity and protecting your data.</p></div><div class="last"><span id="last-updated">Last updated: —</span><button class="refresh" onclick="fetchAll()">↻</button></div></div>
+      <div class="top"><div><div class="headline"><h2 id="greeting-text">Good evening</h2><span class="pill" id="active-pill">Protection Active</span></div><p>CoworkGuard is monitoring AI activity and protecting your data.</p></div><div class="last"><span id="last-updated">Last updated: —</span><button class="refresh" onclick="fetchAll()">↻</button></div></div>
       <div class="layout">
         <div>
           <div class="metrics">
@@ -363,7 +363,9 @@
   </main>
 </div>
 <script>
-const API='http://localhost:7070';let allEvents=[],selectedEvent=null,serverAvailable=false;
+const API='http://localhost:7070';
+// Dynamic greeting based on time of day
+(function(){const h=new Date().getHours();const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';const el=document.getElementById('greeting-text');if(el)el.textContent=g;})();let allEvents=[],selectedEvent=null,serverAvailable=false;
 const SENSITIVE=[['1Password','CRITICAL'],['Keychain Access','CRITICAL'],['Apple Mail','HIGH'],['Messages','HIGH'],['Notes','HIGH'],['Outlook','HIGH'],['Slack','HIGH'],['WhatsApp','HIGH'],['Terminal','HIGH'],['Safari','MEDIUM'],['Chrome','MEDIUM']];
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
 function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();if(name==='settings')loadSettingsIntoForm();if(name==='skills')loadSkillScans();}
@@ -377,7 +379,7 @@ function target(e){return e.destination||e.host||e.remote_host||e.target_app||e.
 function statusLabel(e){const k=kind(e);if(k==='critical')return 'Critical';if(k==='blocked')return 'Prevented';if(k==='review')return 'Needs Review';return 'Allowed'}
 function iconClass(e){const n=appName(e).toLowerCase();if(n.includes('cursor'))return 'glyph cursor';if(n.includes('code'))return 'glyph cursor';return n.includes('claude')?'glyph':'glyph generic'}
 function rowHtml(e,dark=true){const ts=new Date(e.timestamp||Date.now());const time=ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const k=kind(e);return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span class="time">${esc(time)}</span><span class="appcell"><span class="${iconClass(e)}">✺</span><span>${esc(appName(e))}</span></span><span><span class="event-main">${esc(eventTitle(e))}</span><br><span class="event-sub">${esc(eventSub(e))}</span></span><span class="target">${esc(target(e))}</span><span><span class="tag ${k}">${esc(statusLabel(e))}</span></span><span>›</span></div>`}
-function lightRowHtml(e){const ts=new Date(e.timestamp||Date.now());return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")});showView("overview")'><span>${esc(ts.toLocaleString())}</span><span><span class="tag ${kind(e)}">${esc(statusLabel(e))}</span></span><span>${esc(eventTitle(e))}</span><span>${esc(eventSub(e))} — ${esc(target(e))}</span></div>`}
+function lightRowHtml(e){const ts=new Date(e.timestamp||Date.now());return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span>${esc(ts.toLocaleString())}</span><span><span class="tag ${kind(e)}">${esc(statusLabel(e))}</span></span><span>${esc(eventTitle(e))}</span><span>${esc(eventSub(e))} — ${esc(target(e))}</span></div>`}
 function renderRecent(){const rows=allEvents.slice(0,20);document.getElementById('recent-rows').innerHTML=rows.length?rows.map(e=>rowHtml(e)).join(''):`<div class="empty">No activity yet — protection is active.</div>`;}
 let activityFilter='all';
 function setActivityFilter(f,btn){
@@ -511,6 +513,15 @@ function selectEvent(e,scroll=true){
     </div>`;
   document.getElementById('event-modal-body').innerHTML = content;
   document.getElementById('event-modal-overlay').classList.add('open');
+}
+async function allowRequest(requestId){
+  try{
+    const r=await fetch(API+'/api/allow-request/'+encodeURIComponent(requestId),{method:'POST'});
+    const d=await r.json();
+    if(d.ok){toast('Request allowed — sending now');fetchAll();}
+    else if(r.status===404){toast('Request already processed');fetchAll();}
+    else toast('Could not allow request',true);
+  }catch{toast('Make sure CoworkGuard is running',true);}
 }
 function closeEventModal(ev){if(!ev||ev.target===document.getElementById('event-modal-overlay'))document.getElementById('event-modal-overlay').classList.remove('open')}
 function explainEvent(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return `${appName(e)} accessed ${e.target_app||'a sensitive app'} and then made an outbound connection to ${target(e)} shortly after. This does not prove data left your device, but it is important context for review.`;if(e.type==='AX_ACCESS_DETECTED')return `${appName(e)} used macOS Accessibility to interact with ${target(e)}. This can allow an app to read visible screen content.`;if(e.type==='WINDOW_AI_DETECTED')return `A website started or requested local AI capability inside your browser. CoworkGuard logged this so you have visibility.`;if(e.type==='SUSPICIOUS_API_WRAP')return `A browser extension appears to have modified fetch or XMLHttpRequest on an AI page. This can be used to inspect conversations.`;return e.detail||e.message||`CoworkGuard recorded this event for transparency and review.`}
