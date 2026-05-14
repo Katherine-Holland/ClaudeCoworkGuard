@@ -1,6 +1,6 @@
 {
-  "_version": "1.1.3",
-  "_last_updated": "2026-05-10",
+  "_version": "1.2.0",
+  "_last_updated": "2026-05-14",
   "_platform": "macos",
   "_comment": "Configuration only. No detection logic lives here. Edit to customise actors, policies, and notification text. Detection logic is in actor_registry.py and agent_guard.py.",
   "_description": "CoworkGuard AI Actor Registry. Defines known AI actors on macOS. Edit to add custom actors.",
@@ -951,6 +951,217 @@
       "detection_notes": {
         "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling \u2014 coarse, not real-time."
       }
+    },
+    {
+      "actor_id": "gpt4all",
+      "display_name": "GPT4All",
+      "bundle_ids": [
+        "ai.nomic.gpt4all"
+      ],
+      "process_names": [
+        "GPT4All",
+        "gpt4all"
+      ],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": [
+        "~/Library/Application Support/nomic.ai/GPT4All"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/nomic.ai/GPT4All/*.gguf",
+        "~/Library/Application Support/nomic.ai/GPT4All/*.bin"
+      ],
+      "capabilities": [
+        "local_model_downloads",
+        "network_access"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "LOCAL_MODEL_UPDATED"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "LOCAL_MODEL_UPDATED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 600
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "GPT4All downloaded a new AI model to your device. Models are stored in ~/Library/Application Support/nomic.ai/GPT4All/.",
+        "LOCAL_MODEL_UPDATED": "GPT4All updated a local AI model."
+      },
+      "detection_notes": {
+        "LOCAL_MODEL_DOWNLOADED": "Watches for .gguf and .bin files in GPT4All app support directory."
+      },
+      "notes": "Open source local LLM runner by Nomic AI. Models stored as GGUF files."
+    },
+    {
+      "actor_id": "jan",
+      "display_name": "Jan.ai",
+      "bundle_ids": [
+        "ai.jan.app"
+      ],
+      "process_names": [
+        "Jan",
+        "jan"
+      ],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": [
+        "~/Library/Application Support/jan",
+        "~/jan/models"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/jan/models/**/*.gguf",
+        "~/jan/models/**/*.gguf"
+      ],
+      "capabilities": [
+        "local_model_downloads",
+        "network_access",
+        "mcp_tools"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "LOCAL_MODEL_UPDATED",
+        "MCP_TOOL_INSTALLED"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "LOCAL_MODEL_UPDATED": "notify",
+        "MCP_TOOL_INSTALLED": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 600
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "Jan.ai downloaded a new AI model to your device.",
+        "LOCAL_MODEL_UPDATED": "Jan.ai updated a local AI model.",
+        "MCP_TOOL_INSTALLED": "Jan.ai added a new MCP tool."
+      },
+      "detection_notes": {},
+      "notes": "Open source local AI assistant. Supports MCP tools. Models stored as GGUF files."
+    },
+    {
+      "actor_id": "anythingllm",
+      "display_name": "AnythingLLM",
+      "bundle_ids": [
+        "com.mintplexlabs.anythingllm"
+      ],
+      "process_names": [
+        "AnythingLLM",
+        "anythingllm"
+      ],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": [
+        "~/Library/Application Support/anythingllm-desktop",
+        "~/Library/Application Support/anythingllm-desktop/models"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/anythingllm-desktop/models/**/*.gguf",
+        "~/Library/Application Support/anythingllm-desktop/models/**/*.bin"
+      ],
+      "capabilities": [
+        "local_model_downloads",
+        "network_access",
+        "file_access"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "LOCAL_MODEL_UPDATED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "LOCAL_MODEL_UPDATED": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 600
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "AnythingLLM downloaded a new AI model to your device.",
+        "LOCAL_MODEL_UPDATED": "AnythingLLM updated a local AI model.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "AnythingLLM accessed a sensitive application and then made an outbound connection shortly after."
+      },
+      "detection_notes": {
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned)."
+      },
+      "notes": "All-in-one local AI assistant. Can ingest documents and run local models."
+    },
+    {
+      "actor_id": "msty",
+      "display_name": "Msty",
+      "bundle_ids": [
+        "app.msty.msty"
+      ],
+      "process_names": [
+        "Msty",
+        "msty"
+      ],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": [
+        "~/Library/Application Support/Msty",
+        "~/Library/Application Support/Msty/models"
+      ],
+      "model_paths": [
+        "~/Library/Application Support/Msty/models/**/*.gguf",
+        "~/Library/Application Support/Msty/models/**/*.bin"
+      ],
+      "capabilities": [
+        "local_model_downloads",
+        "network_access"
+      ],
+      "risk_events": [
+        "LOCAL_MODEL_DOWNLOADED",
+        "LOCAL_MODEL_UPDATED"
+      ],
+      "default_policy": {
+        "LOCAL_MODEL_DOWNLOADED": "notify",
+        "LOCAL_MODEL_UPDATED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 600
+      },
+      "explanations": {
+        "LOCAL_MODEL_DOWNLOADED": "Msty downloaded a new AI model to your device.",
+        "LOCAL_MODEL_UPDATED": "Msty updated a local AI model."
+      },
+      "detection_notes": {},
+      "notes": "Local AI model runner with clean UI. Supports Ollama models and direct GGUF downloads."
     }
   ],
   "sensitive_bundles": [

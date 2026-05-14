@@ -467,7 +467,7 @@ function getEventInfo(e){
   const fTypes=findings.map(f=>(f.type||'').toUpperCase());
   if(t==='CHROME_EVENT'){
     const dest=e.url||e.path||e.destination||'';
-    if(dest.includes('ollama')||dest.includes('lmstudio')||dest.includes('model')||dest.includes('.bin')||dest.includes('.gguf'))
+    if(dest.includes('.ollama')||dest.includes('lmstudio')||dest.includes('huggingface')||dest.includes('.gguf')||dest.includes('weights.bin')||dest.includes('OptGuideOnDeviceModel'))
       return EVENT_INFO['LOCAL_MODEL_DOWNLOADED'];
     return {style:'info',summary:'Your browser extension logged this activity.',steps:['No action needed — this is for information only.']};
   }
@@ -525,7 +525,7 @@ function selectEvent(e,scroll=true){
         </div>`:''}
       </div>
       <div id="file-content-preview" style="display:none;margin-top:8px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;font-family:var(--mono);color:#344258;line-height:1.6;max-height:140px;overflow-y:auto"></div>
-      ${(t==='LOCAL_MODEL_DOWNLOADED'||t==='CHROME_EVENT')&&(e.url||e.path||'').includes('ollama')?`
+      ${(t==='LOCAL_MODEL_DOWNLOADED'||t==='CHROME_EVENT'||t==='LOCAL_MODEL_UPDATED')&&isModelPath(e.url||e.path||'')?`
       <div style="margin-top:10px;padding:10px;background:rgba(255,138,0,.06);border:1px solid rgba(255,138,0,.15);border-radius:8px;font-size:12px;color:#b45309;line-height:1.5">
         Removing without disabling the feature may result in re-download.
       </div>
@@ -566,6 +566,14 @@ function selectEvent(e,scroll=true){
 
   document.getElementById('event-modal-body').innerHTML=content;
   document.getElementById('event-modal-overlay').classList.add('open');
+}
+function isModelPath(p){
+  return p.includes('.ollama')||p.includes('lmstudio')||p.includes('huggingface')||
+         p.includes('nomic.ai')||p.includes('GPT4All')||
+         p.includes('anythingllm')||p.includes('Msty')||
+         p.includes('jan/models')||
+         p.includes('.gguf')||p.includes('weights.bin')||p.includes('OptGuideOnDeviceModel')||
+         (p.includes('.bin')&&(p.includes('model')||p.includes('blob')));
 }
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
