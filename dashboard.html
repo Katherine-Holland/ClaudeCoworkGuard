@@ -559,7 +559,42 @@ function updateStats(data,status){const s=data.stats||{};const prevented=s.block
     if(g2('ov-block-high')){const on=settings2.block_on_high;g2('ov-block-high').textContent=on?'Enabled':'Disabled';g2('ov-block-high').style.color=on?'#166534':'#7b8798';}
     if(g2('ov-ext-status')){const ext=status?.extension?.connected;g2('ov-ext-status').textContent=ext?'Connected':'Not detected';g2('ov-ext-status').style.color=ext?'#166534':'#7b8798';}
     if(g2('ov-log-file'))g2('ov-log-file').textContent=status?.log_file||'~/.coworkguard/logs/';}
-async function loadActors(){try{const r=await fetch(API+'/api/actors');const d=await r.json();const actors=d.actors||[];document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>`<div class="actor-card"><div class="actor-top"><div><div class="actor-name">${esc(a.display_name||a.actor_id)}</div><div style="color:var(--sub);font-size:13px;margin-top:4px">PID ${esc(a.pid||'—')}</div></div><span class="tag allowed">Detected</span></div><div class="chips">${(a.capabilities||[]).slice(0,6).map(c=>`<span class="chip">${esc(c.replaceAll('_',' '))}</span>`).join('')}</div></div>`).join(''):`<div class="empty">No AI actors detected right now.</div>`}catch{document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load actors. Is CoworkGuard running?</div>`}}
+const CAP_LABELS={'prompt_api':'Local AI','local_model_downloads':'Downloads AI models','browser_extensions':'Browser extensions','network_access':'Internet access','mcp_tools':'Uses AI tools','shell_execution':'Can run commands','file_access':'Can read files','accessibility_access':'Can see your screen','terminal_agent':'Terminal access','ai_extensions':'AI extensions','copilot':'GitHub Copilot','bundled_ai_runtime':'Built-in AI','native_messaging':'Browser bridge','future_local_ai_apis':'Future local AI','webkit_ml':'On-device ML'};
+const ACTOR_TYPE={'chrome':'Browser','brave':'Browser','arc':'Browser','edge':'Browser','safari':'Browser','claude_desktop':'AI Assistant','cursor':'AI Coding Tool','vscode':'AI Coding Tool','windsurf':'AI Coding Tool','zed':'AI Coding Tool','raycast':'AI Launcher','ollama':'Local AI Runtime','lm_studio':'Local AI Runtime','python_mcp':'AI Tool Process','node_mcp':'AI Tool Process','electron_ai':'AI App'};
+const ACTOR_DESC2={'chrome':'Your browser. Can run AI features locally using a built-in model.','brave':'Your browser. May have local AI features.','arc':'Your browser. Has built-in AI features.','edge':'Your browser. Includes Microsoft Copilot AI.','safari':'Your browser.','claude_desktop':'AI assistant. Can use tools that read files and access services.','cursor':'AI code editor. Can read your files and run commands.','vscode':'Code editor with AI features including GitHub Copilot.','windsurf':'AI code editor that can take autonomous actions.','zed':'Fast code editor with built-in AI.','raycast':'Launcher with AI features that can interact with other apps.','ollama':'Runs AI models locally on your Mac.','lm_studio':'Downloads and runs AI models locally on your Mac.','python_mcp':'A Python-based AI tool currently running.','node_mcp':'A JavaScript-based AI tool currently running.','electron_ai':'An AI app.'};
+async function loadActors(){
+  try{
+    const r=await fetch(API+'/api/actors');
+    const d=await r.json();
+    const actors=d.actors||[];
+    document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>{
+      const id=a.actor_id||'';
+      const type=ACTOR_TYPE[id]||'AI App';
+      const desc=ACTOR_DESC2[id]||'An AI app detected on your Mac.';
+      const caps=(a.capabilities||[]).slice(0,4).map(c=>`<span class="chip">${CAP_LABELS[c]||c.replace(/_/g,' ')}</span>`).join('');
+      const perms=a.permissions||[];
+      const hasAX=perms.includes('accessibility');
+      const hasFDA=perms.includes('full_disk');
+      let riskBadge='<span class="tag allowed">Running</span>';
+      if(hasAX&&hasFDA)riskBadge='<span class="tag critical">High risk</span>';
+      else if(hasAX)riskBadge='<span class="tag review">Review</span>';
+      return `<div class="actor-card">
+        <div class="actor-top">
+          <div>
+            <div class="actor-name">${esc(a.display_name||a.actor_id)}</div>
+            <div style="color:var(--sub);font-size:12px;margin-top:2px">${esc(type)}</div>
+          </div>
+          ${riskBadge}
+        </div>
+        <div style="font-size:12px;color:#536176;margin:8px 0;line-height:1.5">${esc(desc)}</div>
+        ${caps?`<div class="chips">${caps}</div>`:''}
+        ${hasAX?'<div style="margin-top:10px;font-size:12px;color:#b45309;background:rgba(255,138,0,.07);border:1px solid rgba(255,138,0,.15);border-radius:8px;padding:8px 10px;line-height:1.5">Can see and interact with other apps on your screen. Go to System Settings → Privacy & Security → Accessibility to review.</div>':''}
+      </div>`;
+    }).join(''):`<div class="empty">No AI apps detected right now — start protection to begin monitoring.</div>`;
+  }catch{
+    document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load AI apps. Is CoworkGuard running?</div>`;
+  }
+}
 async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
     // Dedupe by request_id — keep latest entry per request
     const seenRid={};
