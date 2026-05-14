@@ -402,17 +402,16 @@ def request(flow: http.HTTPFlow):
         settings_now = load_settings()
         if settings_now.get("confirm_before_send", False):
             pending_id = uuid.uuid4().hex
-            result.action = "PENDING"
-            write_audit(result, url, method, provider, request_id=pending_id)
             request_id, allowed = hold_for_confirmation(
                 flow, result, url, method, provider, request_id=pending_id
             )
             if allowed:
                 result.action = "ALLOWED"
-                write_audit(result, url, method, provider)
+                # TODO Shield: add approved_by field for audit trail
+                write_audit(result, url, method, provider, request_id=pending_id)
             else:
                 result.action = "BLOCKED"
-                write_audit(result, url, method, provider)
+                write_audit(result, url, method, provider, request_id=pending_id)
             return
         log.warning(
             f"BLOCKED [{provider}] {url} — {len(result.findings)} findings "
