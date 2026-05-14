@@ -452,7 +452,7 @@ def post_settings():
     validated = {}
 
     # Booleans
-    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain", "confirm_before_send", "quiet_mode"):
+    for key in ("block_on_critical", "block_on_high", "block_on_medium", "alert_on_domain"):
         if key in data:
             validated[key] = bool(data[key])
 
@@ -504,6 +504,8 @@ def post_settings():
                         pass
             validated["allowed_folders"] = safe
 
+    if "quiet_mode" in data:
+        validated["quiet_mode"] = bool(data["quiet_mode"])
 
     saved = save_settings(validated)
     sig = Path.home() / ".coworkguard" / ".settings_updated"
@@ -693,6 +695,31 @@ def allow_request(request_id: str):
 
 
 
+
+@app.route("/api/file-preview", methods=["POST"])
+def file_preview():
+    """Return sensitive lines from a flagged file so the user can judge if it is a real issue."""
+    data = request.get_json(force=True) or {}
+    path_str = str(data.get("path", ""))[:500]
+    if not path_str:
+        return jsonify({"ok": False, "error": "no path provided"}), 400
+    try:
+        path = Path(path_str).expanduser().resolve()
+        if not path.exists() or not path.is_file():
+            return jsonify({"ok": False, "error": "file not found"}), 404
+        if path.stat().st_size > 100 * 1024:
+            return jsonify({"ok": False, "error": "file too large to preview"}), 400
+        lines = path.read_text(errors="replace").splitlines()
+        keywords = ["api", "key", "secret", "token", "password", "credential",
+                    "ssn", "aws", "private", "auth", "jwt", "bearer"]
+        flagged = [f"Line {i+1}: {line[:120]}"
+                   for i, line in enumerate(lines)
+                   if any(k in line.lower() for k in keywords)]
+        return jsonify({"ok": True, "lines": (flagged or lines[:10])[:20]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/remove-model-file", methods=["POST"])
 def remove_model_file():
     """Delete a local AI model file at user request."""
@@ -746,6 +773,7 @@ def open_url():
         "windsurf://",
         "http://localhost",
         "http://127.0.0.1",
+        "file://",
     ]
     if not any(url.startswith(s) for s in ALLOWED_SCHEMES):
         return jsonify({"ok": False, "error": "URL scheme not allowed"}), 403

@@ -367,9 +367,9 @@ const API='http://localhost:7070';
 (function(){const h=new Date().getHours();const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';const el=document.getElementById('greeting-text');if(el)el.textContent=g;})();let allEvents=[],selectedEvent=null,serverAvailable=false;
 const SENSITIVE=[['1Password','CRITICAL'],['Keychain Access','CRITICAL'],['Apple Mail','HIGH'],['Messages','HIGH'],['Notes','HIGH'],['Outlook','HIGH'],['Slack','HIGH'],['WhatsApp','HIGH'],['Terminal','HIGH'],['Safari','MEDIUM'],['Chrome','MEDIUM']];
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
-function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();if(name==='settings')loadSettingsIntoForm();if(name==='skills')loadSkillScans();}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();if(name==='settings')loadSettingsIntoForm();if(name==='skills')loadSkillScans();if(name==='actors')loadAgentGuard();}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.viewLink)}));
-function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED')return 'blocked';if(a==='FLAGGED'||a==='PENDING'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';return 'allowed'}
+function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED'||hasBlocked)return 'blocked';if(a==='FLAGGED'||a==='PENDING'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';return 'allowed'}
 function appName(e){return e.actor_name||e.actor||e.app||e.process||e.source_process||guessActor(e)||'CoworkGuard'}
 function guessActor(e){const s=JSON.stringify(e).toLowerCase();if(s.includes('claude'))return 'Claude Desktop';if(s.includes('cursor'))return 'Cursor IDE';if(s.includes('vscode')||s.includes('vs code'))return 'VS Code';if(s.includes('chrome'))return 'Chrome';return 'AI Tool'}
 function eventTitle(e){const t=e.type||e.action||'Event';const map={NETWORK_AFTER_SENSITIVE_ACCESS:'Network Correlation',AX_ACCESS_DETECTED:'AX Access',WINDOW_AI_DETECTED:'Local AI Used',SUSPICIOUS_API_WRAP:'Extension Hook',DOMAIN_WARNING:'Sensitive Website',CLIPBOARD_WARNING:'Clipboard Warning',FILE_WRITE_WARNING:'File Write',MCP_TOOL_INSTALLED:'MCP Tool Used',MCP_CONFIG_CHANGED:'MCP Config Changed'};return map[t]||t.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,m=>m.toUpperCase())}
@@ -398,7 +398,7 @@ function renderAllRows(){
   document.getElementById('all-rows').innerHTML=filtered.length?filtered.map(lightRowHtml).join(''):`<div class="empty">No events match this filter.</div>`;
 }
 function renderNetwork(){
-  const n=allEvents.filter(e=>/NETWORK|API|CONNECTION/i.test(JSON.stringify(e)));
+  const n=allEvents.filter(e=>e.url||e.destination||(e.type||'').includes('NETWORK')||(e.source==='network_correlator')||(e.ai_provider&&e.action));
   const sensitive=n.filter(e=>e.type==='NETWORK_AFTER_SENSITIVE_ACCESS');
   const aiEndpoints=n.filter(e=>/anthropic|openai|googleapis|mistral|groq|cohere|perplexity/i.test(JSON.stringify(e)));
   const g=id=>document.getElementById(id);
@@ -447,7 +447,7 @@ const FINDING_NAMES={'SSN':'Social Security Number','CREDIT_CARD':'Credit card n
 function friendlyFinding(t){return FINDING_NAMES[t]||t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
 
 const EVENT_INFO={
-  'FILE_WRITE_WARNING':{style:'review',summary:'An AI tool wrote a file containing sensitive information to a location outside the folders you have approved. This could mean data is being stored somewhere unexpected.',steps:['Find the file at the location shown in the details below.','Open it and check what it contains.','If you did not expect it to be there, delete it.','To prevent this in future, go to Settings → Folder Access in CoworkGuard.']},
+  'FILE_WRITE_WARNING':{style:'review',summary:'A file containing sensitive information was written to a location outside your approved folders. This could be from an AI tool, a download, or another app. Check the file shown in the details below.',steps:['Find the file at the location shown in the details below.','Open it and check what it contains.','If you did not expect it to be there, delete it.','To prevent this in future, go to Settings → Folder Access in CoworkGuard.']},
   'CLIPBOARD_WARNING':{style:'review',summary:'Something containing personal or sensitive information was copied to your clipboard. Be careful where you paste it.',steps:['Avoid pasting this into an AI chat or any website you do not fully trust.','To clear your clipboard, click the button below.'],clipboard:true},
   'DOMAIN_WARNING':{style:'review',summary:'You navigated to a sensitive page while an AI session was active. There is a risk the AI could access content from that page.',steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.']},
   'AX_ACCESS_DETECTED':{style:'review',summary:'An AI app has been granted permission to read and interact with other apps on your screen — including ones containing passwords, messages, or private data.',steps:['If you set this up intentionally, no action is needed.','If you did not, go to System Settings → Privacy & Security → Accessibility and remove the AI app from the list.','To open System Settings, click the Apple menu in the top-left corner of your screen.']},
@@ -465,6 +465,10 @@ function getEventInfo(e){
   const a=(e.action||'').toUpperCase();
   const findings=e.findings||[];
   const fTypes=findings.map(f=>(f.type||'').toUpperCase());
+  if(t==='MCP_TOOL_RESPONSE'||t==='MCP_STDOUT_SENSITIVE_DATA'){
+    const hasBlocked=(e.findings||[]).some(f=>f.blocked);
+    return hasBlocked?EVENT_INFO['MCP_TOOL_RESPONSE']:{style:'info',summary:'An AI tool returned a response. CoworkGuard scanned it and found no issues.',steps:['No action needed — this response was clean.']};
+  }
   if(EVENT_INFO[t])return EVENT_INFO[t];
   if(a==='PENDING')return EVENT_INFO['PENDING'];
   if(a==='BLOCKED'||a==='PREVENTED'){
@@ -482,7 +486,7 @@ function selectEvent(e,scroll=true){
   selectedEvent=e;
   const k=kind(e);
   const a=(e.action||'').toUpperCase();
-  const isPending=a==='PENDING';
+  const isPending=a==='PENDING'||e.request_id&&a!=='ALLOWED'&&a!=='BLOCKED'&&a!=='PREVENTED'&&a!=='CLEAN';
   const info=getEventInfo(e);
   const findings=e.findings||[];
   const ts=new Date(e.timestamp||Date.now());
@@ -505,7 +509,17 @@ function selectEvent(e,scroll=true){
       ${e.payload_hash?`<div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Fingerprint</div><div style="font-size:11px;font-family:var(--mono)">${esc(e.payload_hash)}</div></div>`:''}
       ${e.payload_size_bytes?`<div><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Data size</div><div style="font-size:12px;font-family:var(--mono)">${(e.payload_size_bytes/1024).toFixed(1)} KB</div></div>`:''}
     </div>
-    ${(e.url||e.path||e.destination)?`<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:3px">Destination</div><div style="font-size:11px;font-family:var(--mono);word-break:break-all">${esc(e.url||e.path||e.destination)}</div></div>`:''}
+    ${(e.url||e.path||e.destination)?`<div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:6px">Destination</div>
+      <div style="display:flex;align-items:flex-start;gap:6px">
+        <div style="font-size:11px;font-family:var(--mono);word-break:break-all;flex:1;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.5">${esc(e.url||e.path||e.destination)}</div>
+        ${e.type==='FILE_WRITE_WARNING'?`<div style="display:flex;flex-direction:column;gap:4px">
+          <button onclick="openInFinder('${esc(e.url||e.path||'')}')" title="Open folder in Finder" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#536176"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+          <button onclick="toggleFileContent(this,'${esc(e.url||e.path||'')}')" title="View triggering content" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#536176"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>`:''}
+      </div>
+      <div id="file-content-preview" style="display:none;margin-top:8px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;font-family:var(--mono);color:#344258;line-height:1.6;max-height:140px;overflow-y:auto"></div>
+    </div>`:''}
     ${findings.length?`<div>${findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px"><span style="display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:${f.severity==='CRITICAL'?'rgba(239,68,68,.1)':f.severity==='HIGH'?'rgba(255,138,0,.1)':'rgba(0,0,0,.05)'};color:${f.severity==='CRITICAL'?'#c0392b':f.severity==='HIGH'?'#b45309':'#536176'};border:1px solid ${f.severity==='CRITICAL'?'rgba(239,68,68,.2)':f.severity==='HIGH'?'rgba(255,138,0,.2)':'var(--line)'}">${esc(f.severity)}</span><span style="font-weight:600;color:#1e293b;min-width:140px">${friendlyFinding(esc(f.type||''))}</span><span style="color:#536176;font-family:var(--mono);font-size:11px">${esc(f.preview||f.match_preview||'')}</span>${f.blocked&&a!=='PENDING'?'<span style="font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto">BLOCKED</span>':f.blocked?'<span style="font-size:10px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);padding:2px 8px;border-radius:6px;margin-left:auto">DETECTED</span>':''}</div>`).join('')}</div>`:''}
   `;
 
@@ -536,6 +550,21 @@ function selectEvent(e,scroll=true){
 
   document.getElementById('event-modal-body').innerHTML=content;
   document.getElementById('event-modal-overlay').classList.add('open');
+}
+function openInFinder(path){
+  const folder=path.split('/').slice(0,-1).join('/');
+  fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'file://'+folder})}).catch(()=>{});
+}
+function toggleFileContent(btn,path){
+  const preview=document.getElementById('file-content-preview');
+  if(!preview)return;
+  if(preview.style.display!=='none'){preview.style.display='none';return;}
+  preview.style.display='block';
+  preview.textContent='Loading...';
+  fetch(API+'/api/file-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})})
+    .then(r=>r.json())
+    .then(d=>{if(d.ok){preview.innerHTML='<div style="margin-bottom:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798">Triggering content:</div>'+d.lines.map(l=>`<div style="padding:1px 0;white-space:pre-wrap">${esc(l)}</div>`).join('');}else{preview.textContent='Could not read file — it may have been moved or deleted.';}})
+    .catch(()=>{preview.textContent='Could not reach server.';});
 }
 async function allowRequest(requestId){
   try{
@@ -633,6 +662,86 @@ function renderFolderList(){const el=document.getElementById('folder-list');if(!
 async function saveFolders(){const payload={allowed_folders:allowedFolders};try{await fetch(API+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const m=document.getElementById('save-msg-4');if(m){m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2500)}}catch{toast('Error saving folders',true)}}
 let allowedFolders=[];
 function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.style.background=err?'#ef4444':'#111827';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+
+async function loadAgentGuard(){
+  // Load model activity from audit log
+  try{
+    const r=await fetch(API+'/api/logs?limit=200');
+    const d=await r.json();
+    const entries=d.entries||[];
+    const models=entries.filter(e=>['LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_UPDATED'].includes(e.type));
+    // Dedupe by path
+    const modelMap={};
+    models.forEach(m=>{const p=m.url||m.path||'';if(!modelMap[p]||m.timestamp>modelMap[p].timestamp)modelMap[p]=m;});
+    const uniqueModels=Object.values(modelMap);
+    const el=document.getElementById('ag-models-list');
+    if(el){
+      if(!uniqueModels.length){
+        el.innerHTML='<div style="padding:20px;text-align:center;color:var(--sub);font-size:13px">No AI models detected on this device</div>';
+      } else {
+        el.innerHTML=uniqueModels.map(m=>{
+          const path=m.url||m.path||'unknown';
+          const fname=path.split('/').pop();
+          const sizeMb=m.size_mb?(m.size_mb>999?(m.size_mb/1024).toFixed(1)+'GB':m.size_mb+'MB'):'';
+          const actor=m.actor_name||'Unknown';
+          const ts=m.timestamp?new Date(m.timestamp).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'}):'';
+          const cardId='model-'+btoa(fname).replace(/[^a-z0-9]/gi,'').slice(0,10);
+          return `<div class="ag-model-card new" id="${cardId}" style="background:#fff;border:1px solid var(--line);border-left:3px solid #ff9f0a;border-radius:12px;padding:14px 16px;margin:8px 16px">
+            <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:4px">${esc(actor)} — local AI model enabled</div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:8px;line-height:1.6">
+              File: ${esc(fname)}${sizeMb?' ('+sizeMb+')':''}<br>
+              Location: ${esc(path)}<br>
+              Detected: ${ts}
+            </div>
+            <div style="font-size:12px;color:#b45309;background:rgba(255,138,0,.07);border:1px solid rgba(255,138,0,.15);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5">
+              Removing the file without disabling the feature in the app may result in it being re-downloaded.
+            </div>
+            <div id="${cardId}-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button onclick="removeModelFile('${path}','${cardId}')" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b">Remove file</button>
+              <button onclick="openModelSettings('${actor}')" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text)">Open App Settings →</button>
+              <button onclick="document.getElementById('${cardId}').style.display='none'" style="background:transparent;border:none;color:var(--sub);font-size:12px;cursor:pointer">Dismiss</button>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
+    // Update counts
+    const g=id=>document.getElementById(id);
+    if(g('ag-model-count'))g('ag-model-count').textContent=uniqueModels.length||'0';
+    if(g('ag-alert-count'))g('ag-alert-count').textContent=entries.filter(e=>['CRITICAL','HIGH'].includes(e.severity)).length||'0';
+    if(g('ag-last-scan'))g('ag-last-scan').textContent='just now';
+  }catch(e){
+    const el=document.getElementById('ag-models-list');
+    if(el)el.innerHTML='<div style="padding:20px;text-align:center;color:var(--sub);font-size:13px">Start protection to enable Agent Guard monitoring</div>';
+  }
+  // Load actors
+  try{
+    const r=await fetch(API+'/api/actors');
+    const d=await r.json();
+    const g=id=>document.getElementById(id);
+    if(g('ag-actor-count'))g('ag-actor-count').textContent=d.count||'0';
+    if(g('ag-actors-badge'))g('ag-actors-badge').textContent=d.count||'0';
+  }catch(e){}
+}
+
+async function removeModelFile(path,cardId){
+  try{
+    const r=await fetch(API+'/api/remove-model-file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})});
+    const d=await r.json();
+    if(d.ok){
+      const actionsEl=document.getElementById(cardId+'-actions');
+      if(actionsEl)actionsEl.innerHTML=`<div style="font-size:12px;color:#166534;margin-bottom:8px">File removed</div><button onclick="openModelSettings('')" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--text)">Open App Settings →</button><button onclick="document.getElementById('${cardId}').style.display='none'" style="background:transparent;border:none;color:var(--sub);font-size:12px;cursor:pointer;margin-left:8px">Dismiss</button>`;
+      toast('Model file removed');
+    } else toast(d.error||'Could not remove file',true);
+  }catch(e){toast('Could not reach server',true);}
+}
+
+function openModelSettings(actorName){
+  const lower=(actorName||'').toLowerCase();
+  const url=lower.includes('chrome')?'googlechrome://settings/ai':lower.includes('ollama')?'http://localhost:11434':'x-apple.systempreferences:com.apple.preference.security';
+  fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})}).catch(()=>{});
+}
+
 fetchAll();loadActors();renderSensitive();setInterval(fetchAll,5000);
 
 let allSkillScans=[];let skillFilter='ALL';
