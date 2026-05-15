@@ -298,8 +298,14 @@ def hold_for_confirmation(flow, result, url: str, method: str, provider: str, re
         f"(id={request_id[:8]}, TTL={_PENDING_TTL}s)"
     )
     # Write PENDING to audit log so dashboard can show Allow/Block buttons
+    # Temporarily mark findings as not-blocked so dashboard shows Needs Review
+    for f in result.findings:
+        f.blocked = False
     result.action = "PENDING"
     write_audit(result, url, method, provider, request_id=request_id)
+    # Restore blocked flag for actual enforcement decision
+    for f in result.findings:
+        f.blocked = True
 
     # Poll shared file for allow decision — works across separate processes
     deadline = _time.time() + _PENDING_TTL
