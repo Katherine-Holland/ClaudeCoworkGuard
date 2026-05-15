@@ -519,13 +519,13 @@ function selectEvent(e,scroll=true){
       <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798;margin-bottom:6px">Destination</div>
       <div style="display:flex;align-items:flex-start;gap:6px">
         <div style="font-size:11px;font-family:var(--mono);word-break:break-all;flex:1;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.5">${esc(e.url||e.path||e.destination)}</div>
-        ${(e.type==='FILE_WRITE_WARNING'||e.type==='LOCAL_MODEL_DOWNLOADED'||e.type==='CHROME_EVENT')?`<div style="display:flex;flex-direction:column;gap:4px">
+        ${(e.type==='FILE_WRITE_WARNING'||(e.type||'')==='LOCAL_MODEL_DOWNLOADED'||(e.type||'')==='CHROME_EVENT')?`<div style="display:flex;flex-direction:column;gap:4px">
           <button onclick="openInFinder('${esc(e.url||e.path||'')}')" title="Open folder in Finder" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#536176"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
           <button onclick="toggleFileContent(this,'${esc(e.url||e.path||'')}')" title="View triggering content" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#536176"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>`:''}
       </div>
       <div id="file-content-preview" style="display:none;margin-top:8px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;font-family:var(--mono);color:#344258;line-height:1.6;max-height:140px;overflow-y:auto"></div>
-      ${(t==='LOCAL_MODEL_DOWNLOADED'||t==='CHROME_EVENT'||t==='LOCAL_MODEL_UPDATED')&&isModelPath(e.url||e.path||'')?`
+      ${((e.type||'')==='LOCAL_MODEL_DOWNLOADED'||(e.type||'')==='CHROME_EVENT'||(e.type||'')==='LOCAL_MODEL_UPDATED')&&isModelPath(e.url||e.path||'')?`
       <div style="margin-top:10px;padding:10px;background:rgba(255,138,0,.06);border:1px solid rgba(255,138,0,.15);border-radius:8px;font-size:12px;color:#b45309;line-height:1.5">
         Removing without disabling the feature may result in re-download.
       </div>
