@@ -54,6 +54,7 @@ except ImportError:
 
 
 _ALLOW_FILE = Path.home() / ".coworkguard" / "pending_allow.json"
+_BLOCK_FILE = Path.home() / ".coworkguard" / "pending_block.json"
 
 # ─────────────────────────────────────────────
 # Confirm-before-send — pending request store
@@ -307,9 +308,10 @@ def hold_for_confirmation(flow, result, url: str, method: str, provider: str, re
     for f in result.findings:
         f.blocked = True
 
-    # Poll shared file for allow decision — works across separate processes
+    # Poll shared files for allow/block decision — works across separate processes
     deadline = _time.time() + _PENDING_TTL
     allowed = False
+    user_blocked = False
     while _time.time() < deadline:
         try:
             if _ALLOW_FILE.exists():
@@ -321,6 +323,16 @@ def hold_for_confirmation(flow, result, url: str, method: str, provider: str, re
                     break
         except Exception:
             pass
+        try:
+            if _BLOCK_FILE.exists():
+                entries = json.loads(_BLOCK_FILE.read_text())
+                if any(e.get("request_id") == request_id for e in entries):
+                    remaining = [e for e in entries if e.get("request_id") != request_id]
+                    _BLOCK_FILE.write_text(json.dumps(remaining))
+                    user_blocked = True
+                    break
+        except Exception:
+            pass
         _time.sleep(1)
 
     with _pending_lock:
@@ -329,6 +341,9 @@ def hold_for_confirmation(flow, result, url: str, method: str, provider: str, re
     if allowed:
         flow.response = None
         log.info(f"ALLOWED [{provider}] {url} — user approved (id={request_id[:8]})")
+    elif user_blocked:
+        blocked_response(flow, result)
+        log.warning(f"BLOCKED [{provider}] {url} — user blocked immediately (id={request_id[:8]})")
     else:
         blocked_response(flow, result)
         log.warning(f"PENDING_EXPIRED [{provider}] {url} — TTL exceeded (id={request_id[:8]})")

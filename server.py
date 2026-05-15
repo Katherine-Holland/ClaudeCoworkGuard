@@ -664,6 +664,31 @@ def pending_requests():
         return jsonify({"pending": [], "count": 0, "error": str(e)})
 
 
+
+@app.route("/api/block-request/<request_id>", methods=["POST"])
+def block_request(request_id: str):
+    """Immediately block a held request."""
+    if not request_id or not re.fullmatch(r'[0-9a-f]{32}', request_id):
+        return jsonify({"ok": False, "error": "invalid request_id"}), 400
+    try:
+        block_file = Path.home() / ".coworkguard" / "pending_block.json"
+        block_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = []
+        if block_file.exists():
+            try:
+                existing = json.loads(block_file.read_text())
+            except Exception:
+                existing = []
+        existing.append({
+            "request_id": request_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        block_file.write_text(json.dumps(existing))
+        app.logger.info(f"User blocked request {request_id[:8]}")
+        return jsonify({"ok": True, "request_id": request_id})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/allow-request/<request_id>", methods=["POST"])
 def allow_request(request_id: str):
     """
