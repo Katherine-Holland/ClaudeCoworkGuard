@@ -649,24 +649,30 @@ async function loadActors(){
   }
 }
 async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
-    // Dedupe by request_id — BLOCKED/ALLOWED supersedes PENDING for same request_id
-    const seenRid={};
-    const resolvedRids=new Set();
-    // First pass — collect resolved request_ids
+    // Dedupe by request_id:
+    // 1. For each request_id, prefer ALLOWED/BLOCKED over PENDING
+    // 2. Only keep one entry per request_id
+    const byRid={};
     raw.forEach(e=>{
-      const a=(e.action||'').toUpperCase();
-      if(e.request_id&&(a==='ALLOWED'||a==='BLOCKED'||a==='PREVENTED'))
-        resolvedRids.add(e.request_id);
-    });
-    allEvents=raw.filter(e=>{
       const rid=e.request_id;
+      if(!rid){return;} // no request_id — handled separately
       const a=(e.action||'').toUpperCase();
-      // Hide PENDING if already resolved
-      if(rid&&a==='PENDING'&&resolvedRids.has(rid))return false;
-      // Dedupe — keep first (newest) per request_id
-      if(rid){if(seenRid[rid])return false;seenRid[rid]=true;}
-      return true;
-    });document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
+      const existing=byRid[rid];
+      if(!existing){byRid[rid]=e;return;}
+      // Prefer resolved over pending
+      const existingA=(existing.action||'').toUpperCase();
+      const resolved=['ALLOWED','BLOCKED','PREVENTED'];
+      if(resolved.includes(a)&&!resolved.includes(existingA)){byRid[rid]=e;}
+      // If both resolved, keep newest
+      else if(resolved.includes(a)&&resolved.includes(existingA)){
+        if(new Date(e.timestamp||0)>new Date(existing.timestamp||0))byRid[rid]=e;
+      }
+    });
+    // Build final list — resolved entries + no-request_id entries
+    const resolvedEntries=Object.values(byRid);
+    const noRidEntries=raw.filter(e=>!e.request_id);
+    allEvents=[...resolvedEntries,...noRidEntries]
+      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
 async function saveSettings(msgId){
   const payload={
