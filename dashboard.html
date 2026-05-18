@@ -163,7 +163,7 @@
     </div>
   </div>
 </section>
-    <section id="view-actors" class="view"><div class="top"><div><div class="headline"><h2>AI Apps & Tools</h2></div><p>Detected local AI actors, agents, tools and model runtimes.</p></div><button class="btn" onclick="loadActors()">Refresh</button></div><div class="actor-grid" id="actor-grid"></div></section>
+    <section id="view-actors" class="view"><div class="top"><div><div class="headline"><h2>AI Apps & Tools</h2></div><p>Detected local AI actors, agents, tools and model runtimes.</p></div><button class="btn" onclick="loadActors();loadAgentGuard();toast('Refreshing...')">Refresh</button></div><div class="actor-grid" id="actor-grid"></div></section>
     <section id="view-sensitive" class="view">
   <div class="top"><div><div class="headline"><h2>Sensitive Apps</h2></div><p>CoworkGuard watches these apps. If an AI tool accesses one of them, you will be notified.</p></div></div>
   <div style="background:rgba(10,132,255,.06);border:1px solid rgba(10,132,255,.15);border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#344258;line-height:1.6">
@@ -220,7 +220,7 @@
       <div class="top">
         <div><div class="headline"><h2>Skill Supply Chain Scanner</h2></div><p>Skills scanned before execution — Cowork, OpenClaw, MCP</p></div>
         <div style="display:flex;gap:8px">
-          <button class="btn" onclick="loadSkillScans()">Refresh</button>
+          <button class="btn" onclick="loadSkillScans();toast('Refreshing...')">Refresh</button>
           <button class="btn" onclick="clearSkillScans()">Clear all</button>
         </div>
       </div>
@@ -482,7 +482,16 @@ function getEventInfo(e){
 
 function toggleTechDetails(el){const s=el.nextElementSibling;s.classList.toggle('open');el.querySelector('span').textContent=s.classList.contains('open')?'▼':'▶'}
 
-async function clearClipboardAction(){try{await navigator.clipboard.writeText('CoworkGuard is protecting this');toast('Clipboard cleared')}catch(e){const ta=document.createElement('textarea');ta.value='CoworkGuard is protecting this';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Clipboard cleared')}}
+async function clearClipboardAction(){
+  try{await navigator.clipboard.writeText('');}catch(e){
+    const ta=document.createElement('textarea');ta.value='';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  }
+  toast('Clipboard cleared');
+  // Dismiss the event from the dashboard
+  if(selectedEvent)dismissEvent(selectedEvent.timestamp);
+  closeEventModal();
+}
 
 function selectEvent(e,scroll=true){
   selectedEvent=e;
@@ -559,7 +568,10 @@ function selectEvent(e,scroll=true){
       <span>▶</span> Show technical details
     </div>
     <div style="display:none">${techMeta}</div>
-    ${actionBtns}`;
+    ${actionBtns}
+    ${(e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING')?`
+    <button onclick="dismissEvent('${e.timestamp}');closeEventModal()" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;font:500 12px var(--font);cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted)">Mark as reviewed</button>
+    `:''}`;
 
   document.getElementById('event-modal-body').innerHTML=content;
   document.getElementById('event-modal-overlay').classList.add('open');
@@ -571,6 +583,16 @@ function isModelPath(p){
          p.includes('jan/models')||
          p.includes('.gguf')||p.includes('weights.bin')||p.includes('OptGuideOnDeviceModel')||
          (p.includes('.bin')&&(p.includes('model')||p.includes('blob')));
+}
+function dismissEvent(timestamp){
+  // Remove from allEvents so it disappears from dashboard
+  allEvents=allEvents.filter(e=>e.timestamp!==timestamp);
+  const review=allEvents.filter(e=>kind(e)==='review').length;
+  const el=document.getElementById('m-review');
+  if(el)el.textContent=review;
+  renderAllRows();
+  renderRecent();
+  toast('Marked as reviewed');
 }
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
@@ -632,7 +654,8 @@ async function loadActors(){
     const r=await fetch(API+'/api/actors');
     const d=await r.json();
     const actors=d.actors||[];
-    document.getElementById('actor-grid').innerHTML=actors.length?actors.map(a=>{
+    const activeActors=actors.filter(a=>a.pid&&a.running!==false);
+document.getElementById('actor-grid').innerHTML=activeActors.length?activeActors.map(a=>{
       const id=a.actor_id||'';
       const type=ACTOR_TYPE[id]||'AI App';
       const desc=ACTOR_DESC2[id]||'An AI app detected on your Mac.';
@@ -655,7 +678,7 @@ async function loadActors(){
         ${caps?`<div class="chips">${caps}</div>`:''}
         ${hasAX?'<div style="margin-top:10px;font-size:12px;color:#b45309;background:rgba(255,138,0,.07);border:1px solid rgba(255,138,0,.15);border-radius:8px;padding:8px 10px;line-height:1.5">Can see and interact with other apps on your screen. Go to System Settings → Privacy & Security → Accessibility to review.</div>':''}
       </div>`;
-    }).join(''):`<div class="empty">No AI apps detected right now — start protection to begin monitoring.</div>`;
+    }).join(''):`<div class="empty">No AI apps currently running — they will appear here when detected.</div>`;
   }catch{
     document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load AI apps. Is CoworkGuard running?</div>`;
   }

@@ -829,6 +829,7 @@ def get_actors():
                         "actor_id": actor.actor_id,
                         "display_name": actor.display_name,
                         "pid": proc.info['pid'],
+                        "running": True,
                         "capabilities": actor.capabilities,
                         "risk": "low", "permissions": [],
                     })
