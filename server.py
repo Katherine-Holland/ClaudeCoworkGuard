@@ -575,7 +575,7 @@ def folder_check():
 # Simple in-memory rate limiter for /api/log-event
 _log_event_counts = {}  # {minute_str: count}
 
-ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING"}
+ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING", "AI_SESSION_STARTED"}
 LOG_EVENT_MAX_PER_MINUTE = 100
 
 
@@ -648,6 +648,10 @@ def log_event():
             entry["xhrWrapped"] = bool(event["xhrWrapped"])
         if "message" in event:
             entry["message"] = str(event["message"])[:256]
+        if "app_name" in event:
+            entry["app_name"] = str(event["app_name"])[:64]
+        if "app_id" in event:
+            entry["app_id"] = str(event["app_id"])[:64]
 
         # Write to daily audit log
         log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"

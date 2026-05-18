@@ -54,33 +54,95 @@ let sessionStats = {
 // ─────────────────────────────────────────────
 // Session detection
 // ─────────────────────────────────────────────
-const AI_SESSION_URLS = [
-  "claude.ai", "cowork",
-  "chat.openai.com", "chatgpt.com",
-  "perplexity.ai",
-  "gemini.google.com",
-  "cursor.sh",
-  "github.com/copilot",
-  "mistral.ai",
-  "groq.com",
+
+// Maps a URL fragment to a human-readable app name for dashboard logging.
+// Order matters — more specific entries first.
+const AI_SESSION_APPS = [
+  { match: "claude.ai",              name: "Claude",         id: "claude_web" },
+  { match: "chat.openai.com",        name: "ChatGPT",        id: "chatgpt" },
+  { match: "chatgpt.com",            name: "ChatGPT",        id: "chatgpt" },
+  { match: "gemini.google.com",      name: "Gemini",         id: "gemini" },
+  { match: "perplexity.ai",          name: "Perplexity",     id: "perplexity" },
+  { match: "github.com/copilot",     name: "GitHub Copilot", id: "copilot_web" },
+  { match: "copilot.microsoft.com",  name: "Microsoft Copilot", id: "ms_copilot" },
+  { match: "mistral.ai",             name: "Mistral Le Chat", id: "mistral_web" },
+  { match: "groq.com",               name: "Groq",           id: "groq_web" },
+  { match: "poe.com",                name: "Poe",            id: "poe" },
+  { match: "character.ai",           name: "Character.AI",   id: "character_ai" },
+  { match: "coze.com",               name: "Coze",           id: "coze" },
+  { match: "huggingface.co/chat",    name: "HuggingChat",    id: "huggingchat" },
+  { match: "you.com",                name: "You.com",        id: "you_com" },
+  { match: "phind.com",              name: "Phind",          id: "phind" },
+  { match: "cursor.sh",              name: "Cursor",         id: "cursor_web" },
+  { match: "cowork",                 name: "CoworkGuard",    id: "coworkguard" },
 ];
+
+const AI_SESSION_URLS = AI_SESSION_APPS.map(a => a.match);
+
+// Track which app IDs have already been logged this session to avoid
+// flooding the dashboard with repeated SESSION_STARTED events.
+const _loggedSessions = new Set();
+
+function matchSessionApp(url) {
+  if (!url) return null;
+  return AI_SESSION_APPS.find(a => url.includes(a.match)) || null;
+}
 
 async function detectClaudeSession() {
   try {
     const tabs = await chrome.tabs.query({});
-    const claudeTab = tabs.find(t =>
-      AI_SESSION_URLS.some(u => t.url?.includes(u)) ||
-      t.title?.toLowerCase().includes("claude") ||
-      t.title?.toLowerCase().includes("chatgpt") ||
-      t.title?.toLowerCase().includes("copilot")
-    );
-    claudeSessionActive = !!claudeTab;
+    const activeApps = new Map(); // id -> app entry, deduped
+    for (const t of tabs) {
+      const app = matchSessionApp(t.url);
+      if (app && !activeApps.has(app.id)) {
+        activeApps.set(app.id, app);
+      }
+    }
+    claudeSessionActive = activeApps.size > 0;
     chrome.storage.local.set({ claudeSessionActive, sessionStats });
     updateIcon();
+    return activeApps;
   } catch (e) {
     console.error("[CoworkGuard] Detection error:", e);
+    return new Map();
   }
 }
+
+// Log a SESSION_STARTED event the first time each AI web app tab is opened.
+// Fires from onUpdated so it captures the moment the tab loads, not just polls.
+async function logSessionStarted(url) {
+  const app = matchSessionApp(url);
+  if (!app || _loggedSessions.has(app.id)) return;
+  _loggedSessions.add(app.id);
+  const event = {
+    type:      "AI_SESSION_STARTED",
+    severity:  "LOW",
+    action:    "FLAGGED",
+    source:    "chrome_extension",
+    app_name:  app.name,
+    app_id:    app.id,
+    url,
+    timestamp: new Date().toISOString(),
+    message:   `${app.name} session opened in browser`,
+  };
+  logEvent(event);
+  fetch("http://localhost:7070/api/log-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...event, finding_count: 1, findings: [{ type: "AI_SESSION_STARTED", severity: "LOW", preview: `${app.name} opened`, blocked: false }] }),
+    signal: AbortSignal.timeout(2000),
+  }).catch(() => {});
+}
+
+// Clear logged session IDs when all tabs for that app are closed so the
+// next time the user opens it they get a fresh log entry.
+chrome.tabs.onRemoved.addListener(async () => {
+  const tabs = await chrome.tabs.query({});
+  const stillOpen = new Set(tabs.map(t => matchSessionApp(t.url)?.id).filter(Boolean));
+  for (const id of _loggedSessions) {
+    if (!stillOpen.has(id)) _loggedSessions.delete(id);
+  }
+});
 
 // ─────────────────────────────────────────────
 // Icon state
@@ -118,6 +180,8 @@ function isSensitiveDomain(url) {
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
+  // Log when a new AI web app tab finishes loading
+  await logSessionStarted(tab.url);
   await detectClaudeSession();
   if (!claudeSessionActive) return;
   const matched = isSensitiveDomain(tab.url);

@@ -1161,6 +1161,208 @@
       },
       "detection_notes": {},
       "notes": "Local AI model runner with clean UI. Supports Ollama models and direct GGUF downloads."
+    },
+    {
+      "actor_id": "perplexity_app",
+      "display_name": "Perplexity",
+      "bundle_ids": ["ai.perplexity.mac"],
+      "process_names": ["Perplexity"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Perplexity"],
+      "model_paths": [],
+      "capabilities": ["network_access", "web_search", "file_read"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Perplexity sent data to its cloud service.",
+        "FILE_READ": "Perplexity read a file from your Mac."
+      },
+      "notes": "AI search assistant with web access. macOS desktop app."
+    },
+    {
+      "actor_id": "poe_app",
+      "display_name": "Poe",
+      "bundle_ids": ["com.quora.poe"],
+      "process_names": ["Poe"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Poe"],
+      "model_paths": [],
+      "capabilities": ["network_access", "multi_model_access"],
+      "risk_events": ["SENSITIVE_DATA_SENT"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Poe sent data to its cloud service."
+      },
+      "notes": "Multi-model AI chat app by Quora. Provides access to GPT-4, Claude, Gemini and others."
+    },
+    {
+      "actor_id": "notion_app",
+      "display_name": "Notion",
+      "bundle_ids": ["notion.id"],
+      "process_names": ["Notion"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Notion"],
+      "model_paths": [],
+      "capabilities": ["network_access", "file_read", "ai_writing"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Notion AI sent workspace content to its cloud service.",
+        "FILE_READ": "Notion read a file from your Mac."
+      },
+      "notes": "Productivity app with built-in Notion AI writing and summarisation features."
+    },
+    {
+      "actor_id": "grammarly",
+      "display_name": "Grammarly",
+      "bundle_ids": ["com.grammarly.ProjectLlama"],
+      "process_names": ["Grammarly", "Grammarly Desktop"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Grammarly"],
+      "model_paths": [],
+      "capabilities": ["network_access", "clipboard_read", "accessibility_api", "ai_writing"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "CLIPBOARD_READ"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "CLIPBOARD_READ": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 60},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Grammarly sent text to its cloud service for analysis.",
+        "CLIPBOARD_READ": "Grammarly read your clipboard — it monitors text as you type via the Accessibility API."
+      },
+      "notes": "AI writing assistant. Uses macOS Accessibility API to read text across all apps — high data exposure risk."
+    },
+    {
+      "actor_id": "replit",
+      "display_name": "Replit",
+      "bundle_ids": ["com.replit.app"],
+      "process_names": ["Replit"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Replit"],
+      "model_paths": [],
+      "capabilities": ["network_access", "file_read", "code_execution", "ai_coding"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ", "CODE_EXECUTED"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify", "CODE_EXECUTED": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Replit sent code or data to its cloud service.",
+        "FILE_READ": "Replit read a file from your Mac.",
+        "CODE_EXECUTED": "Replit executed code on your machine."
+      },
+      "notes": "AI coding platform with autonomous agent (Replit Agent) that can read files and run code."
+    },
+    {
+      "actor_id": "superwhisper",
+      "display_name": "Superwhisper",
+      "bundle_ids": ["com.superwhisper.app"],
+      "process_names": ["Superwhisper"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Superwhisper"],
+      "model_paths": [
+        "~/Library/Application Support/Superwhisper/models/**/*.bin",
+        "~/Library/Application Support/Superwhisper/models/**/*.gguf"
+      ],
+      "capabilities": ["microphone_access", "local_model_inference", "clipboard_write", "network_access"],
+      "risk_events": ["AUDIO_RECORDED", "SENSITIVE_DATA_SENT"],
+      "default_policy": {"AUDIO_RECORDED": "notify", "SENSITIVE_DATA_SENT": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 60},
+      "explanations": {
+        "AUDIO_RECORDED": "Superwhisper is recording audio for transcription.",
+        "SENSITIVE_DATA_SENT": "Superwhisper sent audio or text to a cloud transcription service."
+      },
+      "notes": "Voice-to-text app using Whisper. Can run locally or send audio to OpenAI's API."
+    },
+    {
+      "actor_id": "copilot_app",
+      "display_name": "Microsoft Copilot",
+      "bundle_ids": ["com.microsoft.Copilot"],
+      "process_names": ["Microsoft Copilot", "Copilot"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Microsoft Copilot"],
+      "model_paths": [],
+      "capabilities": ["network_access", "file_read", "ai_assistant"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Microsoft Copilot sent data to Microsoft's cloud service.",
+        "FILE_READ": "Microsoft Copilot read a file from your Mac."
+      },
+      "notes": "Microsoft's AI assistant app. Powered by GPT-4 and integrated with Microsoft 365."
+    },
+    {
+      "actor_id": "gemini_app",
+      "display_name": "Gemini",
+      "bundle_ids": ["com.google.Gemini"],
+      "process_names": ["Gemini"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/Gemini"],
+      "model_paths": [],
+      "capabilities": ["network_access", "file_read", "ai_assistant", "google_workspace_access"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "Gemini sent data to Google's cloud service.",
+        "FILE_READ": "Gemini read a file from your Mac."
+      },
+      "notes": "Google's AI assistant desktop app. May have access to Google Workspace data."
+    },
+    {
+      "actor_id": "chatgpt_app",
+      "display_name": "ChatGPT",
+      "bundle_ids": ["com.openai.chat"],
+      "process_names": ["ChatGPT"],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": ["~/Library/Application Support/ChatGPT"],
+      "model_paths": [],
+      "capabilities": ["network_access", "file_read", "code_execution", "ai_assistant", "computer_use"],
+      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ", "CODE_EXECUTED"],
+      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify", "CODE_EXECUTED": "notify"},
+      "consent_required": {"visibility": false, "enforcement": false},
+      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "explanations": {
+        "SENSITIVE_DATA_SENT": "ChatGPT sent data to OpenAI's cloud service.",
+        "FILE_READ": "ChatGPT read a file from your Mac.",
+        "CODE_EXECUTED": "ChatGPT executed code on your machine via the Advanced Data Analysis tool."
+      },
+      "notes": "OpenAI's ChatGPT desktop app. Supports file uploads, code execution, and operator-defined computer use."
     }
   ],
   "sensitive_bundles": [
