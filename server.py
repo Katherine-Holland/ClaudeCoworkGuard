@@ -876,7 +876,7 @@ def get_actors():
                 cmdline = ' '.join(proc.info.get('cmdline') or [])
 
                 # Skip macOS system XPC services and private frameworks
-                if 'XPCServices' in cmdline or 'PrivateFrameworks' in cmdline:
+                if any(x in cmdline for x in ('XPCServices','PrivateFrameworks','SafeBrowsing.Service','SafariPlatformSupport','SafariBookmarksSyncAgent','SafariNotificationAgent','SafariLaunchAgent','Safari.History')):
                     continue
 
                 # Skip helper/renderer subprocesses — these linger after the parent
