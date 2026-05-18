@@ -371,7 +371,13 @@ def get_domains():
             settings = load_settings()
             custom = settings.get("custom_blocked_domains", [])
             all_domains = list(set(data.get("sensitive_domains", []) + custom))
-            return jsonify({"sensitive_domains": all_domains})
+            ai_web_apps = data.get("ai_web_apps", [])
+            ai_api_domains = data.get("ai_api_domains", [])
+            return jsonify({
+                "sensitive_domains": all_domains,
+                "ai_web_apps": ai_web_apps,
+                "ai_api_domains": ai_api_domains
+            })
         except Exception:
             pass
     return jsonify({"sensitive_domains": []})
