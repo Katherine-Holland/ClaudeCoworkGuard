@@ -693,33 +693,6 @@ def dismiss_event():
                 existing = []
         if timestamp not in existing:
             existing.append(timestamp)
-        # Keep last 500 dismissed events
-        existing = existing[-500:]
-        dismissed_file.write_text(json.dumps(existing))
-        return jsonify({"ok": True})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-
-@app.route("/api/dismiss-event", methods=["POST"])
-def dismiss_event():
-    """Mark an event as reviewed — persists across poll cycles."""
-    data = request.get_json(force=True) or {}
-    timestamp = str(data.get("timestamp", ""))[:50]
-    if not timestamp:
-        return jsonify({"ok": False, "error": "no timestamp"}), 400
-    try:
-        dismissed_file = Path.home() / ".coworkguard" / "dismissed_events.json"
-        dismissed_file.parent.mkdir(parents=True, exist_ok=True)
-        existing = []
-        if dismissed_file.exists():
-            try:
-                existing = json.loads(dismissed_file.read_text())
-            except Exception:
-                existing = []
-        if timestamp not in existing:
-            existing.append(timestamp)
         existing = existing[-500:]
         dismissed_file.write_text(json.dumps(existing))
         return jsonify({"ok": True})
