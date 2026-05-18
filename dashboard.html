@@ -587,6 +587,9 @@ function isModelPath(p){
          (p.includes('.bin')&&(p.includes('model')||p.includes('blob')));
 }
 function dismissEvent(timestamp){
+  // Persist dismiss to server so it survives poll cycle
+  fetch(API+'/api/dismiss-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({timestamp})}).catch(()=>{});
+  // Update in memory immediately
   allEvents=allEvents.filter(e=>e.timestamp!==timestamp);
   const review=allEvents.filter(e=>kind(e)==='review').length;
   const prevented=allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;
@@ -596,6 +599,8 @@ function dismissEvent(timestamp){
   if(g('rs-review'))g('rs-review').textContent=review;
   if(g('rs-prevented'))g('rs-prevented').textContent=prevented;
   if(g('rs-total'))g('rs-total').textContent=allEvents.length;
+  if(g('ov-review'))g('ov-review').textContent=review;
+  if(g('ov-prevented'))g('ov-prevented').textContent=prevented;
   renderAllRows();
   renderRecent();
   toast('Marked as reviewed');
@@ -615,13 +620,7 @@ function toggleFileContent(btn,path){
     .then(d=>{if(d.ok){preview.innerHTML='<div style="margin-bottom:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7b8798">Triggering content:</div>'+d.lines.map(l=>`<div style="padding:1px 0;white-space:pre-wrap">${esc(l)}</div>`).join('');}else{preview.textContent='Could not read file — it may have been moved or deleted.';}})
     .catch(()=>{preview.textContent='Could not reach server.';});
 }
-function dismissEvent(timestamp){
-  // Remove from allEvents and re-render — cosmetic dismiss, stays in audit log
-  allEvents=allEvents.filter(e=>e.timestamp!==timestamp);
-  renderAllRows();
-  renderRecent();
-  toast('Marked as reviewed');
-}
+
 async function blockRequest(requestId){
   try{
     const r=await fetch(API+'/api/block-request/'+encodeURIComponent(requestId),{method:'POST'});

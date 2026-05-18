@@ -180,7 +180,14 @@ def detect_proxy():
 
 
 def read_logs(limit=200):
-    """Read all JSONL audit log files, newest entries first."""
+    """Read all JSONL audit log files, newest entries first. Excludes dismissed events."""
+    dismissed_file = Path.home() / ".coworkguard" / "dismissed_events.json"
+    dismissed = set()
+    if dismissed_file.exists():
+        try:
+            dismissed = set(json.loads(dismissed_file.read_text()))
+        except Exception:
+            pass
     entries = []
     log_files = sorted(LOG_DIR.glob("audit_*.jsonl"), reverse=True)
     for lf in log_files[:7]:  # Max last 7 days
@@ -199,6 +206,8 @@ def read_logs(limit=200):
                 break
         except Exception:
             pass
+    # Filter dismissed events
+    entries = [e for e in entries if e.get("timestamp","") not in dismissed]
     return entries[:limit]
 
 
@@ -665,6 +674,59 @@ def pending_requests():
 
 
 
+
+@app.route("/api/dismiss-event", methods=["POST"])
+def dismiss_event():
+    """Mark an event as reviewed — persists across poll cycles."""
+    data = request.get_json(force=True) or {}
+    timestamp = str(data.get("timestamp", ""))[:50]
+    if not timestamp:
+        return jsonify({"ok": False, "error": "no timestamp"}), 400
+    try:
+        dismissed_file = Path.home() / ".coworkguard" / "dismissed_events.json"
+        dismissed_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = []
+        if dismissed_file.exists():
+            try:
+                existing = json.loads(dismissed_file.read_text())
+            except Exception:
+                existing = []
+        if timestamp not in existing:
+            existing.append(timestamp)
+        # Keep last 500 dismissed events
+        existing = existing[-500:]
+        dismissed_file.write_text(json.dumps(existing))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+@app.route("/api/dismiss-event", methods=["POST"])
+def dismiss_event():
+    """Mark an event as reviewed — persists across poll cycles."""
+    data = request.get_json(force=True) or {}
+    timestamp = str(data.get("timestamp", ""))[:50]
+    if not timestamp:
+        return jsonify({"ok": False, "error": "no timestamp"}), 400
+    try:
+        dismissed_file = Path.home() / ".coworkguard" / "dismissed_events.json"
+        dismissed_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = []
+        if dismissed_file.exists():
+            try:
+                existing = json.loads(dismissed_file.read_text())
+            except Exception:
+                existing = []
+        if timestamp not in existing:
+            existing.append(timestamp)
+        existing = existing[-500:]
+        dismissed_file.write_text(json.dumps(existing))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/block-request/<request_id>", methods=["POST"])
 def block_request(request_id: str):
     """Immediately block a held request."""
@@ -814,9 +876,13 @@ def get_actors():
         return jsonify({"actors": [], "count": 0})
     try:
         running = []
-        for proc in psutil.process_iter(['pid', 'name']):
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 name = proc.info['name'] or ''
+                cmdline = ' '.join(proc.info.get('cmdline') or [])
+                # Skip macOS system XPC services and private frameworks
+                if 'XPCServices' in cmdline or 'PrivateFrameworks' in cmdline:
+                    continue
                 # Resolve parent name for MCP tool matching (python_mcp, node_mcp)
                 try:
                     parent = proc.parent()
