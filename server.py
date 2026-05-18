@@ -848,20 +848,57 @@ def get_actors():
     if not HAS_PSUTIL or not HAS_REGISTRY:
         return jsonify({"actors": [], "count": 0})
     try:
+        # Clear psutil's process cache so we get a fresh snapshot, not stale data
+        # from a previous poll cycle where a process may have just quit.
+        psutil._pmap = {}
+
         running = []
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'status']):
             try:
+                # Skip zombie/dead processes — these are processes that have exited
+                # but haven't been reaped yet. They show up in the process list but
+                # are no longer running.
+                status = proc.info.get('status', '')
+                if status in (psutil.STATUS_ZOMBIE, psutil.STATUS_DEAD):
+                    continue
+
                 name = proc.info['name'] or ''
                 cmdline = ' '.join(proc.info.get('cmdline') or [])
+
                 # Skip macOS system XPC services and private frameworks
                 if 'XPCServices' in cmdline or 'PrivateFrameworks' in cmdline:
                     continue
+
+                # Skip helper/renderer subprocesses — these linger after the parent
+                # app quits and cause false positives (e.g. "Safari Web Content"
+                # persisting after Safari is closed). Only match the main process
+                # by requiring the process to either be a session leader or have a
+                # parent that is also a matched actor or launchd (pid 1).
+                is_helper = any(s in name for s in (
+                    'Web Content', 'Helper', 'Renderer', 'GPU Process',
+                    'Network', 'Plugin', 'Extension', 'crashpad',
+                ))
+                if is_helper:
+                    try:
+                        parent = proc.parent()
+                        if parent is None or parent.pid == 1:
+                            # Orphaned helper with no real parent — skip
+                            continue
+                        parent_name = parent.name() or ''
+                        # Only keep helper if its parent is itself a matched actor
+                        parent_actor = _registry.match_process(name=parent_name)
+                        if not parent_actor:
+                            continue
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+
                 # Resolve parent name for MCP tool matching (python_mcp, node_mcp)
                 try:
                     parent = proc.parent()
                     parent_name = parent.name() if parent else None
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     parent_name = None
+
                 actor = _registry.match_process(name=name, parent_actor_id=parent_name)
                 if actor:
                     running.append({
@@ -874,6 +911,7 @@ def get_actors():
                     })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
+
         seen = set()
         deduped = [a for a in running if not (a['actor_id'] in seen or seen.add(a['actor_id']))]
         return jsonify({"actors": deduped, "count": len(deduped)})

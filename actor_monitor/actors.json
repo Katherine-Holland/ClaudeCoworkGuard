@@ -734,8 +734,7 @@
         "com.apple.Safari"
       ],
       "process_names": [
-        "Safari",
-        "Safari Web Content"
+        "Safari"
       ],
       "requires_parent_match": false,
       "watch_paths": [
