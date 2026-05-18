@@ -483,12 +483,15 @@ function getEventInfo(e){
 function toggleTechDetails(el){const s=el.nextElementSibling;s.classList.toggle('open');el.querySelector('span').textContent=s.classList.contains('open')?'▼':'▶'}
 
 async function clearClipboardAction(){
-  try{await navigator.clipboard.writeText('');}catch(e){
-    const ta=document.createElement('textarea');ta.value='';
-    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  const msg='CoworkGuard cleared this clipboard entry';
+  try{
+    await navigator.clipboard.writeText(msg);
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=msg;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
   }
   toast('Clipboard cleared');
-  // Dismiss the event from the dashboard
   if(selectedEvent)dismissEvent(selectedEvent.timestamp);
   closeEventModal();
 }
@@ -544,6 +547,7 @@ function selectEvent(e,scroll=true){
     ${findings.length?`<div>${findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px"><span style="display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:${f.severity==='CRITICAL'?'rgba(239,68,68,.1)':f.severity==='HIGH'?'rgba(255,138,0,.1)':'rgba(0,0,0,.05)'};color:${f.severity==='CRITICAL'?'#c0392b':f.severity==='HIGH'?'#b45309':'#536176'};border:1px solid ${f.severity==='CRITICAL'?'rgba(239,68,68,.2)':f.severity==='HIGH'?'rgba(255,138,0,.2)':'var(--line)'}">${esc(f.severity)}</span><span style="font-weight:600;color:#1e293b;min-width:140px">${friendlyFinding(esc(f.type||''))}</span><span style="color:#536176;font-family:var(--mono);font-size:11px">${esc(f.preview||f.match_preview||'')}</span>${f.blocked&&a!=='PENDING'?'<span style="font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto">BLOCKED</span>':f.blocked?'<span style="font-size:10px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);padding:2px 8px;border-radius:6px;margin-left:auto">DETECTED</span>':''}</div>`).join('')}</div>`:''}
   `;
 
+  const isReviewable=e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING';
   const actionBtns=isPending&&e.request_id?`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#166534" onclick="allowRequest('${e.request_id}');closeEventModal()">Allow Once</button>
@@ -569,9 +573,7 @@ function selectEvent(e,scroll=true){
     </div>
     <div style="display:none">${techMeta}</div>
     ${actionBtns}
-    ${(e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING')?`
-    <button onclick="dismissEvent('${e.timestamp}');closeEventModal()" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;font:500 12px var(--font);cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted)">Mark as reviewed</button>
-    `:''}`;
+`;
 
   document.getElementById('event-modal-body').innerHTML=content;
   document.getElementById('event-modal-overlay').classList.add('open');
@@ -585,11 +587,15 @@ function isModelPath(p){
          (p.includes('.bin')&&(p.includes('model')||p.includes('blob')));
 }
 function dismissEvent(timestamp){
-  // Remove from allEvents so it disappears from dashboard
   allEvents=allEvents.filter(e=>e.timestamp!==timestamp);
   const review=allEvents.filter(e=>kind(e)==='review').length;
-  const el=document.getElementById('m-review');
-  if(el)el.textContent=review;
+  const prevented=allEvents.filter(e=>kind(e)==='blocked'||kind(e)==='critical').length;
+  const g=id=>document.getElementById(id);
+  if(g('m-review'))g('m-review').textContent=review;
+  if(g('m-prevented'))g('m-prevented').textContent=prevented;
+  if(g('rs-review'))g('rs-review').textContent=review;
+  if(g('rs-prevented'))g('rs-prevented').textContent=prevented;
+  if(g('rs-total'))g('rs-total').textContent=allEvents.length;
   renderAllRows();
   renderRecent();
   toast('Marked as reviewed');
