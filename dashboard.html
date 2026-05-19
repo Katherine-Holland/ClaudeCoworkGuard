@@ -162,19 +162,19 @@ function buildCorrelations(events){
   const sequences = [];
 
   // Find sensitive events, then look for outbound events within 30s with matching actor
+  // Sensitive = anything with findings, or a known warning/detection type
   const sensitiveEvents = sorted.filter(e =>
-    SENSITIVE_EVENT_TYPES.has(e.type) || (e.findings||[]).some(f=>f.blocked)
+    SENSITIVE_EVENT_TYPES.has(e.type) || (e.findings||[]).length > 0
   );
-  const outboundEvents = sorted.filter(e =>
-    e.type==='API_REQUEST' && e.action!=='PENDING' && e.action!=='BLOCKED'
-  );
+  // Outbound = any API request, regardless of outcome
+  const outboundEvents = sorted.filter(e => e.type==='API_REQUEST');
 
   sensitiveEvents.forEach(sens => {
     const sensTs = new Date(sens.timestamp||0).getTime();
-    // Find outbound events within 30s after this sensitive event
+    // Find outbound events within 60s window — before or after
     const matching = outboundEvents.filter(out => {
       const outTs = new Date(out.timestamp||0).getTime();
-      return outTs >= sensTs && outTs - sensTs <= 30000;
+      return Math.abs(outTs - sensTs) <= 60000 && out.timestamp !== sens.timestamp;
     });
 
     matching.forEach(out => {
