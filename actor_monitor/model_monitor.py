@@ -52,7 +52,7 @@ SETTINGS_FILE = Path.home() / ".coworkguard" / "settings.json"
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-POLL_INTERVAL = 60          # seconds between full scans
+POLL_INTERVAL = 5           # seconds between full scans — fast detection
 MIN_MODEL_SIZE_MB = 50      # ignore files smaller than this — avoid noise
 LARGE_MODEL_SIZE_MB = 500   # flag files larger than this as notable
 
@@ -139,10 +139,10 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
 
                 size_mb = _file_size_mb(match)
                 # Skip Ollama partial download temp files
-                if '-partial' in str(path) or path.suffix in ('.part', '.tmp', '.download'):
+                if path.suffix in ('.part', '.tmp', '.download'):
                     continue
-                if size_mb < MIN_MODEL_SIZE_MB:
-                    continue  # too small to be a model
+                # Alert immediately on any new file — even during download
+                # This catches downloads in progress, not just completed models  # too small to be a model
 
                 found.append({
                     "path": str(match),
@@ -210,6 +210,14 @@ def _write_log(event_type: str, actor_id: str, actor_name: str,
 # ─────────────────────────────────────────────
 # Event handling
 # ─────────────────────────────────────────────
+
+def _handle_downloading_model(actor_id: str, actor_name: str, path: str,
+                               size_mb: float, prev_size_mb: float) -> None:
+    """Fire when a model file is actively growing — download in progress."""
+    log.info("LOCAL_MODEL_DOWNLOADING [%s] %s (%.1f MB, was %.1f MB)",
+             actor_name, path, size_mb, prev_size_mb)
+    _write_log("LOCAL_MODEL_DOWNLOADING", actor_id, actor_name, path, size_mb, "HIGH")
+
 
 def _handle_new_model(actor: Actor, path: str, size_mb: float,
                       registry: ActorRegistry) -> None:
