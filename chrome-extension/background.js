@@ -397,6 +397,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // Init
 // ─────────────────────────────────────────────
 loadDomains();
+
+// Session heartbeat — report currently open AI tabs to dashboard every 5s
+async function reportOpenSessions(){
+  try{
+    const tabs=await chrome.tabs.query({});
+    const seen=new Map();
+    for(const tab of tabs){
+      if(!tab.url)continue;
+      const app=matchSessionApp(tab.url);
+      if(app&&!seen.has(app.id)){
+        seen.set(app.id,{id:app.id,name:app.name,url:app.match});
+      }
+    }
+    await fetch('http://localhost:7070/api/sessions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({open_apps:[...seen.values()]})
+    });
+  }catch(e){}
+}
+setInterval(reportOpenSessions,5000);
+reportOpenSessions();
 // On startup, log sessions for any AI web app tabs already open
 (async () => {
   try {

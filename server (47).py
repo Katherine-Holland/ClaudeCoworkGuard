@@ -853,6 +853,49 @@ def allow_download():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
+# In-memory session state — updated by Chrome extension
+_active_sessions: dict = {}  # app_id -> {name, url, last_seen}
+
+@app.route("/api/sessions", methods=["GET"])
+def get_sessions():
+    """Return currently open AI browser sessions."""
+    import time
+    now = time.time()
+    # Sessions are considered active if seen within last 15 seconds
+    sessions = []
+    for app_id, info in sorted(_active_sessions.items(), key=lambda x: x[1].get("name","")):
+        active = (now - info.get("last_seen", 0)) < 15
+        sessions.append({
+            "app_id": app_id,
+            "name": info.get("name", app_id),
+            "url": info.get("url", ""),
+            "active": active
+        })
+    # Only show active ones
+    sessions = [s for s in sessions if s["active"]]
+    return jsonify({"sessions": sessions})
+
+
+@app.route("/api/sessions", methods=["POST"])
+def update_sessions():
+    """Called by Chrome extension every 5s with currently open AI tabs."""
+    import time
+    data = request.get_json(force=True) or {}
+    open_apps = data.get("open_apps", [])
+    now = time.time()
+    # Update last_seen for open apps
+    for app in open_apps:
+        app_id = str(app.get("id", ""))[:50]
+        if app_id:
+            _active_sessions[app_id] = {
+                "name": str(app.get("name", app_id))[:50],
+                "url": str(app.get("url", ""))[:100],
+                "last_seen": now
+            }
+    return jsonify({"ok": True})
+
+
 @app.route("/api/dismiss-event", methods=["POST"])
 def dismiss_event():
     """Mark an event as reviewed — persists across poll cycles."""
