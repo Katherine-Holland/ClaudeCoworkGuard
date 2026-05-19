@@ -60,6 +60,7 @@
 .clear-clipboard-btn:hover{background:rgba(34,197,94,.14)}
 @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}.tip{margin-top:16px;border:1px solid rgba(10,132,255,.18);background:rgba(10,132,255,.055);border-radius:14px;padding:13px 16px;color:#344258;font-size:13px}.empty{padding:38px;text-align:center;color:var(--sub)}@media(max-width:1180px){.layout{grid-template-columns:1fr}.detail{position:relative;top:0}.metrics,.cards3{grid-template-columns:repeat(2,1fr)}}@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.main{padding:24px 16px}.metrics,.cards3{grid-template-columns:1fr}.row,.thead{grid-template-columns:72px 1fr 110px}.row .target,.thead span:nth-child(4),.row span:nth-child(4),.thead span:nth-child(6),.row span:nth-child(6){display:none}}
 </style>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer onerror="console.warn('[CoworkGuard] Phosphor icons unavailable — offline mode')"></script>
 </head>
 <body>
 <div class="app">
@@ -174,7 +175,7 @@
     </div>
   </div>
 </section>
-    <section id="view-actors" class="view"><div class="top"><div><div class="headline"><h2>AI Apps & Tools</h2></div><p>Detected local AI actors, agents, tools and model runtimes.</p></div><button class="btn" onclick="loadActors();loadAgentGuard();toast('Refreshing...')">Refresh</button></div><div class="actor-grid" id="actor-grid"></div></section>
+    <section id="view-actors" class="view"><div class="top"><div><div class="headline"><h2>AI Apps & Tools</h2></div><p>Detected local AI actors, agents, tools and model runtimes.</p></div><button class="btn" onclick="if(typeof loadActors==='function')loadActors();if(typeof loadAgentGuard==='function')loadAgentGuard();toast('Refreshing...')">Refresh</button></div><div class="actor-grid" id="actor-grid"></div></section>
     <section id="view-sensitive" class="view">
   <div class="top"><div><div class="headline"><h2>Sensitive Apps</h2></div><p>CoworkGuard watches these apps. If an AI tool accesses one of them, you will be notified.</p></div></div>
   <div style="background:rgba(10,132,255,.06);border:1px solid rgba(10,132,255,.15);border-radius:14px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#344258;line-height:1.6">
@@ -375,7 +376,18 @@ const API='http://localhost:7070';
 (function(){const h=new Date().getHours();const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';const el=document.getElementById('greeting-text');if(el)el.textContent=g;})();let allEvents=[],selectedEvent=null,serverAvailable=false;
 const SENSITIVE=[['1Password','CRITICAL'],['Keychain Access','CRITICAL'],['Apple Mail','HIGH'],['Messages','HIGH'],['Notes','HIGH'],['Outlook','HIGH'],['Slack','HIGH'],['WhatsApp','HIGH'],['Terminal','HIGH'],['Safari','MEDIUM'],['Chrome','MEDIUM']];
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
-function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();if(name==='settings')loadSettingsIntoForm();if(name==='skills')loadSkillScans();if(name==='actors')loadAgentGuard();}
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name)?.classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  const call=(fn)=>{if(typeof fn==='function')fn();};
+  if(name==='actors')  {call(loadActors);call(loadAgentGuard);}
+  if(name==='activity') call(renderAllRows);
+  if(name==='network')  call(renderNetwork);
+  if(name==='sensitive')call(renderSensitive);
+  if(name==='settings') call(loadSettingsIntoForm);
+  if(name==='skills')   call(loadSkillScans);
+}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.viewLink)}));
 function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='LOCAL_MODEL_DOWNLOADING')return 'review';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED'||hasBlocked)return 'blocked';if(a==='FLAGGED'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';return 'allowed'}
 function appName(e){return e.actor_name||e.actor||e.app||e.process||e.source_process||guessActor(e)||'CoworkGuard'}
@@ -660,88 +672,32 @@ async function stopDownload(actorId, filePath, timestamp){
     const d=await r.json();
     if(d.ok){
       toast('Download stopped');
-      if(timestamp) dismissEvent(timestamp);
+      // Update event status in memory — show as Prevented not dismissed
+      if(timestamp){
+        const ev=allEvents.find(e=>e.timestamp===timestamp);
+        if(ev){ev.action='BLOCKED';ev.type='LOCAL_MODEL_DOWNLOADED';}
+      }
       closeEventModal();
-      await fetchAll();
-
-async function updateLiveSessions(){
-  try{
-    const r=await fetch(API+'/api/sessions');
-    const d=await r.json();
-    const el=document.getElementById('live-sessions');
-    if(!el)return;
-    const sessions=d.sessions||[];
-    if(!sessions.length){
-      el.innerHTML='<span style="font-size:13px;color:var(--sub)">No AI web apps currently open</span>';
-      return;
+      renderAllRows();
+      renderRecent();
     }
-    el.innerHTML=sessions.map(s=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:${s.active?'rgba(34,197,94,.08)':'rgba(0,0,0,.04)'};border:1px solid ${s.active?'rgba(34,197,94,.2)':'var(--line)'};border-radius:100px;font-size:13px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${s.active?'#22c55e':'#94a3b8'};flex-shrink:0"></span>
-        <span style="font-weight:500;color:${s.active?'#166534':'var(--sub)'}">${esc(s.name)}</span>
-      </div>`).join('');
-  }catch(e){}
+  }catch(e){toast('Could not stop download',true);}
 }
-updateLiveSessions();
-setInterval(updateLiveSessions,5000);
-async function updateAppsMonitored(){
-  try{
-    const r=await fetch(API+'/api/actors');
-    const d=await r.json();
-    const el=document.getElementById('m-apps');
-    if(el)el.textContent=d.count||d.actors?.length||'0';
-  }catch(e){}
-}
-updateAppsMonitored();
-setInterval(updateAppsMonitored,10000);}
-    else toast(d.error||'Could not stop download',true);
-  }catch{toast('Make sure CoworkGuard is running',true);}
-}
+
 
 async function allowDownloadOnce(actorId, timestamp, filePath){
-  try{
-    const body={};
-    if(filePath)  body.path=filePath;
-    if(timestamp) body.timestamp=timestamp;
-    await fetch(API+'/api/allow-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    closeEventModal();
-    await fetchAll();
-
-async function updateLiveSessions(){
-  try{
-    const r=await fetch(API+'/api/sessions');
-    const d=await r.json();
-    const el=document.getElementById('live-sessions');
-    if(!el)return;
-    const sessions=d.sessions||[];
-    if(!sessions.length){
-      el.innerHTML='<span style="font-size:13px;color:var(--sub)">No AI web apps currently open</span>';
-      return;
-    }
-    el.innerHTML=sessions.map(s=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:${s.active?'rgba(34,197,94,.08)':'rgba(0,0,0,.04)'};border:1px solid ${s.active?'rgba(34,197,94,.2)':'var(--line)'};border-radius:100px;font-size:13px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${s.active?'#22c55e':'#94a3b8'};flex-shrink:0"></span>
-        <span style="font-weight:500;color:${s.active?'#166534':'var(--sub)'}">${esc(s.name)}</span>
-      </div>`).join('');
-  }catch(e){}
-}
-updateLiveSessions();
-setInterval(updateLiveSessions,5000);
-async function updateAppsMonitored(){
-  try{
-    const r=await fetch(API+'/api/actors');
-    const d=await r.json();
-    const el=document.getElementById('m-apps');
-    if(el)el.textContent=d.count||d.actors?.length||'0';
-  }catch(e){}
-}
-updateAppsMonitored();
-setInterval(updateAppsMonitored,10000);
-    toast('Download allowed — you will not be alerted for this file again');
-  }catch{
-    toast('Could not reach server',true);
+  // Update event status to Allowed — keep in log for reference
+  if(timestamp){
+    const ev=allEvents.find(e=>e.timestamp===timestamp);
+    if(ev){ev.action='ALLOWED';ev.type='LOCAL_MODEL_DOWNLOADED';}
   }
+  closeEventModal();
+  renderAllRows();
+  renderRecent();
+  toast('Download allowed — you will be alerted again next time');
 }
+
+
 
 function viewRawLog(){
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -754,15 +710,7 @@ function viewRawLog(){
     alert(msg);
   }).catch(()=>alert('Log files are at:\n~/.coworkguard/logs/\n\nOpen Terminal and run:\nls ~/.coworkguard/logs/'));
 }
-function viewRawLog(){
-  fetch(API+'/api/status').then(r=>r.json()).then(d=>{
-    const path=d.log_file||'~/.coworkguard/logs/';
-    const dir=path.replace(/[^/]+$/,'');
-    alert('Your complete audit log is saved at:\n\n' + dir + '\n\nAll events are stored here permanently, even after you mark them as reviewed in the dashboard.\n\nTo view in Terminal:\ncat ' + dir + 'audit_*.jsonl');
-  }).catch(()=>{
-    alert('Your complete audit log is at:\n\n~/.coworkguard/logs/\n\nAll events are stored here permanently.\n\nTo view in Terminal:\ncat ~/.coworkguard/logs/audit_*.jsonl');
-  });
-}
+
 function openBrowserSettings(actorId){
   const urls={
     chrome:'googlechrome://settings/ai',
@@ -798,40 +746,8 @@ async function blockRequest(requestId){
   try{
     const r=await fetch(API+'/api/block-request/'+encodeURIComponent(requestId),{method:'POST'});
     const d=await r.json();
-    if(d.ok){toast('Request blocked immediately');fetchAll();
-
-async function updateLiveSessions(){
-  try{
-    const r=await fetch(API+'/api/sessions');
-    const d=await r.json();
-    const el=document.getElementById('live-sessions');
-    if(!el)return;
-    const sessions=d.sessions||[];
-    if(!sessions.length){
-      el.innerHTML='<span style="font-size:13px;color:var(--sub)">No AI web apps currently open</span>';
-      return;
-    }
-    el.innerHTML=sessions.map(s=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:${s.active?'rgba(34,197,94,.08)':'rgba(0,0,0,.04)'};border:1px solid ${s.active?'rgba(34,197,94,.2)':'var(--line)'};border-radius:100px;font-size:13px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${s.active?'#22c55e':'#94a3b8'};flex-shrink:0"></span>
-        <span style="font-weight:500;color:${s.active?'#166534':'var(--sub)'}">${esc(s.name)}</span>
-      </div>`).join('');
-  }catch(e){}
-}
-updateLiveSessions();
-setInterval(updateLiveSessions,5000);
-async function updateAppsMonitored(){
-  try{
-    const r=await fetch(API+'/api/actors');
-    const d=await r.json();
-    const el=document.getElementById('m-apps');
-    if(el)el.textContent=d.count||d.actors?.length||'0';
-  }catch(e){}
-}
-updateAppsMonitored();
-setInterval(updateAppsMonitored,10000);}
-    else toast('Could not block request',true);
-  }catch{toast('Make sure CoworkGuard is running',true);}
+    if(d.ok){toast('Request blocked immediately');fetchAll();}
+  }catch(e){toast('Could not block request',true);}
 }
 async function allowRequest(requestId){
   try{
@@ -839,71 +755,9 @@ async function allowRequest(requestId){
     const d=await r.json();
     if(d.ok){toast('Request allowed — sending now');fetchAll();
 
-async function updateLiveSessions(){
-  try{
-    const r=await fetch(API+'/api/sessions');
-    const d=await r.json();
-    const el=document.getElementById('live-sessions');
-    if(!el)return;
-    const sessions=d.sessions||[];
-    if(!sessions.length){
-      el.innerHTML='<span style="font-size:13px;color:var(--sub)">No AI web apps currently open</span>';
-      return;
-    }
-    el.innerHTML=sessions.map(s=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:${s.active?'rgba(34,197,94,.08)':'rgba(0,0,0,.04)'};border:1px solid ${s.active?'rgba(34,197,94,.2)':'var(--line)'};border-radius:100px;font-size:13px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${s.active?'#22c55e':'#94a3b8'};flex-shrink:0"></span>
-        <span style="font-weight:500;color:${s.active?'#166534':'var(--sub)'}">${esc(s.name)}</span>
-      </div>`).join('');
-  }catch(e){}
-}
-updateLiveSessions();
-setInterval(updateLiveSessions,5000);
-async function updateAppsMonitored(){
-  try{
-    const r=await fetch(API+'/api/actors');
-    const d=await r.json();
-    const el=document.getElementById('m-apps');
-    if(el)el.textContent=d.count||d.actors?.length||'0';
-  }catch(e){}
-}
-updateAppsMonitored();
-setInterval(updateAppsMonitored,10000);}
-    else if(r.status===404){toast('Request already processed');fetchAll();
 
-async function updateLiveSessions(){
-  try{
-    const r=await fetch(API+'/api/sessions');
-    const d=await r.json();
-    const el=document.getElementById('live-sessions');
-    if(!el)return;
-    const sessions=d.sessions||[];
-    if(!sessions.length){
-      el.innerHTML='<span style="font-size:13px;color:var(--sub)">No AI web apps currently open</span>';
-      return;
-    }
-    el.innerHTML=sessions.map(s=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:${s.active?'rgba(34,197,94,.08)':'rgba(0,0,0,.04)'};border:1px solid ${s.active?'rgba(34,197,94,.2)':'var(--line)'};border-radius:100px;font-size:13px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${s.active?'#22c55e':'#94a3b8'};flex-shrink:0"></span>
-        <span style="font-weight:500;color:${s.active?'#166534':'var(--sub)'}">${esc(s.name)}</span>
-      </div>`).join('');
-  }catch(e){}
-}
-updateLiveSessions();
-setInterval(updateLiveSessions,5000);
-async function updateAppsMonitored(){
-  try{
-    const r=await fetch(API+'/api/actors');
-    const d=await r.json();
-    const el=document.getElementById('m-apps');
-    if(el)el.textContent=d.count||d.actors?.length||'0';
-  }catch(e){}
-}
-updateAppsMonitored();
-setInterval(updateAppsMonitored,10000);}
-    else toast('Could not allow request',true);
-  }catch{toast('Make sure CoworkGuard is running',true);}
-}
+
+
 function closeEventModal(ev){if(!ev||ev.target===document.getElementById('event-modal-overlay'))document.getElementById('event-modal-overlay').classList.remove('open')}
 function explainEvent(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return `${appName(e)} accessed ${e.target_app||'a sensitive app'} and then made an outbound connection to ${target(e)} shortly after. This does not prove data left your device, but it is important context for review.`;if(e.type==='AX_ACCESS_DETECTED')return `${appName(e)} used macOS Accessibility to interact with ${target(e)}. This can allow an app to read visible screen content.`;if(e.type==='WINDOW_AI_DETECTED')return `A website started or requested local AI capability inside your browser. CoworkGuard logged this so you have visibility.`;if(e.type==='SUSPICIOUS_API_WRAP')return `A browser extension appears to have modified fetch or XMLHttpRequest on an AI page. This can be used to inspect conversations.`;return e.detail||e.message||`CoworkGuard recorded this event for transparency and review.`}
 function collapseDetail(){document.getElementById('detail-panel').style.display='none'}function addAllowListHint(){toast('Allow-list controls should be wired to your policy engine.')}function exportSelected(){if(!selectedEvent)return;const blob=new Blob([JSON.stringify(selectedEvent,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='coworkguard-event.json';a.click();URL.revokeObjectURL(a.href)}
@@ -1089,7 +943,9 @@ function openModelSettings(actorName){
 }
 
 fetchAll();
-
+    }
+  }catch(e){toast('Error',true);}
+}
 async function updateLiveSessions(){
   try{
     const r=await fetch(API+'/api/sessions');
