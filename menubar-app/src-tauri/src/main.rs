@@ -216,6 +216,7 @@ fn start_coworkguard(app: &AppHandle) {
         let skill_scanner = Command::new(&python_bin)
             .args(["skill_scanner.py"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match skill_scanner {
             Ok(child) => { *state.skill_scanner_process.lock().unwrap() = Some(child); }
@@ -224,6 +225,7 @@ fn start_coworkguard(app: &AppHandle) {
         let clipboard_monitor = Command::new(&python_bin)
             .args(["clipboard_monitor.py"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match clipboard_monitor {
             Ok(child) => { *state.clipboard_monitor_process.lock().unwrap() = Some(child); }
@@ -232,6 +234,7 @@ fn start_coworkguard(app: &AppHandle) {
         let file_write_monitor = Command::new(&python_bin)
             .args(["file_write_monitor.py"])
             .current_dir(&dir)
+            .env("PYTHONPATH", &dir)
             .spawn();
         match file_write_monitor {
             Ok(child) => { *state.file_write_monitor_process.lock().unwrap() = Some(child); }
