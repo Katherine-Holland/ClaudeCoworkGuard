@@ -783,36 +783,45 @@ def stop_download():
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
 
+        # Always persist the block decision regardless of whether a process
+        # was killed. If lsof found nothing (download already finished or
+        # Ollama moved to a new temp file), the user still intends to block
+        # future downloads — write the directory to blocked_downloads.json
+        # so file_write_monitor suppresses all retries in that directory.
+        if path_str:
+            try:
+                block_file = Path.home() / ".coworkguard" / "blocked_downloads.json"
+                block_file.parent.mkdir(parents=True, exist_ok=True)
+                existing = []
+                if block_file.exists():
+                    try:
+                        existing = json.loads(block_file.read_text())
+                    except Exception:
+                        existing = []
+                # Store the parent directory so all retries in the same
+                # directory are suppressed, not just the exact filename.
+                block_dir = str(Path(path_str).parent)
+                if block_dir not in existing:
+                    existing.append(block_dir)
+                existing = existing[-200:]
+                block_file.write_text(json.dumps(existing))
+            except Exception:
+                pass
+
+        # Update the audit log entry regardless of kill success so the
+        # activity panel always reflects the user's decision.
+        if timestamp:
+            update_audit_entry(timestamp, {
+                "action": "BLOCKED",
+                "blocked": True,
+                "outcome": "user_stopped",
+                "outcome_at": datetime.now(timezone.utc).isoformat(),
+            })
+
         if killed:
-            # Update the original audit log entry to BLOCKED so the activity
-            # panel reflects the outcome and stops showing Allow/Stop buttons.
-            if timestamp:
-                update_audit_entry(timestamp, {
-                    "action": "BLOCKED",
-                    "blocked": True,
-                    "outcome": "user_stopped",
-                    "outcome_at": datetime.now(timezone.utc).isoformat(),
-                })
-            # Write path to blocked_downloads.json so file_write_monitor
-            # suppresses re-alerts when Ollama retries the download.
-            if path_str:
-                try:
-                    block_file = Path.home() / ".coworkguard" / "blocked_downloads.json"
-                    block_file.parent.mkdir(parents=True, exist_ok=True)
-                    existing = []
-                    if block_file.exists():
-                        try:
-                            existing = json.loads(block_file.read_text())
-                        except Exception:
-                            existing = []
-                    if path_str not in existing:
-                        existing.append(path_str)
-                    existing = existing[-200:]
-                    block_file.write_text(json.dumps(existing))
-                except Exception:
-                    pass
             return jsonify({"ok": True, "killed_pids": killed})
-        return jsonify({"ok": False, "error": "Download process not found — may have already finished"}), 404
+        # Process not found but block decision was persisted — still ok
+        return jsonify({"ok": True, "killed_pids": [], "note": "Process already finished — download blocked for future attempts"})
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

@@ -307,14 +307,20 @@ class CoworkGuardFileHandler(FileSystemEventHandler):
                 except Exception:
                     pass
 
-                # Check by exact path first, then by parent directory — Ollama
-                # retries use a different temp filename in the same directory,
-                # so blocking the directory suppresses all retries.
+                # Match by exact path OR by directory prefix.
+                # server.py now stores the parent directory in blocked_downloads.json
+                # so all retries in the same directory are suppressed automatically.
                 def _matches_list(lst: list) -> bool:
-                    return path_key in lst or any(
-                        path_key.startswith(str(Path(p).parent) + "/")
-                        for p in lst if p
-                    )
+                    for p in lst:
+                        if not p:
+                            continue
+                        if path_key == p:
+                            return True
+                        # p may be a directory — match if path is inside it
+                        dir_prefix = p.rstrip("/") + "/"
+                        if path_key.startswith(dir_prefix):
+                            return True
+                    return False
 
                 if _matches_list(blocked):
                     # Silently drop — user already blocked this download
