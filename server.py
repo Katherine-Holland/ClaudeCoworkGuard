@@ -1045,7 +1045,7 @@ def open_url():
     data = request.get_json(force=True) or {}
     url = str(data.get("url", ""))[:500]
     ALLOWED_SCHEMES = [
-        "googlechrome://",
+        "googlechrome://", "brave://", "microsoft-edge://",
         "x-apple.systempreferences:",
         "claude://",
         "cursor://",

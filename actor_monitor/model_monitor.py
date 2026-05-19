@@ -149,14 +149,17 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
                 seen_paths.add(str(match))
 
                 size_mb = _file_size_mb(match)
-                # Skip numbered chunk files (-partial-0, -partial-1 etc) — tiny, not the model
+                # Skip numbered chunk files (-partial-0, -partial-1 etc)
                 import re as _re
-                if _re.search(r'-partial-\d+$', path.name):
+                if _re.search(r'-partial-\d+$', match.name):
                     continue
-                # Skip other temp extensions
-                if path.suffix in ('.part', '.tmp'):
+                # Skip temp extensions
+                if match.suffix in ('.part', '.tmp'):
                     continue
-                # Files ending in -partial (no number) are the actual model blob downloading  # too small to be a model
+                # Skip truly tiny files
+                if size_mb < 0.001:
+                    continue
+                # Files ending in -partial are active downloads
 
                 found.append({
                     "path": str(match),
