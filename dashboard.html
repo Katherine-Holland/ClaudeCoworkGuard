@@ -308,6 +308,11 @@ function renderCorrelations(){
             <div class="metric blue"><div class="metric-top"><div class="metric-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="metric-num" id="m-ai">0</div><div class="metric-label">AI Sessions</div></div></div><div class="metric-sub">Monitored sessions</div></div>
             
           </div>
+          <!-- Behavioural Correlation Timeline -->
+          <div id="correlation-section" style="display:none;margin-bottom:20px">
+            <div id="correlation-cards"></div>
+          </div>
+
           <section class="panel activity-panel">
             <div class="panel-head"><div class="panel-title">Recent Activity</div><button class="btn" onclick="showView('activity')">View all activity →</button></div>
             <div class="activity-table"><div class="thead"><span>Time</span><span>App / Tool</span><span>Event</span><span>Target</span><span>Result</span><span></span></div><div class="activity-scroll"><div id="recent-rows"></div></div></div>
