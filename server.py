@@ -688,32 +688,72 @@ def pending_requests():
 
 @app.route("/api/stop-download", methods=["POST"])
 def stop_download():
-    """Kill the process downloading a model — immediate stop."""
+    """Stop a model download without killing the parent app.
+
+    Strategy (in order):
+    1. If a file path is provided, use lsof to find the specific PID that
+       has that file open and kill only that process. This stops the download
+       worker without touching the parent service (e.g. ollama server keeps
+       running, only the pull subprocess is killed).
+    2. Fall back to killing by actor process name if no path is given or
+       lsof finds nothing — last resort, kills the whole app.
+    """
     data = request.get_json(force=True) or {}
     actor_id = str(data.get("actor_id", ""))[:50]
-    if not actor_id:
-        return jsonify({"ok": False, "error": "no actor_id"}), 400
+    path_str = str(data.get("path", ""))[:500]
+
+    if not actor_id and not path_str:
+        return jsonify({"ok": False, "error": "no actor_id or path"}), 400
+
     try:
-        import psutil, signal
         killed = []
-        # Find processes matching actor_id
-        actor = _registry.get_actor(actor_id) if _registry else None
-        proc_names = actor.process_names if actor else [actor_id]
-        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+
+        # ── Strategy 1: kill only the PID with the file open ──────────────
+        if path_str:
             try:
-                name = proc.info["name"] or ""
-                if any(n.lower() in name.lower() for n in proc_names):
-                    cmdline = " ".join(proc.info.get("cmdline") or [])
-                    if "XPCServices" in cmdline or "PrivateFrameworks" in cmdline:
-                        continue
-                    proc.kill()
-                    killed.append(proc.info["pid"])
-                    app.logger.info(f"Killed {name} (PID {proc.info['pid']}) — user stopped download")
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
+                lsof = subprocess.run(
+                    ["lsof", "-t", path_str],
+                    capture_output=True, text=True, timeout=5
+                )
+                pids = [int(p) for p in lsof.stdout.split() if p.strip().isdigit()]
+                for pid in pids:
+                    try:
+                        proc = psutil.Process(pid)
+                        proc.kill()
+                        killed.append(pid)
+                        app.logger.info(
+                            "Killed PID %d (%s) — had download file open: %s",
+                            pid, proc.name(), path_str
+                        )
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass  # lsof not available or timed out — fall through
+
+        # ── Strategy 2: fall back to killing by process name ──────────────
+        if not killed and actor_id and HAS_PSUTIL:
+            actor = _registry.get_actor(actor_id) if _registry else None
+            proc_names = actor.process_names if actor else [actor_id]
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                try:
+                    name = proc.info["name"] or ""
+                    if any(n.lower() in name.lower() for n in proc_names):
+                        cmdline = " ".join(proc.info.get("cmdline") or [])
+                        if "XPCServices" in cmdline or "PrivateFrameworks" in cmdline:
+                            continue
+                        proc.kill()
+                        killed.append(proc.info["pid"])
+                        app.logger.warning(
+                            "Killed entire process %s (PID %d) — no specific download PID found",
+                            name, proc.info["pid"]
+                        )
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
         if killed:
             return jsonify({"ok": True, "killed_pids": killed})
-        return jsonify({"ok": False, "error": "Process not found — may have already stopped"}), 404
+        return jsonify({"ok": False, "error": "Download process not found — may have already finished"}), 404
+
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
