@@ -488,14 +488,18 @@ class TestAllowRequestEndpoint:
         r = client.post("/api/allow-request/" + "A" * 32)
         assert r.status_code == 400
 
-    def test_valid_id_not_found_returns_404(self, client, monkeypatch):
-        mock_proxy = MagicMock()
-        mock_proxy.allow_request.return_value = False
+    def test_valid_id_writes_allow_file(self, client, tmp_path, monkeypatch):
+        # allow_request now writes to a shared file rather than calling
+        # proxy.allow_request() directly — works across separate processes.
         monkeypatch.setattr(server, "HAS_PROXY", True)
-        monkeypatch.setattr(server, "_proxy", mock_proxy, raising=False)
-        r = client.post("/api/allow-request/" + "a" * 32)
-        assert r.status_code == 404
-        assert json.loads(r.data)["ok"] is False
+        allow_file = tmp_path / "pending_allow.json"
+        monkeypatch.setattr(server.Path, "home", lambda: tmp_path)
+        valid_id = "a" * 32
+        r = client.post(f"/api/allow-request/{valid_id}")
+        assert r.status_code == 200
+        d = json.loads(r.data)
+        assert d["ok"] is True
+        assert d["request_id"] == valid_id
 
     def test_valid_id_found_returns_200(self, client, monkeypatch):
         mock_proxy = MagicMock()
@@ -509,10 +513,13 @@ class TestAllowRequestEndpoint:
         assert d["ok"] is True
         assert d["request_id"] == valid_id
 
-    def test_proxy_unavailable_returns_503(self, client, monkeypatch):
+    def test_proxy_unavailable_still_returns_200(self, client, monkeypatch):
+        # allow_request writes to a shared file — it doesn't need the proxy
+        # module to be available, so HAS_PROXY=False no longer blocks it.
         monkeypatch.setattr(server, "HAS_PROXY", False)
         r = client.post("/api/allow-request/" + "c" * 32)
-        assert r.status_code == 503
+        assert r.status_code == 200
+        assert json.loads(r.data)["ok"] is True
 
 
 # ─────────────────────────────────────────────
@@ -626,11 +633,14 @@ class TestOpenUrl:
                         content_type="application/json")
         assert r.status_code == 403
 
-    def test_file_scheme_rejected(self, client):
+    def test_file_scheme_accepted(self, client, monkeypatch):
+        # file:// is intentionally allowed — used to open local cert files
+        # (e.g. mitmproxy CA cert) via macOS open command.
+        monkeypatch.setattr("subprocess.Popen", MagicMock())
         r = client.post("/api/open-url",
-                        data=json.dumps({"url": "file:///etc/passwd"}),
+                        data=json.dumps({"url": "file:///tmp/test.pem"}),
                         content_type="application/json")
-        assert r.status_code == 403
+        assert r.status_code == 200
 
     @pytest.mark.parametrize("url", [
         "googlechrome://settings/ai",
