@@ -449,7 +449,7 @@ const EVENT_INFO={
   'DOMAIN_WARNING':{style:'review',summary:'You navigated to a sensitive page while an AI session was active. There is a risk the AI could access content from that page.',steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.']},
   'AX_ACCESS_DETECTED':{style:'review',summary:'An AI app has been granted permission to read and interact with other apps on your screen — including ones containing passwords, messages, or private data.',steps:['If you set this up intentionally, no action is needed.','If you did not, go to System Settings → Privacy & Security → Accessibility and remove the AI app from the list.','To open System Settings, click the Apple menu in the top-left corner of your screen.']},
   'NETWORK_AFTER_SENSITIVE_ACCESS':{style:'blocked',summary:'An AI app opened a sensitive app on your Mac and then connected to the internet shortly after. This could mean data was read and sent online.',steps:['Go to System Settings → Privacy & Security → Accessibility on your Mac.','Find the AI app shown below and remove it from the list.','If you use this AI app regularly, consider only running it when you do not have sensitive apps open.']},
-  'LOCAL_MODEL_DOWNLOADING':{style:'review',summary:'An app on your Mac is downloading an AI model right now. The file is growing on your disk.',steps:['Check the AI Apps & Tools tab to see which app is downloading it.','If you did not start this download, remove the file once it completes.','To prevent future downloads, check the app settings or remove the app.']},
+  'LOCAL_MODEL_DOWNLOADING':{style:'review',summary:'An app on your Mac is currently downloading an AI model. Use the buttons below to stop it immediately or allow this one download to continue.',steps:['Click Stop Download to kill the process immediately.','Click Allow Once to let this download complete — you will be alerted again next time.','The partial file will remain on disk if you stop — you can delete it from AI Apps & Tools.'],downloading:true},
   'LOCAL_MODEL_REMOVED':{style:'info',summary:'A local AI model file was removed from your device.',steps:['No action needed — the model has been removed.','If you did not remove it yourself, check which AI app may have done so.']},
   'LOCAL_MODEL_UPDATED':{style:'info',summary:'A local AI model file was updated on your device.',steps:['No action needed if you expected this.','If you did not, check which AI app downloaded the update in AI Apps & Tools.']},
   'LOCAL_MODEL_DOWNLOADED':{style:'info',summary:'An AI app has downloaded and installed an AI model directly onto your Mac. This lets it run AI features without sending data to the internet.',steps:['No action needed if you expected this.','If you did not expect it, you can remove the model file using the button in the AI Apps tab.','Removing the model without turning off the feature in the app may result in it being downloaded again.']},
@@ -554,7 +554,14 @@ function selectEvent(e,scroll=true){
   `;
 
   const isReviewable=e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING';
-  const actionBtns=isPending&&e.request_id?`
+  const isDownloading=e.type==='LOCAL_MODEL_DOWNLOADING';
+  const actorId=e.actor_id||e.ai_provider||'';
+  const actionBtns=isDownloading?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="stopDownload('${esc(actorId)}')">Stop Download</button>
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:var(--green-bg,rgba(26,127,55,.08));border:1px solid rgba(26,127,55,.2);color:#166534" onclick="allowDownloadOnce('${esc(actorId)}','${esc(e.timestamp||'')}')">Allow Once</button>
+    </div>
+  `:isPending&&e.request_id?`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#166534" onclick="allowRequest('${e.request_id}');closeEventModal()">Allow Once</button>
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="blockRequest('${e.request_id}');closeEventModal()">Block Now</button>
@@ -612,6 +619,23 @@ function dismissEvent(timestamp){
   renderRecent();
   toast('Marked as reviewed');
 }
+async function stopDownload(actorId){
+  try{
+    const r=await fetch(API+'/api/stop-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actor_id:actorId})});
+    const d=await r.json();
+    if(d.ok){toast('Download stopped — process killed');closeEventModal();fetchAll();}
+    else toast(d.error||'Could not stop download',true);
+  }catch{toast('Make sure CoworkGuard is running',true);}
+}
+
+function allowDownloadOnce(actorId, timestamp){
+  // Just dismiss this alert — no permanent allowlist
+  // Shield will add permanent trust with audit trail
+  if(timestamp) dismissEvent(timestamp);
+  closeEventModal();
+  toast('Download allowed — you will be alerted again next time');
+}
+
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'file://'+folder})}).catch(()=>{});

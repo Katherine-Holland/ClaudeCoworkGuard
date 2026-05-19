@@ -53,6 +53,17 @@ SETTINGS_FILE = Path.home() / ".coworkguard" / "settings.json"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 POLL_INTERVAL = 5           # seconds between full scans — fast detection
+ALLOW_LIST_FILE = Path.home() / ".coworkguard" / "model_download_allowlist.json"
+
+def _is_allowed(actor_id: str) -> bool:
+    """Check if this actor is on the model download allow list."""
+    try:
+        if ALLOW_LIST_FILE.exists():
+            allowed = json.loads(ALLOW_LIST_FILE.read_text())
+            return actor_id in allowed
+    except Exception:
+        pass
+    return False
 MIN_MODEL_SIZE_MB = 50      # ignore files smaller than this — avoid noise
 LARGE_MODEL_SIZE_MB = 500   # flag files larger than this as notable
 
@@ -217,6 +228,11 @@ def _handle_downloading_model(actor_id: str, actor_name: str, path: str,
     log.info("LOCAL_MODEL_DOWNLOADING [%s] %s (%.1f MB, was %.1f MB)",
              actor_name, path, size_mb, prev_size_mb)
     _write_log("LOCAL_MODEL_DOWNLOADING", actor_id, actor_name, path, size_mb, "HIGH")
+    size_str = f"{size_mb:.0f}MB" if size_mb < 1000 else f"{size_mb/1024:.1f}GB"
+    _notify(
+        title=f"{actor_name} is downloading an AI model",
+        message=f"{size_str} downloaded so far. Open CoworkGuard to stop or allow.",
+    )
 
 
 def _handle_new_model(actor: Actor, path: str, size_mb: float,

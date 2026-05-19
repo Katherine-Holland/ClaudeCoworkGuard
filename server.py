@@ -685,6 +685,41 @@ def pending_requests():
 
 
 
+
+@app.route("/api/stop-download", methods=["POST"])
+def stop_download():
+    """Kill the process downloading a model — immediate stop."""
+    data = request.get_json(force=True) or {}
+    actor_id = str(data.get("actor_id", ""))[:50]
+    if not actor_id:
+        return jsonify({"ok": False, "error": "no actor_id"}), 400
+    try:
+        import psutil, signal
+        killed = []
+        # Find processes matching actor_id
+        actor = _registry.get_actor(actor_id) if _registry else None
+        proc_names = actor.process_names if actor else [actor_id]
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                name = proc.info["name"] or ""
+                if any(n.lower() in name.lower() for n in proc_names):
+                    cmdline = " ".join(proc.info.get("cmdline") or [])
+                    if "XPCServices" in cmdline or "PrivateFrameworks" in cmdline:
+                        continue
+                    proc.kill()
+                    killed.append(proc.info["pid"])
+                    app.logger.info(f"Killed {name} (PID {proc.info['pid']}) — user stopped download")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        if killed:
+            return jsonify({"ok": True, "killed_pids": killed})
+        return jsonify({"ok": False, "error": "Process not found — may have already stopped"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# TODO Shield: add /api/allow-download with permanent actor allowlist and audit trail
+
 @app.route("/api/dismiss-event", methods=["POST"])
 def dismiss_event():
     """Mark an event as reviewed — persists across poll cycles."""
