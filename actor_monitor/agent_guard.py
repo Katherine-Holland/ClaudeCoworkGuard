@@ -81,28 +81,13 @@ TCC_MICROPHONE       = "kTCCServiceMicrophone"
 def _read_tcc_permissions() -> Dict[str, Set[str]]:
     """
     Read macOS TCC.db to find which apps have which permissions.
-    Returns dict: {bundle_id: {service1, service2, ...}}
-    Requires Full Disk Access — gracefully degrades if not available.
+    Requires Full Disk Access — skipped in free version to avoid
+    macOS permission prompts. Returns empty dict gracefully.
+    TODO Shield: enable TCC scanning with explicit FDA grant flow.
     """
-    permissions: Dict[str, Set[str]] = {}
-
-    for db_path in TCC_DB_PATHS:
-        if not db_path.exists():
-            continue
-        try:
-            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-            cursor = conn.execute(
-                "SELECT client, service, allowed FROM access WHERE allowed = 1"
-            )
-            for bundle_id, service, allowed in cursor.fetchall():
-                if bundle_id not in permissions:
-                    permissions[bundle_id] = set()
-                permissions[bundle_id].add(service)
-            conn.close()
-        except Exception as e:
-            log.debug("TCC.db read failed (%s): %s", db_path, e)
-
-    return permissions
+    # Free version: skip TCC.db entirely — no permission prompt
+    # Shield will add explicit FDA onboarding and full permission scanning
+    return {}
 
 
 def _get_permission_labels(bundle_id: str, tcc: Dict[str, Set[str]]) -> List[str]:
@@ -420,7 +405,7 @@ def check_sensitive_cooccurrence(actors: List[Dict],
             detail = (f"{actor_name} has Accessibility access while "
                       f"{sb.display_name} is running")
             severity = sb.risk
-            actor_pid = actor_info.get("pid")
+            actor_pid = actor_info.get("pid", 0)
 
             log.info("AX_COOCCUR [%s] %s", actor_id, detail)
             _write_log(
@@ -434,15 +419,13 @@ def check_sensitive_cooccurrence(actors: List[Dict],
                 f"{sb.display_name} is open."
             )
             # Feed into network correlator — Track 2C
-            # Only record if we have a valid PID — pid=0 is the kernel process
-            if actor_pid:
-                network_correlator.record_ax_event(
-                    actor_id=actor_id,
-                    actor_pid=actor_pid,
-                    actor_name=actor_name,
-                    target_app=sb.display_name,
-                    target_bundle_id=bid,
-                )
+            network_correlator.record_ax_event(
+                actor_id=actor_id,
+                actor_pid=actor_pid,
+                actor_name=actor_name,
+                target_app=sb.display_name,
+                target_bundle_id=bid,
+            )
 
 
 # ─────────────────────────────────────────────
