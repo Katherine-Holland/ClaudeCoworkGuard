@@ -149,11 +149,10 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
                 seen_paths.add(str(match))
 
                 size_mb = _file_size_mb(match)
-                # Skip Ollama partial download temp files
-                if path.suffix in ('.part', '.tmp', '.download'):
+                # Skip non-model temp files but allow partial model files
+                if path.suffix in ('.part', '.tmp'):
                     continue
-                # Alert immediately on any new file — even during download
-                # This catches downloads in progress, not just completed models  # too small to be a model
+                # Allow partial files through — they indicate active downloads  # too small to be a model
 
                 found.append({
                     "path": str(match),

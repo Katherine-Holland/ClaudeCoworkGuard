@@ -69,7 +69,7 @@
     <nav class="nav">
       <button class="active" data-view="overview"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Overview</button>
       <button data-view="activity"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Activity</button>
-      <button data-view="actors"><span class="ico"></span>AI Apps & Tools</button>
+      <button data-view="actors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>AI Apps & Tools</button>
 
       <button data-view="skills"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Skill Scans</button>
       <button data-view="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
@@ -365,14 +365,14 @@ const SENSITIVE=[['1Password','CRITICAL'],['Keychain Access','CRITICAL'],['Apple
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
 function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='actors')loadActors();if(name==='activity')renderAllRows();if(name==='network')renderNetwork();if(name==='sensitive')renderSensitive();if(name==='settings')loadSettingsIntoForm();if(name==='skills')loadSkillScans();if(name==='actors')loadAgentGuard();}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.viewLink)}));
-function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED'||hasBlocked)return 'blocked';if(a==='FLAGGED'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';return 'allowed'}
+function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='LOCAL_MODEL_DOWNLOADING')return 'review';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED'||hasBlocked)return 'blocked';if(a==='FLAGGED'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';return 'allowed'}
 function appName(e){return e.actor_name||e.actor||e.app||e.process||e.source_process||guessActor(e)||'CoworkGuard'}
 function guessActor(e){const s=JSON.stringify(e).toLowerCase();if(s.includes('claude'))return 'Claude Desktop';if(s.includes('cursor'))return 'Cursor IDE';if(s.includes('vscode')||s.includes('vs code'))return 'VS Code';if(s.includes('chrome'))return 'Chrome';return 'AI Tool'}
 function eventTitle(e){const t=e.type||e.action||'Event';const map={NETWORK_AFTER_SENSITIVE_ACCESS:'Network Correlation',AX_ACCESS_DETECTED:'AX Access',WINDOW_AI_DETECTED:'Local AI Used',SUSPICIOUS_API_WRAP:'Extension Hook',DOMAIN_WARNING:'Sensitive Website',CLIPBOARD_WARNING:'Clipboard Warning',FILE_WRITE_WARNING:'File Write',MCP_TOOL_INSTALLED:'MCP Tool Used',MCP_CONFIG_CHANGED:'MCP Config Changed'};return map[t]||t.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,m=>m.toUpperCase())}
 function truncatePath(p,max=40){if(!p||p.length<=max)return p;const parts=p.split('/');const fname=parts[parts.length-1];if(fname.length>max)return '...'+fname.slice(-max);const dir=parts.slice(0,2).join('/');return dir+'/.../' +fname;}
 function eventSub(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return 'Sensitive access followed by network';if(e.type==='AX_ACCESS_DETECTED')return 'App accessed';if(e.type==='WINDOW_AI_DETECTED')return 'Prompt API / local model';if(e.type==='SUSPICIOUS_API_WRAP')return 'Browser API modified';if(e.action==='PENDING')return 'Waiting for approval';return e.detail||e.message||e.path||'Connected to API'}
 function target(e){return e.destination||e.host||e.remote_host||e.target_app||e.target||e.domain||e.url?.replace(/^https?:\/\//,'').split('/')[0]||e.path||'—'}
-function statusLabel(e){const k=kind(e);if((e.type||'')==='AI_SESSION_STARTED')return 'Active';if((e.type||'')==='AI_SESSION_ENDED')return 'Ended';if(k==='critical')return 'Critical';if(k==='blocked')return 'Prevented';if(k==='review')return 'Needs Review';if(k==='info')return 'Info';return 'Allowed'}
+function statusLabel(e){const k=kind(e);if((e.type||'')==='AI_SESSION_STARTED')return 'Active';if((e.type||'')==='AI_SESSION_ENDED')return 'Ended';if((e.type||'')==='LOCAL_MODEL_DOWNLOADING')return 'Downloading';if(k==='critical')return 'Critical';if(k==='blocked')return 'Prevented';if(k==='review')return 'Needs Review';if(k==='info')return 'Info';return 'Allowed'}
 function iconClass(e){const n=appName(e).toLowerCase();if(n.includes('cursor'))return 'glyph cursor';if(n.includes('code'))return 'glyph cursor';return n.includes('claude')?'glyph':'glyph generic'}
 function rowHtml(e,dark=true){const ts=new Date(e.timestamp||Date.now());const time=ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const k=kind(e);return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span class="time">${esc(time)}</span><span class="appcell"><span class="${iconClass(e)}">✺</span><span>${esc(appName(e))}</span></span><span><span class="event-main">${esc(eventTitle(e))}</span><br><span class="event-sub">${esc(eventSub(e))}</span></span><span class="target">${esc(target(e))}</span><span><span class="tag ${k}">${esc(statusLabel(e))}</span></span><span>›</span></div>`}
 function lightRowHtml(e){const ts=new Date(e.timestamp||Date.now());return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span>${esc(ts.toLocaleString())}</span><span><span class="tag ${kind(e)}">${esc(statusLabel(e))}</span></span><span>${esc(eventTitle(e))}</span><span>${esc(eventSub(e))} — ${esc(target(e))}</span></div>`}
@@ -449,6 +449,7 @@ const EVENT_INFO={
   'DOMAIN_WARNING':{style:'review',summary:'You navigated to a sensitive page while an AI session was active. There is a risk the AI could access content from that page.',steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.']},
   'AX_ACCESS_DETECTED':{style:'review',summary:'An AI app has been granted permission to read and interact with other apps on your screen — including ones containing passwords, messages, or private data.',steps:['If you set this up intentionally, no action is needed.','If you did not, go to System Settings → Privacy & Security → Accessibility and remove the AI app from the list.','To open System Settings, click the Apple menu in the top-left corner of your screen.']},
   'NETWORK_AFTER_SENSITIVE_ACCESS':{style:'blocked',summary:'An AI app opened a sensitive app on your Mac and then connected to the internet shortly after. This could mean data was read and sent online.',steps:['Go to System Settings → Privacy & Security → Accessibility on your Mac.','Find the AI app shown below and remove it from the list.','If you use this AI app regularly, consider only running it when you do not have sensitive apps open.']},
+  'LOCAL_MODEL_DOWNLOADING':{style:'review',summary:'An app on your Mac is currently downloading an AI model. Use the buttons below to stop it immediately or allow this one download to continue.',steps:['Click Stop Download to kill the process immediately.','Click Allow Once to let this download complete — you will be alerted again next time.','The partial file will remain on disk if you stop — you can delete it from AI Apps & Tools.'],downloading:true},
   'LOCAL_MODEL_REMOVED':{style:'info',summary:'A local AI model file was removed from your device.',steps:['No action needed — the model has been removed.','If you did not remove it yourself, check which AI app may have done so.']},
   'LOCAL_MODEL_UPDATED':{style:'info',summary:'A local AI model file was updated on your device.',steps:['No action needed if you expected this.','If you did not, check which AI app downloaded the update in AI Apps & Tools.']},
   'LOCAL_MODEL_DOWNLOADED':{style:'info',summary:'An AI app has downloaded and installed an AI model directly onto your Mac. This lets it run AI features without sending data to the internet.',steps:['No action needed if you expected this.','If you did not expect it, you can remove the model file using the button in the AI Apps tab.','Removing the model without turning off the feature in the app may result in it being downloaded again.']},
@@ -549,11 +550,21 @@ function selectEvent(e,scroll=true){
       <div id="model-inline" style="display:none;margin-top:6px;font-size:12px;color:#166534">File removed</div>
       `:''}
     </div>`:''}
-    ${findings.length?`<div>${findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px"><span style="display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:${f.severity==='CRITICAL'?'rgba(239,68,68,.1)':f.severity==='HIGH'?'rgba(255,138,0,.1)':'rgba(0,0,0,.05)'};color:${f.severity==='CRITICAL'?'#c0392b':f.severity==='HIGH'?'#b45309':'#536176'};border:1px solid ${f.severity==='CRITICAL'?'rgba(239,68,68,.2)':f.severity==='HIGH'?'rgba(255,138,0,.2)':'var(--line)'}">${esc(f.severity)}</span><span style="font-weight:600;color:#1e293b;min-width:140px">${friendlyFinding(esc(f.type||''))}</span><span style="color:#536176;font-family:var(--mono);font-size:11px">${esc(f.preview||f.match_preview||'')}</span>${f.blocked&&a!=='PENDING'?'<span style="font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto">BLOCKED</span>':f.blocked?'<span style="font-size:10px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);padding:2px 8px;border-radius:6px;margin-left:auto">DETECTED</span>':''}</div>`).join('')}</div>`:''}
+    ${findings.length?`<div>${findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px"><span style="display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:${f.severity==='CRITICAL'?'rgba(239,68,68,.1)':f.severity==='HIGH'?'rgba(255,138,0,.1)':'rgba(0,0,0,.05)'};color:${f.severity==='CRITICAL'?'#c0392b':f.severity==='HIGH'?'#b45309':'#536176'};border:1px solid ${f.severity==='CRITICAL'?'rgba(239,68,68,.2)':f.severity==='HIGH'?'rgba(255,138,0,.2)':'var(--line)'}">${esc(f.severity)}</span><span style="font-weight:600;color:#1e293b;min-width:140px">${friendlyFinding(esc(f.type||''))}</span><span style="color:#536176;font-family:var(--mono);font-size:11px">${esc(f.preview||f.match_preview||'')}</span>${f.blocked&&a!=='PENDING'&&a!=='ALLOWED'&&a!=='CLEAN'?'<span style="font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto">BLOCKED</span>':f.blocked&&(a==='PENDING')?'<span style="font-size:10px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);padding:2px 8px;border-radius:6px;margin-left:auto">DETECTED</span>':''}</div>`).join('')}</div>`:''}
   `;
 
   const isReviewable=e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING';
-  const actionBtns=isPending&&e.request_id?`
+  const isDownloading=e.type==='LOCAL_MODEL_DOWNLOADING';
+  const hasOutcome=!!(e.outcome);  // set by server after user acts
+  const actorId=e.actor_id||e.ai_provider||'';
+  const filePath=e.path||e.url||'';
+  const evtTs=e.timestamp||'';
+  const actionBtns=isDownloading&&!hasOutcome?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="stopDownload('${esc(actorId)}','${esc(filePath)}','${esc(evtTs)}')">Stop Download</button>
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:var(--green-bg,rgba(26,127,55,.08));border:1px solid rgba(26,127,55,.2);color:#166534" onclick="allowDownloadOnce('${esc(actorId)}','${esc(evtTs)}','${esc(filePath)}')">Allow Once</button>
+    </div>
+  `:isPending&&e.request_id?`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#166534" onclick="allowRequest('${e.request_id}');closeEventModal()">Allow Once</button>
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="blockRequest('${e.request_id}');closeEventModal()">Block Now</button>
@@ -584,6 +595,7 @@ function selectEvent(e,scroll=true){
   document.getElementById('event-modal-overlay').classList.add('open');
 }
 function isModelPath(p){
+  // Also match files actively being downloaded (no -partial exclusion here)
   return p.includes('.ollama')||p.includes('lmstudio')||p.includes('huggingface')||
          p.includes('nomic.ai')||p.includes('GPT4All')||
          p.includes('anythingllm')||p.includes('Msty')||
@@ -610,6 +622,32 @@ function dismissEvent(timestamp){
   renderRecent();
   toast('Marked as reviewed');
 }
+async function stopDownload(actorId, filePath, timestamp){
+  try{
+    const body={actor_id:actorId};
+    if(filePath)   body.path=filePath;
+    if(timestamp)  body.timestamp=timestamp;
+    const r=await fetch(API+'/api/stop-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.ok){toast('Download stopped');closeEventModal();await fetchAll();}
+    else toast(d.error||'Could not stop download',true);
+  }catch{toast('Make sure CoworkGuard is running',true);}
+}
+
+async function allowDownloadOnce(actorId, timestamp, filePath){
+  try{
+    const body={};
+    if(filePath)  body.path=filePath;
+    if(timestamp) body.timestamp=timestamp;
+    await fetch(API+'/api/allow-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    closeEventModal();
+    await fetchAll();
+    toast('Download allowed — you will not be alerted for this file again');
+  }catch{
+    toast('Could not reach server',true);
+  }
+}
+
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'file://'+folder})}).catch(()=>{});
