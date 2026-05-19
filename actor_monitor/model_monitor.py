@@ -149,10 +149,14 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
                 seen_paths.add(str(match))
 
                 size_mb = _file_size_mb(match)
-                # Skip non-model temp files but allow partial model files
+                # Skip numbered chunk files (-partial-0, -partial-1 etc) — tiny, not the model
+                import re as _re
+                if _re.search(r'-partial-\d+$', path.name):
+                    continue
+                # Skip other temp extensions
                 if path.suffix in ('.part', '.tmp'):
                     continue
-                # Allow partial files through — they indicate active downloads  # too small to be a model
+                # Files ending in -partial (no number) are the actual model blob downloading  # too small to be a model
 
                 found.append({
                     "path": str(match),
@@ -330,7 +334,8 @@ def run_once(registry: ActorRegistry, state: Dict[str, Dict]) -> Dict[str, Dict]
     # Find removed models — skip partial files (Ollama cleanup)
     for path, info in state.items():
         if path not in current_by_path:
-            if '-partial' in path or path.endswith(('.part', '.tmp', '.download')):
+            import re as _re2
+            if _re2.search(r'-partial-\d+$', path) or path.endswith(('.part', '.tmp', '.download')):
                 continue
             _handle_removed_model(info["actor_id"], info["actor_name"], path)
 
