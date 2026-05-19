@@ -324,11 +324,27 @@ def run_once(registry: ActorRegistry, state: Dict[str, Dict]) -> Dict[str, Dict]
         if not actor:
             continue
 
+        import re as _re3
+        is_partial = bool(_re3.search(r'-partial$', path.split('/')[-1]))
+
         if path not in state:
-            # New model
-            _handle_new_model(actor, path, info["size_mb"], registry)
-        elif state[path]["hash"] != info["hash"]:
-            # Updated model
+            if is_partial:
+                # Actively downloading — partial blob is new
+                _handle_downloading_model(
+                    info["actor_id"], info["actor_name"], path,
+                    info["size_mb"], 0.0
+                )
+            else:
+                # Completed model
+                _handle_new_model(actor, path, info["size_mb"], registry)
+        elif is_partial and abs(info["size_mb"] - state[path].get("size_mb", 0)) > 10:
+            # Partial file grew by more than 10MB — still downloading
+            _handle_downloading_model(
+                info["actor_id"], info["actor_name"], path,
+                info["size_mb"], state[path].get("size_mb", 0)
+            )
+        elif not is_partial and state[path]["hash"] != info["hash"]:
+            # Completed model was updated
             _handle_updated_model(actor, path, info["size_mb"], registry)
 
     # Find removed models — skip partial files (Ollama cleanup)

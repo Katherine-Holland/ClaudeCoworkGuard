@@ -388,9 +388,10 @@ setInterval(updateAppsMonitored,10000);toast('Refreshing...')">Refresh</button><
       <div class="setting-row">
         <div><strong>Data Retention</strong><p>All data stays on your machine. No telemetry. No cloud. Raw payload content is never stored — only hashes and redacted previews.</p></div>
       </div>
-      <div style="padding:14px 0;display:flex;gap:8px">
+      <div style="padding:14px 0;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" onclick="clearLog()">Clear activity log</button>
         <button class="btn" onclick="resetSettings()">Reset All Settings</button>
+        <button class="btn" onclick="viewRawLog()">View complete log</button>
       </div>
     </div>
 
@@ -752,6 +753,26 @@ setInterval(updateAppsMonitored,10000);
   }
 }
 
+function viewRawLog(){
+  fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({url:'file://'+encodeURI(require_log_path||'')})
+  }).catch(()=>{});
+  // Fallback — show path so user can find it manually
+  fetch(API+'/api/status').then(r=>r.json()).then(d=>{
+    const logDir=(d.settings?.log_file||'~/.coworkguard/logs/').replace(/[^/]+$/,'');
+    const msg='Your complete audit log is at:\n'+logDir+'\n\nOpen Terminal and run:\nls '+logDir;
+    alert(msg);
+  }).catch(()=>alert('Log files are at:\n~/.coworkguard/logs/\n\nOpen Terminal and run:\nls ~/.coworkguard/logs/'));
+}
+function viewRawLog(){
+  fetch(API+'/api/status').then(r=>r.json()).then(d=>{
+    const path=d.log_file||'~/.coworkguard/logs/';
+    const dir=path.replace(/[^/]+$/,'');
+    alert('Your complete audit log is saved at:\n\n' + dir + '\n\nAll events are stored here permanently, even after you mark them as reviewed in the dashboard.\n\nTo view in Terminal:\ncat ' + dir + 'audit_*.jsonl');
+  }).catch(()=>{
+    alert('Your complete audit log is at:\n\n~/.coworkguard/logs/\n\nAll events are stored here permanently.\n\nTo view in Terminal:\ncat ~/.coworkguard/logs/audit_*.jsonl');
+  });
+}
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'file://'+folder})}).catch(()=>{});
