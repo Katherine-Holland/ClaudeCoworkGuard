@@ -74,7 +74,6 @@ const AI_SESSION_APPS = [
   { match: "you.com",                name: "You.com",        id: "you_com" },
   { match: "phind.com",              name: "Phind",          id: "phind" },
   { match: "cursor.sh",              name: "Cursor",         id: "cursor_web" },
-  { match: "cowork",                 name: "CoworkGuard",    id: "coworkguard" },
 ];
 
 const AI_SESSION_URLS = AI_SESSION_APPS.map(a => a.match);
