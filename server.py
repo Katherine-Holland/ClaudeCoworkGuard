@@ -718,7 +718,30 @@ def stop_download():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# TODO Shield: add /api/allow-download with permanent actor allowlist and audit trail
+@app.route("/api/allow-download", methods=["POST"])
+def allow_download():
+    """Allow a flagged model download to proceed without further alerts."""
+    data = request.get_json(force=True) or {}
+    path_str = str(data.get("path", ""))[:500]
+    if not path_str:
+        return jsonify({"ok": False, "error": "no path"}), 400
+    try:
+        allow_file = Path.home() / ".coworkguard" / "allowed_downloads.json"
+        allow_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = []
+        if allow_file.exists():
+            try:
+                existing = json.loads(allow_file.read_text())
+            except Exception:
+                existing = []
+        if path_str not in existing:
+            existing.append(path_str)
+        existing = existing[-200:]  # cap list size
+        allow_file.write_text(json.dumps(existing))
+        app.logger.info("User allowed download: %s", path_str)
+        return jsonify({"ok": True, "path": path_str})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/api/dismiss-event", methods=["POST"])
 def dismiss_event():

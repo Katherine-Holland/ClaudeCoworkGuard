@@ -58,12 +58,30 @@ IGNORE_PATHS = {
     ".pyc",
 }
 
-# File extensions worth scanning
+# File extensions worth scanning for sensitive text content
 SCAN_EXTENSIONS = {
     ".txt", ".md", ".json", ".yaml", ".yml", ".env",
     ".log", ".csv", ".xml", ".toml", ".ini", ".cfg",
     ".sh", ".py", ".js", ".ts", ".rb", ".go",
 }
+
+# Model file extensions — trigger download alerts regardless of content
+MODEL_EXTENSIONS = {".gguf", ".bin", ".safetensors", ".ggml", ".pt", ".pth", ".onnx"}
+
+# Paths that indicate a model download is in progress
+MODEL_WATCH_PATHS = [
+    ".ollama/models",
+    "Library/Application Support/LM Studio",
+    "Library/Application Support/Msty",
+    "Library/Application Support/AnythingLLM",
+    "Library/Application Support/Jan",
+    "Library/Application Support/GPT4All",
+    ".cache/huggingface",
+    ".cache/lm-studio",
+]
+
+# Partial/in-progress download suffixes used by various tools
+PARTIAL_SUFFIXES = {".part", ".partial", ".download", ".tmp", ".crdownload", "-partial"}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -109,6 +127,85 @@ def is_outside_allowed(path: Path, allowed_folders: list) -> bool:
         except ValueError:
             continue
     return True  # outside all allowed folders
+
+
+def is_model_path(path: Path) -> bool:
+    """Return True if path is inside a known model download directory."""
+    path_str = str(path)
+    return any(mp in path_str for mp in MODEL_WATCH_PATHS)
+
+
+def is_partial_download(path: Path) -> bool:
+    """Return True if the file looks like an in-progress download."""
+    name = path.name.lower()
+    return any(name.endswith(s) for s in PARTIAL_SUFFIXES)
+
+
+def infer_actor_from_path(path: Path) -> str:
+    """Best-effort guess at which app is downloading based on path."""
+    p = str(path).lower()
+    if ".ollama" in p:          return "ollama"
+    if "lm studio" in p:        return "lm_studio"
+    if "msty" in p:             return "msty"
+    if "anythingllm" in p:      return "anythingllm"
+    if "jan" in p:              return "jan"
+    if "gpt4all" in p:          return "gpt4all"
+    if "huggingface" in p:      return "huggingface"
+    return "unknown"
+
+
+# Track paths already alerted to avoid duplicate notifications
+_alerted_downloads: Set[str] = set()
+
+
+def write_model_download_alert(path: Path, event_type: str, actor_id: str):
+    """Write a model download event to the audit log."""
+    log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+    size = 0
+    try:
+        size = path.stat().st_size
+    except Exception:
+        pass
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": event_type,
+        "action": "FLAGGED",
+        "blocked": False,
+        "severity": "MEDIUM",
+        "source": "file_monitor",
+        "url": str(path),
+        "path": str(path),
+        "actor_id": actor_id,
+        "payload_size_bytes": size,
+        "payload_hash": hashlib.sha256(str(path).encode()).hexdigest()[:16],
+        "finding_count": 1,
+        "findings": [{
+            "type": event_type,
+            "severity": "MEDIUM",
+            "preview": f"{path.name} ({size // 1024 // 1024}MB)" if size > 0 else path.name,
+            "blocked": False,
+        }],
+    }
+    with open(log_file, "a") as fh:
+        fh.write(json.dumps(entry) + "\n")
+
+
+def show_download_notification(path: Path, actor_id: str):
+    """Show a macOS notification for a model download."""
+    size_mb = 0
+    try:
+        size_mb = path.stat().st_size // 1024 // 1024
+    except Exception:
+        pass
+    size_str = f" ({size_mb}MB)" if size_mb > 0 else ""
+    try:
+        subprocess.run([
+            "osascript", "-e",
+            f'display notification "AI model downloading: {path.name}{size_str}" '
+            f'with title "⚠️ CoworkGuard" subtitle "Model Download Detected"'
+        ], timeout=3)
+    except Exception:
+        pass
 
 
 def write_file_alert(path: Path, findings: list, reason: str):
@@ -167,8 +264,34 @@ class CoworkGuardFileHandler(FileSystemEventHandler):
         if is_ignored(path):
             return
 
-        # Skip non-scannable extensions
-        if path.suffix.lower() not in SCAN_EXTENSIONS:
+        # ── Model download detection ──────────────────────────────────────
+        # Fires before the text-content scan so large binary files are never
+        # read into memory. Alerts once per file path per monitor session.
+        suffix = path.suffix.lower()
+        path_key = str(path)
+
+        if (suffix in MODEL_EXTENSIONS or is_partial_download(path)) and is_model_path(path):
+            if path_key not in _alerted_downloads:
+                # Check if user already allowed this download
+                allow_file = Path.home() / ".coworkguard" / "allowed_downloads.json"
+                allowed = []
+                try:
+                    if allow_file.exists():
+                        allowed = json.loads(allow_file.read_text())
+                except Exception:
+                    pass
+                if path_key not in allowed:
+                    _alerted_downloads.add(path_key)
+                    actor_id = infer_actor_from_path(path)
+                    # Partial file = download in progress; full extension = completed
+                    event_type = "LOCAL_MODEL_DOWNLOADING" if is_partial_download(path) else "LOCAL_MODEL_DOWNLOADED"
+                    log.warning("%s: %s (actor=%s)", event_type, path, actor_id)
+                    write_model_download_alert(path, event_type, actor_id)
+                    show_download_notification(path, actor_id)
+            return  # Don't try to scan binary model files as text
+
+        # Skip non-scannable text extensions
+        if suffix not in SCAN_EXTENSIONS:
             return
 
         # Debounce — skip if we've seen this path in the last 5 seconds
