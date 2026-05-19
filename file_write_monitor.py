@@ -107,7 +107,11 @@ def load_settings() -> dict:
 
 
 def is_ignored(path: Path) -> bool:
-    """Return True if path should be ignored."""
+    """Return True if path should be ignored.
+    Model paths are checked first — they must never be ignored even if
+    they happen to live inside Library/Application Support or .cache."""
+    if is_model_path(path):
+        return False
     path_str = str(path)
     for ignore in IGNORE_PATHS:
         if ignore in path_str:
@@ -139,6 +143,23 @@ def is_partial_download(path: Path) -> bool:
     """Return True if the file looks like an in-progress download."""
     name = path.name.lower()
     return any(name.endswith(s) for s in PARTIAL_SUFFIXES)
+
+
+def is_model_file(path: Path) -> bool:
+    """Return True if the file is a model file, including Ollama blobs.
+
+    Ollama stores completed model blobs as 'sha256-<64 hex chars>' with
+    no file extension inside ~/.ollama/models/blobs/. These must be
+    detected by path pattern rather than extension.
+    """
+    import re
+    suffix = path.suffix.lower()
+    if suffix in MODEL_EXTENSIONS:
+        return True
+    # Ollama blob: sha256-<64 lowercase hex chars>, no extension
+    if re.fullmatch(r'sha256-[0-9a-f]{64}', path.name):
+        return True
+    return False
 
 
 def infer_actor_from_path(path: Path) -> str:
@@ -267,10 +288,9 @@ class CoworkGuardFileHandler(FileSystemEventHandler):
         # ── Model download detection ──────────────────────────────────────
         # Fires before the text-content scan so large binary files are never
         # read into memory. Alerts once per file path per monitor session.
-        suffix = path.suffix.lower()
         path_key = str(path)
 
-        if (suffix in MODEL_EXTENSIONS or is_partial_download(path)) and is_model_path(path):
+        if (is_model_file(path) or is_partial_download(path)) and is_model_path(path):
             if path_key not in _alerted_downloads:
                 # Load allow and block lists
                 allow_file = Path.home() / ".coworkguard" / "allowed_downloads.json"
@@ -309,7 +329,7 @@ class CoworkGuardFileHandler(FileSystemEventHandler):
             return  # Never read binary model files as text
 
         # Skip non-scannable text extensions
-        if suffix not in SCAN_EXTENSIONS:
+        if path.suffix.lower() not in SCAN_EXTENSIONS:
             return
 
         # Debounce — skip if we've seen this path in the last 5 seconds
