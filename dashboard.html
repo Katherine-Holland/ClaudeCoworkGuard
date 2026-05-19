@@ -63,6 +63,8 @@
   /* ── Correlation Timeline ── */
   .correlation-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 26px;margin-bottom:20px;box-shadow:0 2px 16px rgba(0,0,0,.07)}
   .correlation-card.flagged{border-left:3px solid #ff9f0a}
+  .correlation-card.weak{border-left:3px solid #9ca3af}
+  .corr-badge.weak{background:rgba(156,163,175,.12);color:#6b7280;border:1px solid rgba(156,163,175,.25)}
   .corr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
   .corr-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sub)}
   .corr-badge{font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px}
@@ -132,37 +134,80 @@ function axLabel(step){
   return AX_APP_LABELS[app] || (app ? 'Accessed ' + app : null);
 }
 
+// ── Confidence ladder for actor matching ──
+function actorConfidence(a, b){
+  // Strong — same explicit identity
+  if(a.actor_id && b.actor_id && a.actor_id === b.actor_id) return 'strong';
+  if(a.pid && b.pid && a.pid === b.pid) return 'strong';
+  if(a.bundle_id && b.bundle_id && a.bundle_id === b.bundle_id) return 'strong';
+  // Medium — shared session/tab/request identity
+  if(a.session_id && b.session_id && a.session_id === b.session_id) return 'medium';
+  if(a.tab_id && b.tab_id && a.tab_id === b.tab_id) return 'medium';
+  if(a.extension_id && b.extension_id && a.extension_id === b.extension_id) return 'medium';
+  // Weak — same guessed name within time window
+  const nameA = a.ai_provider || a.actor_name || a.actor_id || '';
+  const nameB = b.ai_provider || b.actor_name || b.actor_id || '';
+  if(nameA && nameB && nameA === nameB) return 'weak';
+  return null;
+}
+
+const CONFIDENCE_LABELS = {
+  strong: { prefix:'', badge:'Confirmed sequence', badgeClass:'review' },
+  medium: { prefix:'', badge:'Likely sequence', badgeClass:'review' },
+  weak:   { prefix:'Possible: ', badge:'Unconfirmed', badgeClass:'weak' },
+};
+
 function buildCorrelations(events){
-  const sequences = [];
   const sorted = [...events].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
+  const sequences = [];
 
-  // Group events by actor within 30-second windows
-  const windows = [];
-  let current = null;
+  // Find sensitive events, then look for outbound events within 30s with matching actor
+  const sensitiveEvents = sorted.filter(e =>
+    SENSITIVE_EVENT_TYPES.has(e.type) || (e.findings||[]).some(f=>f.blocked)
+  );
+  const outboundEvents = sorted.filter(e =>
+    e.type==='API_REQUEST' && e.action!=='PENDING' && e.action!=='BLOCKED'
+  );
 
-  sorted.forEach(e => {
-    const actor = e.ai_provider || e.actor_name || appName(e);
-    const ts = new Date(e.timestamp||0).getTime();
-    const isSensitive = SENSITIVE_EVENT_TYPES.has(e.type) ||
-                        (e.findings||[]).some(f=>f.blocked);
-    const isOutbound = (e.type==='API_REQUEST'||e.url) && e.action!=='PENDING';
+  sensitiveEvents.forEach(sens => {
+    const sensTs = new Date(sens.timestamp||0).getTime();
+    // Find outbound events within 30s after this sensitive event
+    const matching = outboundEvents.filter(out => {
+      const outTs = new Date(out.timestamp||0).getTime();
+      return outTs >= sensTs && outTs - sensTs <= 30000;
+    });
 
-    if(!current || actor!==current.actor || ts-current.lastTs > 30000){
-      if(current && current.steps.length > 1) windows.push(current);
-      current = {actor, startTs:ts, lastTs:ts, steps:[], hasSensitive:false, hasOutbound:false};
-    }
-
-    current.lastTs = ts;
-    if(isSensitive) current.hasSensitive = true;
-    if(isOutbound) current.hasOutbound = true;
-    current.steps.push({type:e.type, ts, url:e.url||e.path||'', action:e.action, findings:e.findings||[]});
+    matching.forEach(out => {
+      const conf = actorConfidence(sens, out);
+      if(!conf) return; // No actor match at all — skip entirely
+      const actor = out.ai_provider || out.actor_name || sens.ai_provider || sens.actor_name || 'AI Tool';
+      const timeDiff = Math.round((new Date(out.timestamp||0) - new Date(sens.timestamp||0))/1000);
+      sequences.push({
+        actor, confidence: conf,
+        steps: [
+          {type:sens.type, ts:new Date(sens.timestamp||0).getTime(), url:sens.url||sens.path||'', findings:sens.findings||[], actor:actor},
+          {type:out.type,  ts:new Date(out.timestamp||0).getTime(),  url:out.url||out.destination||'', findings:out.findings||[], actor:actor}
+        ],
+        timeDiff,
+        hasSensitive: true,
+        hasOutbound: true,
+        key: sens.timestamp + out.timestamp,
+      });
+    });
   });
-  if(current && current.steps.length > 1) windows.push(current);
 
-  // Only return sequences with both sensitive + outbound, or multiple sensitive events
-  return windows.filter(w => (w.hasSensitive && w.hasOutbound) || 
-    w.steps.filter(s=>SENSITIVE_EVENT_TYPES.has(s.type)).length > 1
-  ).slice(-3).reverse(); // last 3, newest first
+  // Dedupe by key, keep highest confidence, return last 3 newest
+  const seen = new Map();
+  sequences.forEach(s => {
+    const existing = seen.get(s.key);
+    if(!existing || ['strong','medium','weak'].indexOf(s.confidence) < ['strong','medium','weak'].indexOf(existing.confidence)){
+      seen.set(s.key, s);
+    }
+  });
+
+  return [...seen.values()]
+    .sort((a,b) => b.steps[0].ts - a.steps[0].ts)
+    .slice(0, 3);
 }
 
 function renderCorrelations(){
@@ -179,10 +224,10 @@ function renderCorrelations(){
 
   section.style.display = 'block';
   container.innerHTML = sequences.map(seq => {
-    const isCritical = seq.hasSensitive && seq.hasOutbound;
-    const borderClass = 'flagged';
-    const badgeClass = 'review';
-    const badgeText = 'Review recommended';
+    const confInfo = CONFIDENCE_LABELS[seq.confidence] || CONFIDENCE_LABELS.weak;
+    const borderClass = seq.confidence === 'strong' ? 'flagged' : seq.confidence === 'medium' ? 'flagged' : 'weak';
+    const badgeClass = confInfo.badgeClass;
+    const badgeText = confInfo.badge;
 
     const stepsHtml = seq.steps.map((step, i) => {
       const axOverride = axLabel(step);
@@ -210,9 +255,12 @@ function renderCorrelations(){
       </div>${transitionHtml}`;
     }).join('');
 
-    const whyText = seq.hasSensitive && seq.hasOutbound
-      ? 'This AI tool interacted with private data on your Mac shortly before making an outbound connection. CoworkGuard flagged this sequence for your review.'
-      : 'CoworkGuard detected a sequence of sensitive events from this AI tool.';
+    const whyTexts = {
+      strong: 'This AI tool interacted with private data on your Mac, then made an outbound connection ' + (seq.timeDiff > 0 ? seq.timeDiff + ' seconds later' : 'shortly after') + '. CoworkGuard confirmed these events came from the same process.',
+      medium: 'CoworkGuard detected sensitive activity and an outbound connection from what appears to be the same session. The link is likely but not confirmed.',
+      weak:   'CoworkGuard saw private-app access and AI network activity close together, but could not confirm they came from the same actor. This may be unrelated activity.',
+    };
+    const whyText = whyTexts[seq.confidence] || whyTexts.weak;
 
     return `<div class="correlation-card ${borderClass}">
       <div class="corr-header">
