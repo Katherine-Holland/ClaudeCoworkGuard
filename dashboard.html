@@ -61,35 +61,31 @@
 @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}.tip{margin-top:16px;border:1px solid rgba(10,132,255,.18);background:rgba(10,132,255,.055);border-radius:14px;padding:13px 16px;color:#344258;font-size:13px}.empty{padding:38px;text-align:center;color:var(--sub)}@media(max-width:1180px){.layout{grid-template-columns:1fr}.detail{display:none;position:relative;top:0}.metrics,.cards3{grid-template-columns:repeat(2,1fr)}}@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.main{padding:24px 16px}.metrics,.cards3{grid-template-columns:1fr}.row,.thead{grid-template-columns:72px 1fr 110px}.row .target,.thead span:nth-child(4),.row span:nth-child(4),.thead span:nth-child(6),.row span:nth-child(6){display:none}}
 
   /* ── Correlation Timeline ── */
-  .correlation-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .correlation-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 26px;margin-bottom:20px;box-shadow:0 2px 16px rgba(0,0,0,.07)}
   .correlation-card.flagged{border-left:3px solid #ff9f0a}
-  .correlation-card.critical{border-left:3px solid #ff453a}
-  .correlation-card.clean{border-left:3px solid #30d158}
-  .corr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-  .corr-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--sub)}
-  .corr-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px}
+  .corr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .corr-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sub)}
+  .corr-badge{font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px}
   .corr-badge.review{background:rgba(255,159,10,.12);color:#b45309;border:1px solid rgba(255,159,10,.25)}
-  .corr-badge.critical{background:rgba(255,69,58,.1);color:#c0392b;border:1px solid rgba(255,69,58,.2)}
-  .corr-badge.ok{background:rgba(48,209,88,.1);color:#1a7f37;border:1px solid rgba(48,209,88,.2)}
-  .corr-actor{font-size:17px;font-weight:700;letter-spacing:-.02em;color:#111827;margin-bottom:14px}
-  .corr-timeline{display:flex;flex-direction:column;gap:0;margin-bottom:16px}
-  .corr-step{display:flex;align-items:flex-start;gap:12px;position:relative}
-  .corr-step-connector{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:20px}
-  .corr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
-  .corr-dot.ax{background:#ff9f0a}
-  .corr-dot.net{background:#0066cc}
-  .corr-dot.model{background:#5856d6}
-  .corr-dot.clip{background:#ff6b35}
-  .corr-dot.file{background:#30d158}
-  .corr-line{width:2px;background:var(--line);flex:1;min-height:16px;margin:3px 0}
-  .corr-step-body{padding-bottom:14px;flex:1}
-  .corr-step-label{font-size:13px;font-weight:600;color:#1d1d1f;margin-bottom:2px}
-  .corr-step-sub{font-size:12px;color:var(--sub)}
-  .corr-step-time{font-size:11px;color:var(--sub);font-family:var(--mono);margin-left:auto;padding-top:4px;flex-shrink:0}
-  .corr-why{background:rgba(255,159,10,.06);border:1px solid rgba(255,159,10,.15);border-radius:10px;padding:12px 14px;font-size:13px;color:#344258;line-height:1.6;margin-bottom:14px}
-  .corr-why strong{display:block;margin-bottom:4px;color:#b45309}
+  .corr-actor{font-size:20px;font-weight:700;letter-spacing:-.03em;color:#111827;margin-bottom:20px}
+  .corr-timeline{display:flex;flex-direction:column;gap:0;margin-bottom:20px}
+  .corr-step{display:flex;align-items:flex-start;gap:14px}
+  .corr-step-connector{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:22px}
+  .corr-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .corr-dot.ax{background:#ff9f0a;box-shadow:0 0 0 3px rgba(255,159,10,.15)}
+  .corr-dot.net{background:#0066cc;box-shadow:0 0 0 3px rgba(0,102,204,.12)}
+  .corr-dot.model{background:#5856d6;box-shadow:0 0 0 3px rgba(88,86,214,.12)}
+  .corr-dot.clip{background:#ff6b35;box-shadow:0 0 0 3px rgba(255,107,53,.12)}
+  .corr-dot.file{background:#30d158;box-shadow:0 0 0 3px rgba(48,209,88,.12)}
+  .corr-line{width:2px;background:linear-gradient(to bottom,var(--line),transparent);flex:1;min-height:20px;margin:4px 0}
+  .corr-step-body{padding-bottom:20px;flex:1}
+  .corr-step-label{font-size:15px;font-weight:600;color:#1d1d1f;margin-bottom:4px;line-height:1.3}
+  .corr-step-sub{font-size:13px;color:var(--sub);font-family:var(--mono)}
+  .corr-step-time{font-size:12px;color:var(--sub);font-family:var(--mono);margin-left:auto;padding-top:5px;flex-shrink:0}
+  .corr-transition{text-align:center;padding:2px 0 18px;color:#9ca3af;font-size:12px;font-weight:500;letter-spacing:.04em;margin-left:36px}
+  .corr-why{background:rgba(255,159,10,.05);border:1px solid rgba(255,159,10,.12);border-radius:12px;padding:14px 16px;font-size:13px;color:#344258;line-height:1.7;margin-bottom:16px}
+  .corr-why strong{display:block;margin-bottom:6px;color:#b45309;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
   .corr-actions{display:flex;gap:8px}
-  .corr-empty{text-align:center;padding:24px;color:var(--sub);font-size:13px}
 </style>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer onerror="console.warn('[CoworkGuard] Phosphor icons unavailable — offline mode')">
 // ── Behavioural Correlation Engine ──
@@ -102,14 +98,39 @@ const SENSITIVE_EVENT_TYPES = new Set([
 ]);
 
 const STEP_LABELS = {
-  AX_ACCESS_DETECTED:      { label:'Accessed another app on your screen', dot:'ax' },
-  CLIPBOARD_WARNING:        { label:'Sensitive data found in clipboard',    dot:'clip' },
-  FILE_WRITE_WARNING:       { label:'Wrote file outside approved folders',  dot:'file' },
-  LOCAL_MODEL_DOWNLOADED:   { label:'Downloaded a local AI model',          dot:'model' },
-  LOCAL_MODEL_DOWNLOADING:  { label:'Downloading a local AI model now',     dot:'model' },
-  NETWORK_AFTER_SENSITIVE_ACCESS: { label:'Made outbound connection after accessing private data', dot:'net' },
-  API_REQUEST:              { label:'Sent outbound AI request',             dot:'net' },
+  AX_ACCESS_DETECTED:      { label:'Accessed another app on your Mac', dot:'ax' },
+  CLIPBOARD_WARNING:        { label:'Sensitive data copied to clipboard', dot:'clip' },
+  FILE_WRITE_WARNING:       { label:'Wrote file outside approved folders', dot:'file' },
+  LOCAL_MODEL_DOWNLOADED:   { label:'Downloaded a local AI model', dot:'model' },
+  LOCAL_MODEL_DOWNLOADING:  { label:'Actively downloading an AI model', dot:'model' },
+  NETWORK_AFTER_SENSITIVE_ACCESS: { label:'Connected outward after accessing private data', dot:'net' },
+  API_REQUEST:              { label:'Sent outbound AI request', dot:'net' },
+  MCP_TOOL_RESPONSE:        { label:'AI tool returned a response', dot:'ax' },
+  FILE_ACCESS:              { label:'Accessed a file on your Mac', dot:'file' },
+  AI_SESSION_STARTED:       { label:'AI session opened in browser', dot:'net' },
 };
+
+// Map app names from AX events — makes sequences more emotionally resonant
+const AX_APP_LABELS = {
+  'Messages':   'Accessed Apple Messages',
+  'Mail':       'Accessed Apple Mail',
+  '1Password':  'Accessed 1Password',
+  'Keychain':   'Accessed Keychain',
+  'Safari':     'Accessed Safari',
+  'Chrome':     'Accessed Chrome',
+  'Terminal':   'Accessed Terminal',
+  'Finder':     'Accessed Finder',
+  'Notes':      'Accessed Notes',
+  'Calendar':   'Accessed Calendar',
+  'Contacts':   'Accessed Contacts',
+  'Photos':     'Accessed Photos',
+};
+
+function axLabel(step){
+  if(step.type !== 'AX_ACCESS_DETECTED') return null;
+  const app = step.app_name || step.target_app || '';
+  return AX_APP_LABELS[app] || (app ? 'Accessed ' + app : null);
+}
 
 function buildCorrelations(events){
   const sequences = [];
@@ -164,11 +185,18 @@ function renderCorrelations(){
     const badgeText = 'Review recommended';
 
     const stepsHtml = seq.steps.map((step, i) => {
-      const info = STEP_LABELS[step.type] || {label: step.type.replace(/_/g,' ').toLowerCase(), dot:'net'};
+      const axOverride = axLabel(step);
+      const info = axOverride ? {label:axOverride, dot:'ax'} : (STEP_LABELS[step.type] || {label: step.type.replace(/_/g,' ').toLowerCase(), dot:'net'});
       const time = new Date(step.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const isLast = i === seq.steps.length - 1;
       const timeDiff = i>0 ? Math.round((step.ts - seq.steps[i-1].ts)/1000) : 0;
-      const timeSub = timeDiff > 0 ? `${timeDiff}s later` : new Date(step.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      // Get named app if available
+      const appLabel = step.appName || seq.actor;
+      // Time transition between steps
+      const transitionHtml = !isLast && timeDiff > 0
+        ? `<div class="corr-transition">↓ &nbsp; ${timeDiff} second${timeDiff!==1?'s':''} later</div>`
+        : !isLast ? '<div class="corr-transition">↓</div>' : '';
+      const urlHost = step.url ? step.url.replace(/https?:\/\//, '').split('/')[0].slice(0,50) : '';
       return `<div class="corr-step">
         <div class="corr-step-connector">
           <div class="corr-dot ${info.dot}"></div>
@@ -176,10 +204,10 @@ function renderCorrelations(){
         </div>
         <div class="corr-step-body">
           <div class="corr-step-label">${esc(info.label)}</div>
-          ${step.url?`<div class="corr-step-sub">${esc(step.url.replace(/https?:\/\//, '').split('/')[0].slice(0,40))}</div>`:''}
+          ${urlHost?`<div class="corr-step-sub">${esc(urlHost)}</div>`:''}
         </div>
-        <div class="corr-step-time">${i===0?esc(time):esc(timeSub)}</div>
-      </div>`;
+        <div class="corr-step-time">${i===0?esc(time):''}</div>
+      </div>${transitionHtml}`;
     }).join('');
 
     const whyText = seq.hasSensitive && seq.hasOutbound
