@@ -53,6 +53,8 @@ SETTINGS_FILE = Path.home() / ".coworkguard" / "settings.json"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 POLL_INTERVAL = 5           # seconds between full scans — fast detection
+_last_notified: dict = {}   # actor_id -> last notification timestamp (avoid flooding)
+NOTIFY_COOLDOWN = 30        # seconds between notifications for same actor
 ALLOW_LIST_FILE = Path.home() / ".coworkguard" / "model_download_allowlist.json"
 
 def _is_allowed(actor_id: str) -> bool:
@@ -156,8 +158,8 @@ def _scan_model_paths(actors: List[Actor]) -> List[Dict]:
                 # Skip temp extensions
                 if match.suffix in ('.part', '.tmp'):
                     continue
-                # Skip truly tiny files
-                if size_mb < 0.001:
+                # Skip tiny metadata/config blobs — only care about actual model files
+                if size_mb < 1.0 and not _re.search(r'-partial$', match.name):
                     continue
                 # Files ending in -partial are active downloads
 
