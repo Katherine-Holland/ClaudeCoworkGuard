@@ -136,11 +136,33 @@ async function logSessionStarted(url) {
 
 // Clear logged session IDs when all tabs for that app are closed so the
 // next time the user opens it they get a fresh log entry.
+// Also fires AI_SESSION_ENDED for apps that are no longer open.
 chrome.tabs.onRemoved.addListener(async () => {
   const tabs = await chrome.tabs.query({});
   const stillOpen = new Set(tabs.map(t => matchSessionApp(t.url)?.id).filter(Boolean));
-  for (const id of _loggedSessions) {
-    if (!stillOpen.has(id)) _loggedSessions.delete(id);
+  for (const id of [..._loggedSessions]) {
+    if (!stillOpen.has(id)) {
+      _loggedSessions.delete(id);
+      // Find the app entry to get the name
+      const app = AI_SESSION_APPS.find(a => a.id === id);
+      if (!app) continue;
+      const event = {
+        type:      "AI_SESSION_ENDED",
+        action:    "CLEAN",
+        severity:  "LOW",
+        timestamp: new Date().toISOString(),
+        url:       app.match,
+        ai_provider: app.name,
+        app_name:  app.name,
+        app_id:    app.id,
+        message:   `${app.name} session closed`,
+      };
+      fetch("http://localhost:7070/api/log-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...event, finding_count: 0, findings: [] }),
+      }).catch(() => {});
+    }
   }
 });
 
@@ -376,6 +398,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // Init
 // ─────────────────────────────────────────────
 loadDomains();
+// On startup, log sessions for any AI web app tabs already open
+(async () => {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url) await logSessionStarted(tab.url);
+    }
+  } catch(e) {}
+})();
 detectClaudeSession();
 setInterval(detectClaudeSession, 10000);
 

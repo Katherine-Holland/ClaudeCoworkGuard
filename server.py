@@ -581,7 +581,7 @@ def folder_check():
 # Simple in-memory rate limiter for /api/log-event
 _log_event_counts = {}  # {minute_str: count}
 
-ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING", "AI_SESSION_STARTED"}
+ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING", "AI_SESSION_STARTED", "AI_SESSION_ENDED"}
 LOG_EVENT_MAX_PER_MINUTE = 100
 
 
