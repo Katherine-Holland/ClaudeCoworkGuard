@@ -272,23 +272,41 @@ class CoworkGuardFileHandler(FileSystemEventHandler):
 
         if (suffix in MODEL_EXTENSIONS or is_partial_download(path)) and is_model_path(path):
             if path_key not in _alerted_downloads:
-                # Check if user already allowed this download
+                # Load allow and block lists
                 allow_file = Path.home() / ".coworkguard" / "allowed_downloads.json"
-                allowed = []
+                block_file = Path.home() / ".coworkguard" / "blocked_downloads.json"
+                allowed, blocked = [], []
                 try:
                     if allow_file.exists():
                         allowed = json.loads(allow_file.read_text())
                 except Exception:
                     pass
-                if path_key not in allowed:
+                try:
+                    if block_file.exists():
+                        blocked = json.loads(block_file.read_text())
+                except Exception:
+                    pass
+
+                # Check by exact path first, then by parent directory — Ollama
+                # retries use a different temp filename in the same directory,
+                # so blocking the directory suppresses all retries.
+                def _matches_list(lst: list) -> bool:
+                    return path_key in lst or any(
+                        path_key.startswith(str(Path(p).parent) + "/")
+                        for p in lst if p
+                    )
+
+                if _matches_list(blocked):
+                    # Silently drop — user already blocked this download
+                    log.info("Suppressed re-alert for blocked download: %s", path)
+                elif not _matches_list(allowed):
                     _alerted_downloads.add(path_key)
                     actor_id = infer_actor_from_path(path)
-                    # Partial file = download in progress; full extension = completed
                     event_type = "LOCAL_MODEL_DOWNLOADING" if is_partial_download(path) else "LOCAL_MODEL_DOWNLOADED"
                     log.warning("%s: %s (actor=%s)", event_type, path, actor_id)
                     write_model_download_alert(path, event_type, actor_id)
                     show_download_notification(path, actor_id)
-            return  # Don't try to scan binary model files as text
+            return  # Never read binary model files as text
 
         # Skip non-scannable text extensions
         if suffix not in SCAN_EXTENSIONS:

@@ -555,12 +555,14 @@ function selectEvent(e,scroll=true){
 
   const isReviewable=e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING';
   const isDownloading=e.type==='LOCAL_MODEL_DOWNLOADING';
+  const hasOutcome=!!(e.outcome);  // set by server after user acts
   const actorId=e.actor_id||e.ai_provider||'';
   const filePath=e.path||e.url||'';
-  const actionBtns=isDownloading?`
+  const evtTs=e.timestamp||'';
+  const actionBtns=isDownloading&&!hasOutcome?`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
-      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="stopDownload('${esc(actorId)}','${esc(filePath)}')">Stop Download</button>
-      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:var(--green-bg,rgba(26,127,55,.08));border:1px solid rgba(26,127,55,.2);color:#166534" onclick="allowDownloadOnce('${esc(actorId)}','${esc(e.timestamp||'')}','${esc(filePath)}')">Allow Once</button>
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="stopDownload('${esc(actorId)}','${esc(filePath)}','${esc(evtTs)}')">Stop Download</button>
+      <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:var(--green-bg,rgba(26,127,55,.08));border:1px solid rgba(26,127,55,.2);color:#166534" onclick="allowDownloadOnce('${esc(actorId)}','${esc(evtTs)}','${esc(filePath)}')">Allow Once</button>
     </div>
   `:isPending&&e.request_id?`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
@@ -620,24 +622,26 @@ function dismissEvent(timestamp){
   renderRecent();
   toast('Marked as reviewed');
 }
-async function stopDownload(actorId, filePath){
+async function stopDownload(actorId, filePath, timestamp){
   try{
     const body={actor_id:actorId};
-    if(filePath) body.path=filePath;
+    if(filePath)   body.path=filePath;
+    if(timestamp)  body.timestamp=timestamp;
     const r=await fetch(API+'/api/stop-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
-    if(d.ok){toast('Download stopped');closeEventModal();fetchAll();}
+    if(d.ok){toast('Download stopped');closeEventModal();await fetchAll();}
     else toast(d.error||'Could not stop download',true);
   }catch{toast('Make sure CoworkGuard is running',true);}
 }
 
 async function allowDownloadOnce(actorId, timestamp, filePath){
   try{
-    if(filePath){
-      await fetch(API+'/api/allow-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:filePath})});
-    }
-    if(timestamp) dismissEvent(timestamp);
+    const body={};
+    if(filePath)  body.path=filePath;
+    if(timestamp) body.timestamp=timestamp;
+    await fetch(API+'/api/allow-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     closeEventModal();
+    await fetchAll();
     toast('Download allowed — you will not be alerted for this file again');
   }catch{
     toast('Could not reach server',true);

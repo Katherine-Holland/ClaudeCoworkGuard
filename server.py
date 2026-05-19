@@ -211,6 +211,38 @@ def read_logs(limit=200):
     return entries[:limit]
 
 
+def update_audit_entry(timestamp: str, updates: dict):
+    """Find the audit log entry with the given timestamp and merge updates into it.
+    Rewrites only the affected line — leaves all other entries untouched."""
+    if not timestamp:
+        return
+    log_files = sorted(LOG_DIR.glob("audit_*.jsonl"), reverse=True)
+    for lf in log_files[:3]:  # only check last 3 days
+        try:
+            lines = lf.read_text().splitlines()
+            changed = False
+            new_lines = []
+            for line in lines:
+                if not line.strip():
+                    new_lines.append(line)
+                    continue
+                try:
+                    entry = json.loads(line)
+                    if entry.get("timestamp") == timestamp:
+                        entry.update(updates)
+                        new_lines.append(json.dumps(entry))
+                        changed = True
+                    else:
+                        new_lines.append(line)
+                except json.JSONDecodeError:
+                    new_lines.append(line)
+            if changed:
+                lf.write_text("\n".join(new_lines) + "\n")
+                return
+        except Exception:
+            pass
+
+
 def compute_stats(entries):
     blocked = sum(1 for e in entries if e.get("action") == "BLOCKED")
     flagged = sum(1 for e in entries if e.get("action") == "FLAGGED")
@@ -701,6 +733,7 @@ def stop_download():
     data = request.get_json(force=True) or {}
     actor_id = str(data.get("actor_id", ""))[:50]
     path_str = str(data.get("path", ""))[:500]
+    timestamp = str(data.get("timestamp", ""))[:50]  # original event timestamp
 
     if not actor_id and not path_str:
         return jsonify({"ok": False, "error": "no actor_id or path"}), 400
@@ -751,6 +784,33 @@ def stop_download():
                     pass
 
         if killed:
+            # Update the original audit log entry to BLOCKED so the activity
+            # panel reflects the outcome and stops showing Allow/Stop buttons.
+            if timestamp:
+                update_audit_entry(timestamp, {
+                    "action": "BLOCKED",
+                    "blocked": True,
+                    "outcome": "user_stopped",
+                    "outcome_at": datetime.now(timezone.utc).isoformat(),
+                })
+            # Write path to blocked_downloads.json so file_write_monitor
+            # suppresses re-alerts when Ollama retries the download.
+            if path_str:
+                try:
+                    block_file = Path.home() / ".coworkguard" / "blocked_downloads.json"
+                    block_file.parent.mkdir(parents=True, exist_ok=True)
+                    existing = []
+                    if block_file.exists():
+                        try:
+                            existing = json.loads(block_file.read_text())
+                        except Exception:
+                            existing = []
+                    if path_str not in existing:
+                        existing.append(path_str)
+                    existing = existing[-200:]
+                    block_file.write_text(json.dumps(existing))
+                except Exception:
+                    pass
             return jsonify({"ok": True, "killed_pids": killed})
         return jsonify({"ok": False, "error": "Download process not found — may have already finished"}), 404
 
@@ -763,6 +823,7 @@ def allow_download():
     """Allow a flagged model download to proceed without further alerts."""
     data = request.get_json(force=True) or {}
     path_str = str(data.get("path", ""))[:500]
+    timestamp = str(data.get("timestamp", ""))[:50]
     if not path_str:
         return jsonify({"ok": False, "error": "no path"}), 400
     try:
@@ -776,8 +837,17 @@ def allow_download():
                 existing = []
         if path_str not in existing:
             existing.append(path_str)
-        existing = existing[-200:]  # cap list size
+        existing = existing[-200:]
         allow_file.write_text(json.dumps(existing))
+        # Update the original audit log entry so the activity panel shows
+        # the outcome and hides the Allow/Stop buttons.
+        if timestamp:
+            update_audit_entry(timestamp, {
+                "action": "ALLOWED",
+                "blocked": False,
+                "outcome": "user_allowed",
+                "outcome_at": datetime.now(timezone.utc).isoformat(),
+            })
         app.logger.info("User allowed download: %s", path_str)
         return jsonify({"ok": True, "path": path_str})
     except Exception as e:
