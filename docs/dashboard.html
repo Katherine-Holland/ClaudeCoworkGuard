@@ -146,7 +146,7 @@
     </section>
 
     <section id="view-activity" class="view">
-  <div class="top"><div><div class="headline"><h2>Activity</h2></div><p>All CoworkGuard events from your local audit log.</p></div><button class="btn" onclick="clearLog()">Clear activity</button></div>
+  <div class="top"><div><div class="headline"><h2>Activity</h2></div><p>All CoworkGuard events from your local audit log.</p></div><div style="display:flex;gap:8px"><button class="btn" onclick="fetchAll();toast('Refreshing...')">Refresh</button><button class="btn" onclick="clearLog()">Clear</button></div></div>
   <div class="panel" style="overflow:visible">
     <div class="filter-bar" style="background:#fff;border-radius:18px 18px 0 0">
       <div class="filter-pills">
