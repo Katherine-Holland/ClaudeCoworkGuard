@@ -50,6 +50,8 @@ CORS(app, origins=[
     "http://localhost:7070",
     "http://127.0.0.1:7070",
     "http://localhost:3000",   # dev convenience
+    "null",                    # Tauri webview loads dashboard.html as a local
+                               # file — browsers send Origin: null for file://
 ])
 
 LOG_DIR = Path.home() / ".coworkguard" / "logs"
