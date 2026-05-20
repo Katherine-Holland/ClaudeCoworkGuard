@@ -44,16 +44,11 @@ except Exception:
     HAS_REGISTRY = False
 
 app = Flask(__name__)
-# Restrict CORS to localhost only — prevents malicious pages from
-# calling the API while the dashboard is open in another tab
-CORS(app, origins=[
-    "http://localhost:7070",
-    "http://127.0.0.1:7070",
-    "http://localhost:3000",        # dev convenience
-    "null",                         # file:// origin (some Tauri versions)
-    "https://tauri.localhost",      # Tauri 2.x WKWebView origin on macOS
-    "tauri://localhost",            # Tauri 1.x origin
-])
+# The server binds to 127.0.0.1 only so it is unreachable from other
+# machines. Allow all origins so Tauri's WKWebView can reach it
+# regardless of which internal origin scheme the webview uses
+# (tauri://localhost, https://tauri.localhost, null, or none).
+CORS(app, origins="*")
 
 LOG_DIR = Path.home() / ".coworkguard" / "logs"
 SETTINGS = Path.home() / ".coworkguard" / "settings.json"
