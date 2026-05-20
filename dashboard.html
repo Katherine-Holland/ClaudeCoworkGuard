@@ -860,7 +860,8 @@ document.getElementById('actor-grid').innerHTML=activeActors.length?activeActors
 
 const SENSITIVE_EVENT_TYPES = new Set([
   'AX_ACCESS_DETECTED','NETWORK_AFTER_SENSITIVE_ACCESS','CLIPBOARD_WARNING',
-  'FILE_WRITE_WARNING','LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_DOWNLOADING'
+  'FILE_WRITE_WARNING','LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_DOWNLOADING',
+  'AI_SESSION_STARTED','SKILL_SCAN',
 ]);
 const STEP_LABELS = {
   AX_ACCESS_DETECTED:             { label:'Accessed another app on your Mac', dot:'ax' },
@@ -907,7 +908,18 @@ const CONFIDENCE_LABELS={
 function buildCorrelations(events){
   const sorted=[...events].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
   const sensitiveEvents=sorted.filter(e=>SENSITIVE_EVENT_TYPES.has(e.type)||(e.findings||[]).length>0);
-  const outboundEvents=sorted.filter(e=>e.type==='API_REQUEST');
+  // Outbound = any event representing an actual or attempted AI network call.
+  // Proxy write_audit entries have no type field — they are the most important
+  // signal (real mitmproxy intercepts) and must be included.
+  const outboundEvents=sorted.filter(e=>
+    !e.type||                                      // proxy write_audit — no type
+    e.type==='CHROME_EVENT'||                      // extension-logged intercepts
+    e.type==='MCP_TOOL_RESPONSE'||                 // MCP tool outbound calls
+    e.type==='WINDOW_AI_DETECTED'||                // browser local AI API used
+    e.type==='SUSPICIOUS_API_WRAP'||               // hooked fetch/XHR on AI page
+    e.type==='DOMAIN_WARNING'||                    // sensitive domain during session
+    e.type==='NETWORK_AFTER_SENSITIVE_ACCESS'      // already a confirmed correlation
+  );
   const sequences=[];
   sensitiveEvents.forEach(sens=>{
     const sensTs=new Date(sens.timestamp||0).getTime();
