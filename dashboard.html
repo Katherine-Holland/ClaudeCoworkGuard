@@ -943,7 +943,13 @@ const CONFIDENCE_LABELS={
 };
 function buildCorrelations(events){
   const sorted=[...events].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
-  const sensitiveEvents=sorted.filter(e=>SENSITIVE_EVENT_TYPES.has(e.type)||(e.findings||[]).length>0);
+  const sensitiveEvents=sorted.filter(e=>
+    // Must be an explicitly known sensitive type — never a raw Chrome intercept.
+    // Exclude CHROME_EVENT even if it has findings (server.py injects a synthetic
+    // finding into every Chrome event which would otherwise match everything).
+    SENSITIVE_EVENT_TYPES.has(e.type)||
+    ((e.findings||[]).some(f=>f.type&&f.type!=='CHROME_EVENT'&&f.severity&&f.severity!=='LOW'))
+  );
   // Outbound = any event representing an actual or attempted AI network call.
   // Proxy write_audit entries have no type field — they are the most important
   // signal (real mitmproxy intercepts) and must be included.
@@ -961,7 +967,11 @@ function buildCorrelations(events){
     const sensTs=new Date(sens.timestamp||0).getTime();
     outboundEvents.filter(out=>{
       const outTs=new Date(out.timestamp||0).getTime();
-      return Math.abs(outTs-sensTs)<=60000&&out.timestamp!==sens.timestamp;
+      const gap=outTs-sensTs;
+      // Must be after the sensitive event (not before), within 60s,
+      // and at least 3s apart to exclude same-request double-logging
+      // (proxy + extension both log the same call within milliseconds).
+      return gap>=3000&&gap<=60000;
     }).forEach(out=>{
       const conf=actorConfidence(sens,out);
       if(!conf)return;
