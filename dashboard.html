@@ -89,196 +89,7 @@
   .corr-why strong{display:block;margin-bottom:6px;color:#b45309;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
   .corr-actions{display:flex;gap:8px}
 </style>
-<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer onerror="console.warn('[CoworkGuard] Phosphor icons unavailable — offline mode')">
-// ── Behavioural Correlation Engine ──
-// Looks for sequences: AX/sensitive access → outbound connection within 30s
-// Turns raw events into a human-readable story
-
-const SENSITIVE_EVENT_TYPES = new Set([
-  'AX_ACCESS_DETECTED','NETWORK_AFTER_SENSITIVE_ACCESS','CLIPBOARD_WARNING',
-  'FILE_WRITE_WARNING','LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_DOWNLOADING'
-]);
-
-const STEP_LABELS = {
-  AX_ACCESS_DETECTED:      { label:'Accessed another app on your Mac', dot:'ax' },
-  CLIPBOARD_WARNING:        { label:'Sensitive data copied to clipboard', dot:'clip' },
-  FILE_WRITE_WARNING:       { label:'Wrote file outside approved folders', dot:'file' },
-  LOCAL_MODEL_DOWNLOADED:   { label:'Downloaded a local AI model', dot:'model' },
-  LOCAL_MODEL_DOWNLOADING:  { label:'Actively downloading an AI model', dot:'model' },
-  NETWORK_AFTER_SENSITIVE_ACCESS: { label:'Connected outward after accessing private data', dot:'net' },
-  API_REQUEST:              { label:'Sent outbound AI request', dot:'net' },
-  MCP_TOOL_RESPONSE:        { label:'AI tool returned a response', dot:'ax' },
-  FILE_ACCESS:              { label:'Accessed a file on your Mac', dot:'file' },
-  AI_SESSION_STARTED:       { label:'AI session opened in browser', dot:'net' },
-};
-
-// Map app names from AX events — makes sequences more emotionally resonant
-const AX_APP_LABELS = {
-  'Messages':   'Accessed Apple Messages',
-  'Mail':       'Accessed Apple Mail',
-  '1Password':  'Accessed 1Password',
-  'Keychain':   'Accessed Keychain',
-  'Safari':     'Accessed Safari',
-  'Chrome':     'Accessed Chrome',
-  'Terminal':   'Accessed Terminal',
-  'Finder':     'Accessed Finder',
-  'Notes':      'Accessed Notes',
-  'Calendar':   'Accessed Calendar',
-  'Contacts':   'Accessed Contacts',
-  'Photos':     'Accessed Photos',
-};
-
-function axLabel(step){
-  if(step.type !== 'AX_ACCESS_DETECTED') return null;
-  const app = step.app_name || step.target_app || '';
-  return AX_APP_LABELS[app] || (app ? 'Accessed ' + app : null);
-}
-
-// ── Confidence ladder for actor matching ──
-function actorConfidence(a, b){
-  // Strong — same explicit identity
-  if(a.actor_id && b.actor_id && a.actor_id === b.actor_id) return 'strong';
-  if(a.pid && b.pid && a.pid === b.pid) return 'strong';
-  if(a.bundle_id && b.bundle_id && a.bundle_id === b.bundle_id) return 'strong';
-  // Medium — shared session/tab/request identity
-  if(a.session_id && b.session_id && a.session_id === b.session_id) return 'medium';
-  if(a.tab_id && b.tab_id && a.tab_id === b.tab_id) return 'medium';
-  if(a.extension_id && b.extension_id && a.extension_id === b.extension_id) return 'medium';
-  // Weak — same guessed name within time window
-  const nameA = a.ai_provider || a.actor_name || a.actor_id || '';
-  const nameB = b.ai_provider || b.actor_name || b.actor_id || '';
-  if(nameA && nameB && nameA === nameB) return 'weak';
-  return null;
-}
-
-const CONFIDENCE_LABELS = {
-  strong: { prefix:'', badge:'Confirmed sequence', badgeClass:'review' },
-  medium: { prefix:'', badge:'Likely sequence', badgeClass:'review' },
-  weak:   { prefix:'Possible: ', badge:'Unconfirmed', badgeClass:'weak' },
-};
-
-function buildCorrelations(events){
-  const sorted = [...events].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
-  const sequences = [];
-
-  // Find sensitive events, then look for outbound events within 30s with matching actor
-  // Sensitive = anything with findings, or a known warning/detection type
-  const sensitiveEvents = sorted.filter(e =>
-    SENSITIVE_EVENT_TYPES.has(e.type) || (e.findings||[]).length > 0
-  );
-  // Outbound = any API request, regardless of outcome
-  const outboundEvents = sorted.filter(e => e.type==='API_REQUEST');
-
-  sensitiveEvents.forEach(sens => {
-    const sensTs = new Date(sens.timestamp||0).getTime();
-    // Find outbound events within 60s window — before or after
-    const matching = outboundEvents.filter(out => {
-      const outTs = new Date(out.timestamp||0).getTime();
-      return Math.abs(outTs - sensTs) <= 60000 && out.timestamp !== sens.timestamp;
-    });
-
-    matching.forEach(out => {
-      const conf = actorConfidence(sens, out);
-      if(!conf) return; // No actor match at all — skip entirely
-      const actor = out.ai_provider || out.actor_name || sens.ai_provider || sens.actor_name || 'AI Tool';
-      const timeDiff = Math.round((new Date(out.timestamp||0) - new Date(sens.timestamp||0))/1000);
-      sequences.push({
-        actor, confidence: conf,
-        steps: [
-          {type:sens.type, ts:new Date(sens.timestamp||0).getTime(), url:sens.url||sens.path||'', findings:sens.findings||[], actor:actor},
-          {type:out.type,  ts:new Date(out.timestamp||0).getTime(),  url:out.url||out.destination||'', findings:out.findings||[], actor:actor}
-        ],
-        timeDiff,
-        hasSensitive: true,
-        hasOutbound: true,
-        key: sens.timestamp + out.timestamp,
-      });
-    });
-  });
-
-  // Dedupe by key, keep highest confidence, return last 3 newest
-  const seen = new Map();
-  sequences.forEach(s => {
-    const existing = seen.get(s.key);
-    if(!existing || ['strong','medium','weak'].indexOf(s.confidence) < ['strong','medium','weak'].indexOf(existing.confidence)){
-      seen.set(s.key, s);
-    }
-  });
-
-  return [...seen.values()]
-    .sort((a,b) => b.steps[0].ts - a.steps[0].ts)
-    .slice(0, 3);
-}
-
-function renderCorrelations(){
-  const section = document.getElementById('correlation-section');
-  const container = document.getElementById('correlation-cards');
-  if(!section || !container) return;
-
-  const sequences = buildCorrelations(allEvents);
-
-  if(!sequences.length){
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = 'block';
-  container.innerHTML = sequences.map(seq => {
-    const confInfo = CONFIDENCE_LABELS[seq.confidence] || CONFIDENCE_LABELS.weak;
-    const borderClass = seq.confidence === 'strong' ? 'flagged' : seq.confidence === 'medium' ? 'flagged' : 'weak';
-    const badgeClass = confInfo.badgeClass;
-    const badgeText = confInfo.badge;
-
-    const stepsHtml = seq.steps.map((step, i) => {
-      const axOverride = axLabel(step);
-      const info = axOverride ? {label:axOverride, dot:'ax'} : (STEP_LABELS[step.type] || {label: step.type.replace(/_/g,' ').toLowerCase(), dot:'net'});
-      const time = new Date(step.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      const isLast = i === seq.steps.length - 1;
-      const timeDiff = i>0 ? Math.round((step.ts - seq.steps[i-1].ts)/1000) : 0;
-      // Get named app if available
-      const appLabel = step.appName || seq.actor;
-      // Time transition between steps
-      const transitionHtml = !isLast && timeDiff > 0
-        ? `<div class="corr-transition">↓ &nbsp; ${timeDiff} second${timeDiff!==1?'s':''} later</div>`
-        : !isLast ? '<div class="corr-transition">↓</div>' : '';
-      const urlHost = step.url ? step.url.replace(/https?:\/\//, '').split('/')[0].slice(0,50) : '';
-      return `<div class="corr-step">
-        <div class="corr-step-connector">
-          <div class="corr-dot ${info.dot}"></div>
-          ${!isLast?'<div class="corr-line"></div>':''}
-        </div>
-        <div class="corr-step-body">
-          <div class="corr-step-label">${esc(info.label)}</div>
-          ${urlHost?`<div class="corr-step-sub">${esc(urlHost)}</div>`:''}
-        </div>
-        <div class="corr-step-time">${i===0?esc(time):''}</div>
-      </div>${transitionHtml}`;
-    }).join('');
-
-    const whyTexts = {
-      strong: 'This AI tool interacted with private data on your Mac, then made an outbound connection ' + (seq.timeDiff > 0 ? seq.timeDiff + ' seconds later' : 'shortly after') + '. CoworkGuard confirmed these events came from the same process.',
-      medium: 'CoworkGuard detected sensitive activity and an outbound connection from what appears to be the same session. The link is likely but not confirmed.',
-      weak:   'CoworkGuard saw private-app access and AI network activity close together, but could not confirm they came from the same actor. This may be unrelated activity.',
-    };
-    const whyText = whyTexts[seq.confidence] || whyTexts.weak;
-
-    return `<div class="correlation-card ${borderClass}">
-      <div class="corr-header">
-        <span class="corr-title">Recent behaviour sequence</span>
-        <span class="corr-badge ${badgeClass}">${badgeText}</span>
-      </div>
-      <div class="corr-actor">${esc(seq.actor)}</div>
-      <div class="corr-timeline">${stepsHtml}</div>
-      <div class="corr-why"><strong>Why CoworkGuard flagged this</strong>${esc(whyText)}</div>
-      <div class="corr-actions">
-        <button class="btn primary" onclick="showView('activity')">Review Activity</button>
-        <button class="btn" onclick="this.closest('.correlation-card').style.display='none'">Dismiss</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-</script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer onerror="console.warn('[CoworkGuard] Phosphor icons unavailable — offline mode')"></script>
 </head>
 <body>
 <div class="app">
@@ -1042,6 +853,117 @@ document.getElementById('actor-grid').innerHTML=activeActors.length?activeActors
     document.getElementById('actor-grid').innerHTML=`<div class="empty">Could not load AI apps. Is CoworkGuard running?</div>`;
   }
 }
+// ── Behavioural Correlation Engine ──────────────────────────────────────────
+// Looks for sequences: sensitive access → outbound connection within 60s
+// Turns raw events into a human-readable story shown on the overview page.
+
+const SENSITIVE_EVENT_TYPES = new Set([
+  'AX_ACCESS_DETECTED','NETWORK_AFTER_SENSITIVE_ACCESS','CLIPBOARD_WARNING',
+  'FILE_WRITE_WARNING','LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_DOWNLOADING'
+]);
+const STEP_LABELS = {
+  AX_ACCESS_DETECTED:             { label:'Accessed another app on your Mac', dot:'ax' },
+  CLIPBOARD_WARNING:              { label:'Sensitive data copied to clipboard', dot:'clip' },
+  FILE_WRITE_WARNING:             { label:'Wrote file outside approved folders', dot:'file' },
+  LOCAL_MODEL_DOWNLOADED:         { label:'Downloaded a local AI model', dot:'model' },
+  LOCAL_MODEL_DOWNLOADING:        { label:'Actively downloading an AI model', dot:'model' },
+  NETWORK_AFTER_SENSITIVE_ACCESS: { label:'Connected outward after accessing private data', dot:'net' },
+  API_REQUEST:                    { label:'Sent outbound AI request', dot:'net' },
+  MCP_TOOL_RESPONSE:              { label:'AI tool returned a response', dot:'ax' },
+  FILE_ACCESS:                    { label:'Accessed a file on your Mac', dot:'file' },
+  AI_SESSION_STARTED:             { label:'AI session opened in browser', dot:'net' },
+};
+const AX_APP_LABELS = {
+  'Messages':'Accessed Apple Messages','Mail':'Accessed Apple Mail',
+  '1Password':'Accessed 1Password','Keychain':'Accessed Keychain',
+  'Safari':'Accessed Safari','Chrome':'Accessed Chrome',
+  'Terminal':'Accessed Terminal','Finder':'Accessed Finder',
+  'Notes':'Accessed Notes','Calendar':'Accessed Calendar',
+  'Contacts':'Accessed Contacts','Photos':'Accessed Photos',
+};
+function axLabel(step){
+  if(step.type!=='AX_ACCESS_DETECTED')return null;
+  const app=step.app_name||step.target_app||'';
+  return AX_APP_LABELS[app]||(app?'Accessed '+app:null);
+}
+function actorConfidence(a,b){
+  if(a.actor_id&&b.actor_id&&a.actor_id===b.actor_id)return 'strong';
+  if(a.pid&&b.pid&&a.pid===b.pid)return 'strong';
+  if(a.bundle_id&&b.bundle_id&&a.bundle_id===b.bundle_id)return 'strong';
+  if(a.session_id&&b.session_id&&a.session_id===b.session_id)return 'medium';
+  if(a.tab_id&&b.tab_id&&a.tab_id===b.tab_id)return 'medium';
+  if(a.extension_id&&b.extension_id&&a.extension_id===b.extension_id)return 'medium';
+  const nameA=a.ai_provider||a.actor_name||a.actor_id||'';
+  const nameB=b.ai_provider||b.actor_name||b.actor_id||'';
+  if(nameA&&nameB&&nameA===nameB)return 'weak';
+  return null;
+}
+const CONFIDENCE_LABELS={
+  strong:{prefix:'',badge:'Confirmed sequence',badgeClass:'review'},
+  medium:{prefix:'',badge:'Likely sequence',badgeClass:'review'},
+  weak:  {prefix:'Possible: ',badge:'Unconfirmed',badgeClass:'weak'},
+};
+function buildCorrelations(events){
+  const sorted=[...events].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));
+  const sensitiveEvents=sorted.filter(e=>SENSITIVE_EVENT_TYPES.has(e.type)||(e.findings||[]).length>0);
+  const outboundEvents=sorted.filter(e=>e.type==='API_REQUEST');
+  const sequences=[];
+  sensitiveEvents.forEach(sens=>{
+    const sensTs=new Date(sens.timestamp||0).getTime();
+    outboundEvents.filter(out=>{
+      const outTs=new Date(out.timestamp||0).getTime();
+      return Math.abs(outTs-sensTs)<=60000&&out.timestamp!==sens.timestamp;
+    }).forEach(out=>{
+      const conf=actorConfidence(sens,out);
+      if(!conf)return;
+      const actor=out.ai_provider||out.actor_name||sens.ai_provider||sens.actor_name||'AI Tool';
+      const timeDiff=Math.round((new Date(out.timestamp||0)-new Date(sens.timestamp||0))/1000);
+      sequences.push({actor,confidence:conf,timeDiff,hasSensitive:true,hasOutbound:true,
+        key:sens.timestamp+out.timestamp,
+        steps:[
+          {type:sens.type,ts:new Date(sens.timestamp||0).getTime(),url:sens.url||sens.path||'',findings:sens.findings||[],actor},
+          {type:out.type, ts:new Date(out.timestamp||0).getTime(), url:out.url||out.destination||'',findings:out.findings||[],actor},
+        ],
+      });
+    });
+  });
+  const seen=new Map();
+  sequences.forEach(s=>{
+    const ex=seen.get(s.key);
+    if(!ex||['strong','medium','weak'].indexOf(s.confidence)<['strong','medium','weak'].indexOf(ex.confidence))seen.set(s.key,s);
+  });
+  return [...seen.values()].sort((a,b)=>b.steps[0].ts-a.steps[0].ts).slice(0,3);
+}
+function renderCorrelations(){
+  const section=document.getElementById('correlation-section');
+  const container=document.getElementById('correlation-cards');
+  if(!section||!container)return;
+  const sequences=buildCorrelations(allEvents);
+  if(!sequences.length){section.style.display='none';return;}
+  section.style.display='block';
+  container.innerHTML=sequences.map(seq=>{
+    const confInfo=CONFIDENCE_LABELS[seq.confidence]||CONFIDENCE_LABELS.weak;
+    const borderClass=seq.confidence==='weak'?'weak':'flagged';
+    const stepsHtml=seq.steps.map((step,i)=>{
+      const axOverride=axLabel(step);
+      const info=axOverride?{label:axOverride,dot:'ax'}:(STEP_LABELS[step.type]||{label:step.type.replace(/_/g,' ').toLowerCase(),dot:'net'});
+      const time=new Date(step.ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const isLast=i===seq.steps.length-1;
+      const diff=i>0?Math.round((step.ts-seq.steps[i-1].ts)/1000):0;
+      const transition=!isLast&&diff>0?`<div class="corr-transition">↓ &nbsp; ${diff} second${diff!==1?'s':''} later</div>`:!isLast?'<div class="corr-transition">↓</div>':'';
+      const urlHost=step.url?step.url.replace(/https?:\/\//,'').split('/')[0].slice(0,50):'';
+      return `<div class="corr-step"><div class="corr-step-connector"><div class="corr-dot ${info.dot}"></div>${!isLast?'<div class="corr-line"></div>':''}</div><div class="corr-step-body"><div class="corr-step-label">${esc(info.label)}</div>${urlHost?`<div class="corr-step-sub">${esc(urlHost)}</div>`:''}</div><div class="corr-step-time">${i===0?esc(time):''}</div></div>${transition}`;
+    }).join('');
+    const whyTexts={
+      strong:'This AI tool interacted with private data on your Mac, then made an outbound connection '+(seq.timeDiff>0?seq.timeDiff+' seconds later':'shortly after')+'. CoworkGuard confirmed these events came from the same process.',
+      medium:'CoworkGuard detected sensitive activity and an outbound connection from what appears to be the same session. The link is likely but not confirmed.',
+      weak:'CoworkGuard saw private-app access and AI network activity close together, but could not confirm they came from the same actor. This may be unrelated activity.',
+    };
+    return `<div class="correlation-card ${borderClass}"><div class="corr-header"><span class="corr-title">Recent behaviour sequence</span><span class="corr-badge ${confInfo.badgeClass}">${confInfo.badge}</span></div><div class="corr-actor">${esc(seq.actor)}</div><div class="corr-timeline">${stepsHtml}</div><div class="corr-why"><strong>Why CoworkGuard flagged this</strong>${esc(whyTexts[seq.confidence]||whyTexts.weak)}</div><div class="corr-actions"><button class="btn primary" onclick="showView('activity')">Review Activity</button><button class="btn" onclick="this.closest('.correlation-card').style.display='none'">Dismiss</button></div></div>`;
+  }).join('');
+}
+// ── End Correlation Engine ───────────────────────────────────────────────────
+
 async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
     // Dedupe by request_id:
     // 1. For each request_id, prefer ALLOWED/BLOCKED over PENDING
@@ -1066,7 +988,7 @@ async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/s
     const resolvedEntries=Object.values(byRid);
     const noRidEntries=raw.filter(e=>!e.request_id);
     allEvents=[...resolvedEntries,...noRidEntries]
-      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
+      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();renderCorrelations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
 async function saveSettings(msgId){
   const payload={
