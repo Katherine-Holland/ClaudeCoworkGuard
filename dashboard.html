@@ -786,6 +786,17 @@ function openBrowserAISettings(actorId){
   const url=urls[actorId]||'googlechrome://settings/ai';
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})}).catch(()=>{});
 }
+async function freePort(){
+  try{
+    const r=await fetch(API+'/api/kill-port',{method:'POST'});
+    const d=await r.json();
+    if(d.ok){
+      toast('Port cleared — restart protection in the menubar');
+    } else {
+      toast(d.error||'Could not free port',true);
+    }
+  }catch(e){toast('Make sure CoworkGuard is running',true);}
+}
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'file://'+folder})}).catch(()=>{});
@@ -827,7 +838,27 @@ function updateStats(data,status){const s=data.stats||{};const prevented=s.block
     // Update overview protection status panel
     const g2=id=>document.getElementById(id);
     const settings2=status?.settings||{};
-    if(g2('ov-proxy-status')){g2('ov-proxy-status').textContent=proxy?'Running':'Stopped';g2('ov-proxy-status').style.color=proxy?'#166534':'#c0392b';}
+    if(g2('ov-proxy-status')){
+      if(proxy){
+        g2('ov-proxy-status').textContent='Running';
+        g2('ov-proxy-status').style.color='#166534';
+        g2('ov-proxy-status').innerHTML='Running';
+      } else {
+        // Check if port conflict
+        fetch(API+'/api/port-check').then(r=>r.json()).then(d=>{
+          if(d.conflict){
+            g2('ov-proxy-status').innerHTML='Port conflict &nbsp;<button onclick="freePort()" style="font-size:11px;padding:2px 10px;border-radius:6px;border:1px solid rgba(255,159,10,.3);background:rgba(255,159,10,.1);color:#b45309;cursor:pointer;font-weight:600">Fix it</button>';
+            g2('ov-proxy-status').style.color='#b45309';
+          } else {
+            g2('ov-proxy-status').textContent='Stopped';
+            g2('ov-proxy-status').style.color='#c0392b';
+          }
+        }).catch(()=>{
+          g2('ov-proxy-status').textContent='Stopped';
+          g2('ov-proxy-status').style.color='#c0392b';
+        });
+      }
+    }
     if(g2('ov-proxy-port'))g2('ov-proxy-port').textContent=settings2.proxy_port||'8080';
     if(g2('ov-block-crit')){const on=settings2.block_on_critical!==false;g2('ov-block-crit').textContent=on?'Enabled':'Disabled';g2('ov-block-crit').style.color=on?'#166534':'#c0392b';}
     if(g2('ov-block-high')){const on=settings2.block_on_high;g2('ov-block-high').textContent=on?'Enabled':'Disabled';g2('ov-block-high').style.color=on?'#166534':'#7b8798';}

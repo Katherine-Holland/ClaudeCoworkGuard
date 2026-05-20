@@ -413,6 +413,51 @@ def get_domains():
     return jsonify({"sensitive_domains": []})
 
 
+
+@app.route("/api/port-check", methods=["GET"])
+def port_check():
+    """Check if the proxy port is free or in use by another process."""
+    try:
+        import subprocess as sp
+        port = load_settings().get("proxy_port", 8080)
+        result = sp.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True, timeout=3)
+        pids = [p.strip() for p in result.stdout.strip().split() if p.strip().isdigit()]
+        if not pids:
+            return jsonify({"ok": True, "port": port, "conflict": False})
+        # Get process name for the conflicting PID
+        proc_result = sp.run(["ps", "-p", pids[0], "-o", "comm="], capture_output=True, text=True, timeout=3)
+        proc_name = proc_result.stdout.strip().split("/")[-1] if proc_result.stdout.strip() else "another app"
+        return jsonify({"ok": True, "port": port, "conflict": True, "pids": pids, "process": proc_name})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/kill-port", methods=["POST"])
+def kill_port():
+    """Kill the process using the proxy port so CoworkGuard can start."""
+    try:
+        import subprocess as sp, signal as sig
+        port = load_settings().get("proxy_port", 8080)
+        result = sp.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True, timeout=3)
+        pids = [int(p.strip()) for p in result.stdout.strip().split() if p.strip().isdigit()]
+        if not pids:
+            return jsonify({"ok": True, "message": "Port is already free"})
+        killed = []
+        for pid in pids:
+            try:
+                import os
+                os.kill(pid, sig.SIGTERM)
+                killed.append(pid)
+                app.logger.info(f"Killed PID {pid} to free port {port}")
+            except ProcessLookupError:
+                pass
+            except PermissionError:
+                return jsonify({"ok": False, "error": "Permission denied — try restarting CoworkGuard as admin"}), 403
+        return jsonify({"ok": True, "killed": killed, "port": port})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/status")
 def status():
     return jsonify({
