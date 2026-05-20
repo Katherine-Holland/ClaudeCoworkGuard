@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src http://localhost:7070; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self' https://tauri.localhost tauri://localhost; connect-src http://localhost:7070 http://127.0.0.1:7070; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://unpkg.com"
     }
   },
   "bundle": {

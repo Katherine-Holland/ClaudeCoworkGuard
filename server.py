@@ -49,9 +49,10 @@ app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:7070",
     "http://127.0.0.1:7070",
-    "http://localhost:3000",   # dev convenience
-    "null",                    # Tauri webview loads dashboard.html as a local
-                               # file — browsers send Origin: null for file://
+    "http://localhost:3000",        # dev convenience
+    "null",                         # file:// origin (some Tauri versions)
+    "https://tauri.localhost",      # Tauri 2.x WKWebView origin on macOS
+    "tauri://localhost",            # Tauri 1.x origin
 ])
 
 LOG_DIR = Path.home() / ".coworkguard" / "logs"
