@@ -407,7 +407,7 @@
 <script>
 const API='http://localhost:7070';
 // Dynamic greeting based on time of day
-(function(){const h=new Date().getHours();const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';const el=document.getElementById('greeting-text');if(el)el.textContent=g;})();let allEvents=[],selectedEvent=null,serverAvailable=false;
+(function(){const h=new Date().getHours();const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';const el=document.getElementById('greeting-text');if(el)el.textContent=g;})();let allEvents=[],selectedEvent=null,serverAvailable=false,_fetchFailCount=0;
 const SENSITIVE=[['1Password','CRITICAL'],['Keychain Access','CRITICAL'],['Apple Mail','HIGH'],['Messages','HIGH'],['Notes','HIGH'],['Outlook','HIGH'],['Slack','HIGH'],['WhatsApp','HIGH'],['Terminal','HIGH'],['Safari','MEDIUM'],['Chrome','MEDIUM']];
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
 function showView(name){
@@ -1024,7 +1024,7 @@ function renderCorrelations(){
 }
 // ── End Correlation Engine ───────────────────────────────────────────────────
 
-async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
+async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;_fetchFailCount=0;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
     // Dedupe by request_id:
     // 1. For each request_id, prefer ALLOWED/BLOCKED over PENDING
     // 2. Only keep one entry per request_id
@@ -1048,7 +1048,16 @@ async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/s
     const resolvedEntries=Object.values(byRid);
     const noRidEntries=raw.filter(e=>!e.request_id);
     allEvents=[...resolvedEntries,...noRidEntries]
-      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();renderCorrelations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();}catch(e){serverAvailable=false;document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';toast('CoworkGuard server offline',true)}}
+      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();renderCorrelations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();_fetchFailCount=0;}catch(e){
+  _fetchFailCount++;
+  // Only show offline after 3 consecutive failures — avoids wiping the
+  // display on a single slow response or transient hiccup.
+  if(_fetchFailCount>=3){
+    serverAvailable=false;
+    document.getElementById('recent-rows').innerHTML='<div class="empty">Server offline — make sure CoworkGuard is running.</div>';
+    if(_fetchFailCount===3)toast('CoworkGuard server offline',true);
+  }
+}}
 async function clearLog(){if(!confirm('Clear local audit log?'))return;try{await fetch(API+'/api/clear',{method:'POST'});toast('Activity cleared');fetchAll()}catch{toast('Could not clear log',true)}}
 async function saveSettings(msgId){
   const payload={
