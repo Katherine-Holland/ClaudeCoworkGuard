@@ -423,8 +423,12 @@ function showView(name){
   if(name==='skills')   call(loadSkillScans);
 }
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.viewLink)}));
-function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);const hasFindings=(e.findings||[]).length>0||(e.finding_count||0)>0;if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='LOCAL_MODEL_DOWNLOADING')return 'review';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED'||hasBlocked)return 'blocked';// CHROME_EVENT with no findings = proxy scanned and passed — show as info
-if(t==='CHROME_EVENT'&&!hasFindings)return 'info';if(a==='FLAGGED'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';return 'allowed'}
+function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);const hasFindings=(e.findings||[]).length>0||(e.finding_count||0)>0;
+// Real findings = findings that are not the synthetic self-referential CHROME_EVENT
+// entry that server.py injects. A finding of type 'CHROME_EVENT' carries no signal.
+const hasRealFindings=(e.findings||[]).some(f=>f.type&&f.type!=='CHROME_EVENT'&&f.type!=='chrome_event');
+if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='LOCAL_MODEL_DOWNLOADING')return 'review';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='ALLOWED'||a==='CLEAN')return 'allowed';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(a==='BLOCKED'||a==='PREVENTED'||hasBlocked)return 'blocked';// CHROME_EVENT with no real findings = proxy scanned and passed — show as info
+if(t==='CHROME_EVENT'&&!hasRealFindings)return 'info';if(a==='FLAGGED'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';return 'allowed'}
 function appName(e){return e.actor_name||e.actor||e.app||e.process||e.source_process||guessActor(e)||'CoworkGuard'}
 function guessActor(e){const s=JSON.stringify(e).toLowerCase();if(s.includes('claude'))return 'Claude Desktop';if(s.includes('cursor'))return 'Cursor IDE';if(s.includes('vscode')||s.includes('vs code'))return 'VS Code';if(s.includes('chrome'))return 'Chrome';return 'AI Tool'}
 function eventTitle(e){const t=e.type||e.action||'Event';const map={NETWORK_AFTER_SENSITIVE_ACCESS:'Network Correlation',AX_ACCESS_DETECTED:'AX Access',WINDOW_AI_DETECTED:'Local AI Used',SUSPICIOUS_API_WRAP:'Extension Hook',DOMAIN_WARNING:'Sensitive Website',CLIPBOARD_WARNING:'Clipboard Warning',FILE_WRITE_WARNING:'File Write',MCP_TOOL_INSTALLED:'MCP Tool Used',MCP_CONFIG_CHANGED:'MCP Config Changed'};return map[t]||t.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,m=>m.toUpperCase())}
@@ -888,16 +892,43 @@ function axLabel(step){
   const app=step.app_name||step.target_app||'';
   return AX_APP_LABELS[app]||(app?'Accessed '+app:null);
 }
+// Normalise provider names so Chrome extension events (app_name='ChatGPT',
+// actor_id='chatgpt') match proxy write_audit events (ai_provider='OpenAI').
+const PROVIDER_NORM={
+  'chatgpt':'openai','chat.openai.com':'openai','openai':'openai',
+  'claude':'anthropic','claude.ai':'anthropic','anthropic':'anthropic',
+  'gemini':'google','gemini.google.com':'google','google':'google',
+  'perplexity':'perplexity','perplexity.ai':'perplexity',
+  'mistral':'mistral','mistral.ai':'mistral',
+  'groq':'groq','groq.com':'groq',
+  'copilot':'microsoft','copilot.microsoft.com':'microsoft',
+  'poe':'poe','poe.com':'poe',
+};
+function normProvider(e){
+  const raw=(e.ai_provider||e.actor_id||e.app_name||e.app_id||'').toLowerCase().trim();
+  return PROVIDER_NORM[raw]||raw;
+}
+function urlDomain(e){
+  try{const u=new URL(e.url||e.destination||'');return u.hostname.replace(/^www\./,'');}catch{return '';}
+}
 function actorConfidence(a,b){
+  // Strong — same explicit process identity
   if(a.actor_id&&b.actor_id&&a.actor_id===b.actor_id)return 'strong';
   if(a.pid&&b.pid&&a.pid===b.pid)return 'strong';
   if(a.bundle_id&&b.bundle_id&&a.bundle_id===b.bundle_id)return 'strong';
+  // Medium — same session/tab identity
   if(a.session_id&&b.session_id&&a.session_id===b.session_id)return 'medium';
   if(a.tab_id&&b.tab_id&&a.tab_id===b.tab_id)return 'medium';
   if(a.extension_id&&b.extension_id&&a.extension_id===b.extension_id)return 'medium';
-  const nameA=a.ai_provider||a.actor_name||a.actor_id||'';
-  const nameB=b.ai_provider||b.actor_name||b.actor_id||'';
-  if(nameA&&nameB&&nameA===nameB)return 'weak';
+  // Weak — normalised provider name match (bridges ChatGPT↔OpenAI etc.)
+  const nA=normProvider(a);const nB=normProvider(b);
+  if(nA&&nB&&nA===nB)return 'weak';
+  // Weak — same root domain in URL (e.g. both reference openai.com)
+  const dA=urlDomain(a);const dB=urlDomain(b);
+  if(dA&&dB&&dA===dB)return 'weak';
+  // Weak — one event's URL domain contains the other's provider name
+  if(dA&&nB&&dA.includes(nB))return 'weak';
+  if(dB&&nA&&dB.includes(nA))return 'weak';
   return null;
 }
 const CONFIDENCE_LABELS={
