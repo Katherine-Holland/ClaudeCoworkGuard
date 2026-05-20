@@ -415,12 +415,13 @@ function showView(name){
   document.getElementById('view-'+name)?.classList.add('active');
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
   const call=(fn)=>{if(typeof fn==='function')fn();};
-  if(name==='actors')  {call(loadActors);call(loadAgentGuard);}
-  if(name==='activity') call(renderAllRows);
-  if(name==='network')  call(renderNetwork);
-  if(name==='sensitive')call(renderSensitive);
-  if(name==='settings') call(loadSettingsIntoForm);
-  if(name==='skills')   call(loadSkillScans);
+  if(name==='overview') {call(renderRecent);call(renderDestinations);call(renderCorrelations);}
+  if(name==='actors')   {call(loadActors);call(loadAgentGuard);}
+  if(name==='activity')  call(renderAllRows);
+  if(name==='network')   call(renderNetwork);
+  if(name==='sensitive') call(renderSensitive);
+  if(name==='settings')  call(loadSettingsIntoForm);
+  if(name==='skills')    call(loadSkillScans);
 }
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showView(a.dataset.viewLink)}));
 function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpperCase();const sev=(e.severity||'').toUpperCase();const hasBlocked=(e.findings||[]).some(f=>f.blocked);const hasFindings=(e.findings||[]).length>0||(e.finding_count||0)>0;
