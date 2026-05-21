@@ -356,7 +356,7 @@ def run_once(registry: ActorRegistry, state: Dict[str, Dict]) -> Dict[str, Dict]
     for path, info in state.items():
         if path not in current_by_path:
             import re as _re2
-            if _re2.search(r'-partial-\d+$', path) or path.endswith(('.part', '.tmp', '.download')):
+            if '-partial' in path or path.endswith(('.part', '.tmp', '.download')):
                 continue
             _handle_removed_model(info["actor_id"], info["actor_name"], path)
 
