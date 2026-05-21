@@ -49,7 +49,7 @@
       max-width: 560px; margin: 0 auto 48px; }
 
     /* Pricing */
-    .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 88px; }
+    .pricing { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 88px; }
     .plan { background: var(--card); border: 1px solid rgba(15,23,42,.06); border-radius: 28px;
       padding: 32px; box-shadow: 0 12px 40px rgba(15,23,42,.05); backdrop-filter: blur(20px); }
     .plan.dark { background: #111827; color: white; border-color: rgba(255,255,255,.08); }
@@ -85,7 +85,7 @@
 
     /* Feature grid */
     .features-section { margin-bottom: 88px; }
-    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .feature-card { background: var(--card); border: 1px solid rgba(15,23,42,.06);
       border-radius: 24px; padding: 26px; backdrop-filter: blur(18px);
       box-shadow: 0 8px 28px rgba(15,23,42,.04); }
@@ -150,7 +150,7 @@
     .foot-links a { color: var(--muted); }
     @media (max-width: 920px) {
       .nav-links a:not(.nav-cta) { display: none; }
-      .pricing, .features-grid { grid-template-columns: 1fr; }
+      .pricing, .features-grid, table { grid-template-columns: 1fr; }
       .waitlist-panel { grid-template-columns: 1fr; padding: 40px 24px; gap: 36px; }
     }
   </style>
@@ -203,7 +203,7 @@
 
       <div class="plan">
         <div class="plan-name">Pro</div>
-        <div class="plan-price"><sup>£</sup>12<sub>/month</sub></div>
+        <div class="plan-price"><sup>£</sup>19<sub>/month</sub></div>
         <div class="plan-desc">Confirmed correlations and developer environment protection for power users.</div>
         <button class="plan-btn blue" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join waitlist</button>
         <ul class="plan-features">
@@ -222,7 +222,7 @@
 
       <div class="plan dark">
         <div class="plan-name">Shield</div>
-        <div class="plan-price"><sup>£</sup>49<sub>/month</sub></div>
+        <div class="plan-price" style="font-size:32px;"><span style="font-size:13px;font-weight:500;color:var(--muted);display:block;margin-bottom:2px;">Starting at</span><sup>£</sup>49<sub>/month</sub></div>
         <div class="plan-desc">AI governance for security teams. Runtime observability across every developer machine.</div>
         <button class="plan-btn white" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join waitlist</button>
         <ul class="plan-features">
@@ -239,6 +239,25 @@
         </ul>
       </div>
     </div>
+
+      <div class="plan" style="border-color:rgba(15,23,42,.10);background:rgba(255,255,255,.60);">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price" style="font-size:32px;letter-spacing:-.03em;">Custom</div>
+        <div class="plan-desc">Runtime governance and observability for AI-enabled organisations.</div>
+        <a class="plan-btn outline" href="mailto:hello@coworkguard.com" style="border-color:rgba(15,23,42,.12);color:var(--ink);">Talk to us</a>
+        <ul class="plan-features">
+          <li>Everything in Shield</li>
+          <li>Fleet-wide visibility</li>
+          <li>Centralised governance</li>
+          <li>Custom runtime rules</li>
+          <li>SIEM integrations</li>
+          <li>Audit retention (90d / 1yr)</li>
+          <li>Compliance workflows</li>
+          <li>Private deployment</li>
+          <li>Policy enforcement at scale</li>
+          <li>Priority onboarding & security review</li>
+        </ul>
+      </div>
 
     <div class="features-section">
       <div class="section-head">
@@ -364,24 +383,68 @@
             <th>Free</th>
             <th>Pro</th>
             <th>Shield</th>
+            <th>Enterprise</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>Proxy scanning — 19 AI providers</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>MCP Trust Gateway</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Clipboard & file monitoring</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Model download detection</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Browser AI session tracking</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Correlation timeline</td><td>Time window</td><td>Confirmed</td><td>Confirmed + chain</td></tr>
-          <tr><td>Confirmed actor tracking</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Developer environment protection</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Audit export (CSV/JSON)</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-          <tr><td>Org-wide dashboard</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
-          <tr><td>Policy as code</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
-          <tr><td>Skill quarantine</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
-          <tr><td>MCP observability</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
-          <tr><td>SIEM forwarding</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td></tr>
-          <tr><td>Price</td><td>Free</td><td>~£12/month</td><td>~£49/month</td></tr>
+          <tr><td>Proxy scanning — 19 AI providers</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>MCP Trust Gateway</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Clipboard & file monitoring</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Model download detection</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Browser AI session tracking</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Correlation timeline</td><td>Time window</td><td>Confirmed</td><td>Confirmed + chain</td>
+          <td>Confirmed + chain</td>
+          </tr>
+          <tr><td>Confirmed actor tracking</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Developer environment protection</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Audit export (CSV/JSON)</td><td class="no">–</td><td class="yes">✓</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Org-wide dashboard</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Policy as code</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Skill quarantine</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>MCP observability</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>SIEM forwarding</td><td class="no">–</td><td class="no">–</td><td class="yes">✓</td>
+          
+          <td class="yes">✓</td>
+          </tr>
+          <tr><td>Price</td><td>Free</td><td>~£19/month</td><td>Starting at £49/month</td><td>Custom</td>
+          <td>~£49/month</td>
+          </tr>
         </tbody>
       </table>
     </div>
