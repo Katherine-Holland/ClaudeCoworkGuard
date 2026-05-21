@@ -1,374 +1,267 @@
-# CoworkGuard 🛡️
+# CoworkGuard
 
-**macOS AI Agent Security Layer. Your AI agent firewall. Blocks sensitive data leaving your machine and intercepts MCP tool responses before they reach the model.**
+**CoworkGuard shows you what your AI tools are actually doing on your machine — in plain English, in real time.**
 
-AI agent tools: Claude, Cursor, GitHub Copilot, ChatGPT, Gemini: operate with full access to your environment. Every file, browser session, and credential is in scope. None of them provide a native audit trail, payload scanner, or data loss prevention layer.
+Trusted tooling is becoming the new attack surface.
 
-CoworkGuard adds that layer. It sits between your machine and every major AI API, scanning outbound payloads in real time, blocking sensitive data before it leaves, and keeping a local audit log of everything that passes through.
+AI tools read files, access credentials, download models, and make outbound requests — often silently. CoworkGuard is the runtime observability layer that makes those behaviours visible, understandable, and controllable.
 
-No cloud dependency. No accounts. Everything runs on your own machine.
+No cloud dependency. No accounts. Everything runs locally on your Mac.
 
----
-
-## Monitored AI endpoints
-
-| Provider | Endpoint | Tools covered |
-|---|---|---|
-| **Anthropic** ⭐ | api.anthropic.com | Claude Cowork, Claude Code, Claude in Chrome |
-| OpenAI | api.openai.com | ChatGPT, GPT-4, Assistants API |
-| Google | generativelanguage.googleapis.com | Gemini |
-| Perplexity | api.perplexity.ai | Perplexity |
-| Cursor | api.cursor.sh | Cursor IDE |
-| GitHub | copilot-proxy.githubusercontent.com | GitHub Copilot |
-| Mistral | api.mistral.ai | Mistral |
-| Cohere | api.cohere.com | Cohere |
-| Groq | api.groq.com | Groq |
-| xAI | api.x.ai | Grok |
+[![GitHub release](https://img.shields.io/github/v/release/Katherine-Holland/ClaudeCoworkGuard)](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases)
+[![macOS](https://img.shields.io/badge/macOS-12%2B-blue)](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Web%20Store-blue)](https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg)
 
 ---
 
-## Why this exists
+![CoworkGuard Dashboard — Overview](docs/assets/screenshot_overview.png)
 
-Every AI agent tool operates with the same permissions you have: your browser session, your files, your credentials are all in scope. There is no native audit trail, no payload scanner, and no warning when sensitive data is about to leave your machine.
+---
 
-This isn't a theoretical risk. Prompt injection, data exfiltration via hidden document content, and MCP supply chain attacks are all documented vectors. CoworkGuard is the DLP layer that AI agent tools don't ship with.
+## What it does
+
+CoworkGuard sits between your machine and AI-powered tooling. It scans outbound requests, surfaces behavioural sequences, and presents everything in a calm local dashboard — without sending anything to a server.
+
+```text
+Claude Desktop / Cursor / ChatGPT / Ollama / VS Code…
+         │
+         ▼
+┌─────────────────────────────────────────────────────┐
+│  CoworkGuard proxy (localhost:8080)                │
+│  Scans outbound AI requests                        │
+│  Detects credentials, secrets, injections          │
+└─────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────┐
+│  Behavioural correlation engine                    │
+│  "VS Code Extension → Read .env → Connected        │
+│   externally 2 seconds later"                      │
+└─────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────┐
+│  Local dashboard (localhost:7070)                  │
+│  Plain English · Local-first · Human-readable      │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Features
 
-| Feature | Description |
-|---|---|
-| **Payload scanner** | 76 patterns detecting PII, secrets, and internal data in every outbound request |
-| **Active blocking** | Configurable by severity: CRITICAL threats blocked by default, HIGH/MEDIUM toggleable |
-| **Skill scanner** | Watch mode scanner for Cowork, OpenClaw, and MCP skills: detects supply chain attacks, obfuscated payloads, and excessive permissions before a skill executes |
-| **Domain guard** | In-page warning banner + Chrome notification when a Claude session is active and you navigate to a sensitive domain |
-| **Live audit log** | Real-time JSONL log of every intercepted request, with filterable dashboard view |
-| **Threat detail modal** | Click any log entry to see full finding breakdown: severity, type, redacted preview |
-| **Payload trend chart** | 24-hour bar chart showing data volume sent per hour, colour-coded by worst action |
-| **Settings panel** | Toggle block levels, add custom patterns and domains: no config file editing required |
-| **Menubar app** | Native macOS menubar app: start/stop protection with one click, no terminal required |
-| **Clipboard monitoring** | Warns when sensitive data (API keys, SSNs) detected in clipboard |
-| **File write monitoring** | Warns when AI tools write sensitive data outside your allowed folders |
-| **Folder access control** | Define which folders AI tools are allowed to read from: content from all others blocked at exit |
-| **Physical alert (ESP32)** | LED strip on your desk lights up red when a critical payload is blocked |
-| **MCP Trust Gateway** | Intercepts MCP tool responses before LLM ingestion: blocks prompt injection, credential leaks, rug-pull attacks and hidden unicode |
-| **Zero cloud dependency** | Everything runs locally. No accounts, no telemetry, no data leaves your machine |
+### Behavioural correlation timeline
+
+Surfaces sequences — not isolated events.
+
+When an AI tool accesses private data and then makes an outbound request seconds later, CoworkGuard connects the dots:
+
+```text
+VS Code Extension
+↓  Accessed .env file
+↓  2 seconds later
+Connected externally
+↓  Review recommended
+```
+
+![Behavioural correlation timeline](docs/assets/screenshot_correlation.png)
+
+### Proxy scanner
+
+Intercepts outbound AI API requests and scans for sensitive data before transmission. Detects API keys, private keys, JWTs, database connection strings, `.env` values, prompt injections, hidden instructions, and more.
+
+### MCP Trust Gateway
+
+Scans tool responses before they reach the model context. Blocks prompt injection attacks, credential leaks, unicode steganography, hidden instructions, and suspicious tool metadata changes.
+
+![Blocked request detail](docs/assets/screenshot_blocked.png)
+
+### Model download detection
+
+Detects when AI apps silently download models locally. Supports Ollama, LM Studio, GPT4All, Jan.ai, AnythingLLM, Msty, Superwhisper, and browser-bundled models.
+
+### Actor monitor
+
+Tracks AI runtimes and behavioural sequences across processes, bundle IDs, network activity, and local model interactions.
+
+### Browser AI session tracking
+
+Chrome extension detects active AI web sessions across ChatGPT, Claude, Gemini, Perplexity, Copilot, Mistral, and more.
+
+### Clipboard & file monitoring
+
+Detects sensitive clipboard content and suspicious AI file writes outside approved locations.
+
+### Skill supply chain scanner
+
+Watches MCP skill files for dangerous patterns including `eval()`, subprocess execution, credential access, obfuscated payloads, and excessive permissions.
+
+### Confirm before send
+
+Pause outbound AI requests for review before they leave the machine.
+
+### Local dashboard
+
+All activity in one place at `localhost:7070`.
+
+Calm UI. Plain English explanations. Behavioural timelines. Full audit visibility.
 
 ---
 
-## What it detects
+## Quick start
 
-### PII
-| Pattern | Severity |
-|---|---|
-| Social Security Number | CRITICAL |
-| Credit card number | CRITICAL |
-| Date of birth | MEDIUM |
-| Email address | MEDIUM |
-| Phone number (US) | MEDIUM |
-| Passport number | MEDIUM |
-| IP address | MEDIUM |
+### macOS App (recommended)
 
-### Auth / Secrets
-| Pattern | Severity |
-|---|---|
-| Private key (RSA/EC/OpenSSH) | CRITICAL |
-| AWS access key | CRITICAL |
-| Anthropic API key | CRITICAL |
-| OpenAI API key | CRITICAL |
-| GitHub token | HIGH |
-| JWT | HIGH |
-| Bearer token | HIGH |
-| Stripe live key | HIGH |
-| Slack token | HIGH |
-| Google API key | HIGH |
-| HTTP Basic Auth header | HIGH |
-| AWS secret (inline) | CRITICAL |
-
-### Internal / Corporate
-| Pattern | Severity |
-|---|---|
-| Private IP URL (10.x, 192.168.x, 172.16-31.x) | MEDIUM |
-| VPN / intranet hostname (.internal, .corp, .lan) | MEDIUM |
-| .env file values (DB_PASSWORD, SECRET_KEY, etc.) | HIGH |
-| Database connection string (PostgreSQL, MySQL, MongoDB, Redis) | HIGH |
-
-### Skill supply chain (skill_scanner.py)
-| Pattern | Severity |
-|---|---|
-| eval() / dynamic code execution | CRITICAL |
-| Subprocess / shell execution | CRITICAL |
-| SSH key filesystem access | CRITICAL |
-| AWS credentials filesystem access | CRITICAL |
-| Keychain access | CRITICAL |
-| MCP full filesystem permission | CRITICAL |
-| MCP shell access | CRITICAL |
-| Base64 / hex obfuscation | HIGH |
-| Outbound fetch/curl to non-AI domains | HIGH |
-| WhatsApp / Telegram / Slack / Discord exfiltration | HIGH |
-| Persistence via LaunchAgent / bashrc | HIGH |
-| MCP sandbox disabled | HIGH |
-
----
-
-## Architecture
-
-```
-Browser / AI Agent Tools
-(Claude Cowork · Cursor · ChatGPT · Copilot · Gemini · Perplexity…)
-         │
-         ▼
- ┌──────────────┐      ┌─────────────────────────────────┐
- │  mitmdump    │─────▶│  scanner.py  (Detection engine) │
- │  proxy.py    │      │  • 76 severity-scored patterns   │
- └──────────────┘      │  • Payload hash (never raw)      │
-         │              │  • Redacted finding previews     │
-         │              └─────────────────────────────────┘
-         ▼
- api.anthropic.com  ╮
- api.openai.com     ╟── allowed, or 403 BLOCKED
- + 8 more AI APIs  ╯
-
- ┌──────────────┐
- │  server.py   │  Flask local API — serves dashboard, reads logs,
- │  :7070       │  detects processes, persists settings
- └──────────────┘
-         │
-         ▼
- ┌──────────────┐
- │ dashboard    │  Live audit log · Payload trend chart
- │ .html        │  Threat detail modal · Settings panel
- └──────────────┘
-
- ┌──────────────────────────────────────────────────────┐
- │  skill_scanner.py                                    │
- │  Watch mode · Scans Cowork / OpenClaw / MCP skills   │
- │  28 patterns · macOS notifications · JSONL audit log │
- └──────────────────────────────────────────────────────┘
-
- ┌──────────────────────────────────────────────────────┐
- │  CoworkGuard.app (macOS menubar)                     │
- │  One-click start/stop · No terminal                  │
- │  Spawns: proxy · server · skill_scanner              │
- │          clipboard_monitor · file_write_monitor      │
- └──────────────────────────────────────────────────────┘
-
- ┌──────────────────────────────────────────────────────┐
- │  MCP Trust Gateway (proxy response hook)             │
- │  Scans tool responses before LLM ingestion           │
- │  PromptInjectionScanner · ToolMetadataScanner        │
- │  UnicodeHiddenTextScanner · PolicyEngine             │
- └──────────────────────────────────────────────────────┘
-
- Chrome Extension (parallel layer)
- ┌────────────────────────────────────────────┐
- │ background.js  Session detection, API watch│
- │ content.js     In-page warning banners     │
- │ manifest.json  Manifest V3                 │
- └────────────────────────────────────────────┘
-```
-
----
-
-## File Structure
-
-```
-coworkguard/
-├── install.sh              # One-time installer (terminal approach)
-├── start.sh                # Start CoworkGuard + enable proxy
-├── stop.sh                 # Stop CoworkGuard + restore internet
-├── checker.sh              # Startup checker — detects broken proxy state
-├── scanner.py              # Core PII/secret detection engine (proprietary)
-├── skill_scanner.py        # Skill supply chain scanner — watch mode
-├── proxy.py                # mitmproxy interceptor script
-├── server.py               # Local Flask API server for dashboard
-├── clipboard_monitor.py    # Clipboard monitoring — warns on sensitive clipboard content
-├── file_write_monitor.py   # File write monitoring — warns on writes outside allowed folders
-├── mcp_trust/              # MCP Trust Gateway package
-│   ├── result.py           # Shared ScanResult dataclasses
-│   ├── injection_scanner.py # Prompt injection detection
-│   ├── metadata_scanner.py  # Tool metadata / rug-pull detection
-│   ├── unicode_scanner.py   # Hidden unicode detection
-│   └── policy_engine.py    # Policy decisions — allow/redact/confirm/block
-├── dashboard.html          # Audit dashboard UI
-├── domains.json            # Shared sensitive domains list
-├── COWORKGUARD_TOOL_SPEC.md # MCP tool scope specification
-├── README.md
-├── tests/
-│   ├── test_coworkguard.py # 71 tests for scanner.py
-│   └── test_skill_scanner.py # 56 tests for skill_scanner.py
-│   └── (295 tests total passing)
-├── docs/                   # GitHub Pages — public site
-│   ├── index.html          # Landing page
-│   ├── privacy.html        # Privacy policy
-│   └── support.html        # Support & setup guide
-├── menubar-app/            # Native macOS menubar app (Tauri)
-│   ├── src-tauri/
-│   │   ├── src/main.rs     # Rust backend — process management, proxy toggle
-│   │   ├── Cargo.toml
-│   │   └── tauri.conf.json
-│   └── src/index.html      # First-run setup wizard
-└── chrome-extension/
-    ├── manifest.json       # Manifest V3
-    ├── popup.html          # Toolbar popup — live stats + recent events
-    ├── background.js       # Service worker — detection + monitoring
-    ├── content.js          # In-page warning banner injection
-    └── icons/
-```
-
----
-
-## Quick Start
-
-### Option 1: macOS Menubar App (recommended)
-
-Download the DMG for your Mac from the [latest release](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases):
-
-| Mac | Download |
-|-----|----------|
-| Apple Silicon (M1/M2/M3) | `CoworkGuard_1.0.1_aarch64.dmg` |
-| Intel + Apple Silicon | `CoworkGuard_1.0.1_universal.dmg` |
+Download the latest DMG from [Releases](https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases)
 
 1. Open the `.dmg` and drag CoworkGuard to Applications
-2. Open CoworkGuard: a shield icon appears in your menubar
-3. Complete the one-time setup wizard (generates and trusts the certificate)
+2. Launch CoworkGuard
+3. Complete the one-time certificate setup
 4. Click the shield → **Start Protection**
+5. Install the Chrome extension
 
-That's it. No terminal required.
+> macOS may briefly close and reopen the app during the first launch. This is a normal Gatekeeper verification check.
 
-Then install the Chrome extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg).
-
-### Option 2: Terminal installer
+### Terminal
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash
 ```
 
----
-
-## Daily Use
-
-### Menubar app
-Click the shield icon in your menubar → **Start Protection** / **Stop Protection**.
-
-### Skill scanner
 ```bash
-# Watch mode — runs in background, scans skills as they arrive
-python3 skill_scanner.py
-
-# Scan a specific skill file
-python3 skill_scanner.py path/to/SKILL.md
+~/CoworkGuard/start.sh
+~/CoworkGuard/stop.sh
 ```
-
-Requires `pip install watchdog` for watch mode. Falls back to polling if not installed.
-
-### Terminal
-```bash
-~/CoworkGuard/start.sh   # Start protection
-~/CoworkGuard/stop.sh    # Stop protection + restore internet
-```
-
-> CoworkGuard resets your system proxy automatically when stopped or on restart.
 
 ---
 
-## Configuration
+## What it detects
 
-All settings are available through the dashboard at `http://localhost:7070`: no config file editing needed.
+### Credentials & secrets
 
-| Setting | Default | Description |
-|---|---|---|
-| Block Critical | ✅ On | SSNs, credit cards, private keys, raw API keys |
-| Block High | ❌ Off | JWTs, bearer tokens, GitHub tokens, Stripe keys |
-| Block Medium | ❌ Off | Emails, phone numbers, IP addresses |
-| Domain Alerts | ✅ On | Warn when navigating to sensitive domains while a Claude session is active |
-| Proxy Port | 8080 | Port mitmdump listens on |
-| Max Log Entries | 1000 | Audit log rotation limit |
-| Custom Patterns |: | Your own regex patterns, applied at MEDIUM severity |
-| Custom Domains |: | Additional domains to monitor |
-| Allowed Folders |: | Folders AI tools are permitted to read from. Content from all other folders blocked at exit |
-| Quiet Mode | ❌ Off | Suppress all notifications: log findings silently |
+* Private keys
+* AWS credentials
+* GitHub tokens
+* Anthropic/OpenAI keys
+* JWTs
+* Bearer tokens
+* Stripe live keys
+* Database connection strings
+* `.env` values
 
----
+### Sensitive data
 
-## Audit Logs
+* Credit cards
+* SSNs
+* Passport numbers
+* Emails
+* Phone numbers
+* Dates of birth
 
-Logs are written to `~/.coworkguard/logs/`: one JSONL file per day.
+### MCP tool responses
 
-**API traffic** (`audit_YYYYMMDD.jsonl`):
-```json
-{
-  "timestamp": "2026-03-26T15:09:05Z",
-  "url": "https://api.anthropic.com/v1/messages",
-  "method": "POST",
-  "action": "BLOCKED",
-  "blocked": true,
-  "payload_hash": "f6ca59cf600f565f",
-  "payload_size_bytes": 1842,
-  "finding_count": 2,
-  "findings": [
-    { "type": "SSN", "severity": "CRITICAL", "preview": "12*******89", "blocked": true },
-    { "type": "EMAIL", "severity": "MEDIUM", "preview": "jo****@****.com", "blocked": false }
-  ]
-}
-```
+* Prompt injection
+* Hidden instructions
+* Unicode steganography
+* Credential theft attempts
+* Tool metadata tampering
 
-**Skill scans** (`skill_scan_YYYYMMDD.jsonl`):
-```json
-{
-  "timestamp": "2026-03-26T15:09:05Z",
-  "type": "SKILL_SCAN",
-  "file_path": "/Users/katherine/.openclaw/workspace/skills/helper/SKILL.md",
-  "skill_type": "OPENCLAW",
-  "action": "BLOCKED",
-  "risk_score": 85,
-  "finding_count": 2,
-  "findings": [
-    { "type": "EVAL_EXEC", "severity": "CRITICAL", "line": 12, "blocked": true },
-    { "type": "FETCH_EXTERNAL", "severity": "HIGH", "line": 15, "blocked": false }
-  ]
-}
-```
+### Skill supply chain attacks
 
-**Raw payload and file content is never stored.**
+* `eval()` execution
+* Shell/subprocess execution
+* Credential access
+* Obfuscation
+* Persistence attempts
+* Suspicious outbound fetches
 
 ---
 
-## Sensitive Domains (built-in)
+## Architecture
 
-`console.aws.amazon.com` · `app.datadoghq.com` · `grafana.*` · `jenkins.*` · `gitlab.*` · `github.com` · `jira.*` · `confluence.*` · `notion.so` · `linear.app` · `stripe.com/dashboard` · `mail.google.com` · `outlook.*` · `workday.com` · `bamboohr.*` · `salesforce.com` · `hubspot.com`
+```text
+AI Tools (Claude Desktop · Cursor · ChatGPT · Copilot · Ollama…)
+         │
+         ▼
+ ┌──────────────┐
+ │  proxy.py    │
+ │  :8080       │
+ └──────────────┘
+         │
+         ▼
+ ┌──────────────────────────────────┐
+ │  scanner.py                      │
+ │  Detection engine                │
+ │  Behavioural correlation         │
+ │  Payload hashing                 │
+ └──────────────────────────────────┘
+         │
+         ▼
+ ┌──────────────────────────────────┐
+ │  server.py (:7070)               │
+ │  Dashboard · Audit log · Rules   │
+ └──────────────────────────────────┘
 
-Add your own in the Settings panel.
+ ┌──────────────────────────────────┐
+ │  actor_monitor/                  │
+ │  Runtime detection               │
+ │  Model download monitoring       │
+ │  Behavioural sequencing          │
+ └──────────────────────────────────┘
+
+ ┌──────────────────────────────────┐
+ │  mcp_trust/                      │
+ │  Injection · Metadata · Unicode  │
+ │  Policy enforcement              │
+ └──────────────────────────────────┘
+```
+
+---
+
+## Privacy
+
+CoworkGuard never sends data externally.
+
+* Proxy runs on `localhost`
+* Dashboard runs locally
+* Chrome extension communicates only with localhost
+* Raw payloads are never stored
+* No telemetry
+* No analytics
+* No accounts
+* Audit logs stay on-device
 
 ---
 
 ## Roadmap
 
-CoworkGuard is under active development. The current focus is deepening the MCP security layer and expanding platform support.
+### Pro
 
-For enterprise features, managed policy support, or early access to upcoming releases contact littlerobinagency@gmail.com.
+Confirmed actor tracking, developer environment protection (`.env`, SSH keys, GitHub tokens, VS Code extension monitoring), advanced behavioural timelines, and audit export.
+
+### Shield
+
+Fleet-wide observability, policy-as-code, alert routing, compliance export, and organisation-level AI runtime governance.
+
+[Join the waitlist](https://coworkguard.com/shield.html)
 
 ---
 
 ## Security
 
-CoworkGuard never sends data externally. The proxy runs on `localhost:8080`, the server on `localhost:7070`, and the Chrome extension communicates only with these local endpoints.
+For security disclosures please open a private GitHub issue or contact:
 
-For security disclosures, please open a private GitHub issue.
+[hello@coworkguard.com](mailto:hello@coworkguard.com)
 
 ---
 
 ## License
 
-**MIT with Commons Clause**: © 2026 Katherine Weston. All rights reserved.
+**MIT with Commons Clause** · © 2026 Katherine Weston
 
-- CoworkGuard is free for personal and internal non-commercial use
-- You can fork and modify for personal use
-- Cowork Guard cannot be sold, hosted as a service, or bundled into a commercial product without a separate license.
+* Free for personal and internal non-commercial use
+* Fork and modify for personal use
+* Cannot be sold or hosted commercially without a separate licence
 
-For commercial licensing or acquisition enquiries: littlerobinagency@gmail.com
-
-See [LICENSE](./LICENSE) for full terms.
-
-CoworkGuard is built on open source components: mitmproxy, Flask, Tauri.
+Built on open source:
+mitmproxy · Flask · Tauri
