@@ -1,281 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CoworkGuard — Support</title>
-<meta name="description" content="Get help with CoworkGuard. Setup guides, troubleshooting, and contact information."/>
-<link rel="canonical" href="https://coworkguard.com/support.html"/>
-<meta property="og:type" content="website"/>
-<meta property="og:site_name" content="CoworkGuard"/>
-<meta property="og:title" content="CoworkGuard Support"/>
-<meta property="og:description" content="Get help with CoworkGuard. Setup guides, troubleshooting, and contact information."/>
-<meta property="og:url" content="https://coworkguard.com/support.html"/>
-<meta name="twitter:card" content="summary"/>
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/>
-<link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png"/>
-<link rel="icon" type="image/png" href="favicon.png"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
-<style>
-:root {
-  --bg:#07090d;--card:#0e1318;--border:#1c2a38;
-  --orange:#e05a20;--orange2:#f07040;--orange-dim:rgba(224,90,32,.1);--orange-border:rgba(224,90,32,.25);
-  --success:#3dd68c;--danger:#f05060;--warn:#f0a030;
-  --muted:#4e6278;--muted2:#687d90;--text:#b8c8d8;--heading:#e8f0f8;
-  --mono:"DM Mono",monospace;--ui:"DM Sans",sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--ui);font-weight:300;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);background-size:48px 48px}
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 56px;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,9,13,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
-.nav-logo{display:flex;align-items:center;gap:12px;text-decoration:none}
-.nav-logo img{width:30px;height:30px;filter:drop-shadow(0 0 7px rgba(224,90,32,.4))}
-.nav-name{font-size:16px;font-weight:600;letter-spacing:-.2px;color:var(--heading)}
-.nav-name em{font-style:normal;color:var(--orange2)}
-.nav-back{color:var(--muted2);text-decoration:none;font-size:13px;padding:7px 14px;border:1px solid var(--border);border-radius:6px;transition:all .2s}
-.nav-back:hover{border-color:var(--orange);color:var(--orange2)}
-.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:110px 40px 80px}
-.page-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--orange2);display:flex;align-items:center;gap:12px;margin-bottom:20px}
-.page-label::before{content:"";display:block;width:24px;height:1px;background:var(--orange2)}
-h1{font-size:clamp(32px,4vw,48px);font-weight:300;letter-spacing:-1.5px;color:var(--heading);line-height:1.1;margin-bottom:12px}
-h1 strong{font-weight:700}
-.sub{font-size:17px;color:var(--muted2);font-weight:300;margin-bottom:56px;line-height:1.7}
-/* Quick links */
-.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:64px}
-.quick-card{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:28px;text-decoration:none;transition:all .2s;
-  display:block;position:relative;overflow:hidden;
-}
-.quick-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),transparent);opacity:0;transition:opacity .2s}
-.quick-card:hover{border-color:rgba(224,90,32,.4);transform:translateY(-2px)}
-.quick-card:hover::before{opacity:1}
-.qc-icon{font-size:24px;margin-bottom:14px}
-.qc-title{font-size:16px;font-weight:600;color:var(--heading);margin-bottom:6px;letter-spacing:-.2px}
-.qc-desc{font-size:13px;color:var(--muted2);line-height:1.6;font-weight:300}
-.qc-link{margin-top:14px;font-size:12px;font-family:var(--mono);color:var(--orange2)}
-/* Section */
-h2{font-size:22px;font-weight:600;color:var(--heading);letter-spacing:-.3px;margin:48px 0 16px}
-h2:first-of-type{margin-top:0}
-/* Setup steps */
-.steps{display:flex;flex-direction:column;gap:0;margin-bottom:40px}
-.step{display:flex;gap:20px;padding:20px 0;border-bottom:1px solid var(--border)}
-.step:last-child{border-bottom:none}
-.step-n{
-  width:32px;height:32px;border-radius:50%;flex-shrink:0;margin-top:2px;
-  background:var(--card);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:12px;font-weight:500;color:var(--orange2);
-}
-.step-body{flex:1}
-.step-title{font-size:15px;font-weight:600;color:var(--heading);margin-bottom:6px;letter-spacing:-.2px}
-.step-desc{font-size:14px;color:var(--muted2);line-height:1.75;font-weight:300}
-code{font-family:var(--mono);font-size:12px;background:var(--card);border:1px solid var(--border);padding:2px 7px;border-radius:4px;color:var(--orange2)}
-pre{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 20px;font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.8;overflow-x:auto;margin:10px 0}
-/* FAQ */
-.faq{display:flex;flex-direction:column;gap:0;margin-bottom:48px}
-.faq-item{border-bottom:1px solid var(--border);padding:20px 0}
-.faq-item:last-child{border-bottom:none}
-.faq-q{font-size:15px;font-weight:600;color:var(--heading);margin-bottom:8px;letter-spacing:-.1px}
-.faq-a{font-size:14px;color:var(--muted2);line-height:1.75;font-weight:300}
-/* Contact card */
-.contact-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:36px;margin-top:12px}
-.contact-card h2{margin-top:0}
-.contact-card p{font-size:15px;color:var(--muted2);line-height:1.8;margin-bottom:16px}
-.contact-card p:last-child{margin-bottom:0}
-.contact-link{
-  display:inline-flex;align-items:center;gap:8px;
-  background:var(--orange);color:white;
-  text-decoration:none;font-size:13px;font-weight:500;
-  padding:10px 20px;border-radius:7px;margin-top:4px;
-  box-shadow:0 2px 12px rgba(224,90,32,.3);
-  transition:all .2s;
-}
-.contact-link:hover{background:var(--orange2);box-shadow:0 4px 20px rgba(224,90,32,.4)}
-a{color:var(--orange2);text-decoration:none}
-a:hover{text-decoration:underline}
-footer{border-top:1px solid var(--border);padding:28px 56px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;margin-top:60px}
-.footer-brand{display:flex;align-items:center;gap:10px}
-.footer-brand img{width:24px;height:24px;opacity:.7}
-.footer-brand span{font-size:14px;font-weight:500;color:var(--muted)}
-.footer-brand em{font-style:normal;color:var(--orange2);opacity:.8}
-.footer-links{display:flex;gap:24px}
-.footer-links a{color:var(--muted);font-size:13px;font-weight:300;transition:color .2s}
-.footer-links a:hover{color:var(--text)}
-.footer-copy{font-family:var(--mono);font-size:11px;color:var(--muted)}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Support — CoworkGuard</title>
+  <style>
+    :root {
+      --ink: #0f172a; --muted: #5f6b7a; --soft: #8b98aa;
+      --blue: #0a84ff; --blue2: #2563eb; --green: #22c55e;
+      --card: rgba(255,255,255,.78); --line: rgba(15,23,42,.06);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, Segoe UI, sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: var(--font); color: var(--ink); font-weight: 400;
+      background: radial-gradient(circle at 50% -10%, rgba(10,132,255,.05), transparent 34%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 48%, #ffffff 100%);
+      -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(20px);
+      background: rgba(255,255,255,.72); border-bottom: 1px solid rgba(15,23,42,.06); }
+    .nav-inner { height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none;
+      font-weight: 660; letter-spacing: -.04em; font-size: 20px; color: var(--ink); }
+    .mark { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+      background: linear-gradient(145deg, #ffffff, #eaf2ff);
+      box-shadow: inset 0 0 0 1px rgba(10,132,255,.14); color: var(--blue2); }
+    .mark svg { width: 24px; height: 24px; }
+    .nav-links { display: flex; align-items: center; gap: 20px; color: #526176; font-size: 14px; }
+    .nav-links a { text-decoration: none; color: #526176; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta { background: var(--ink); color: white !important; padding: 10px 16px;
+      border-radius: 999px; font-weight: 650; }
+    .hero { padding: 80px 0 60px; }
+    .kicker { color: var(--blue2); font-weight: 700; font-size: 13px; letter-spacing: .06em;
+      text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: clamp(32px, 4vw, 52px); line-height: 1.08; letter-spacing: -.04em;
+      margin: 0 0 16px; font-weight: 660; }
+    .lead { font-size: 18px; color: var(--muted); line-height: 1.6; margin: 0 0 48px; max-width: 520px; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 80px; }
+    .card { background: rgba(255,255,255,.78); border: 1px solid rgba(15,23,42,.06);
+      border-radius: 28px; padding: 32px; box-shadow: 0 12px 40px rgba(15,23,42,.05);
+      backdrop-filter: blur(20px); text-decoration: none; color: var(--ink);
+      transition: transform .2s ease; display: block; }
+    .card:hover { transform: translateY(-2px); text-decoration: none; }
+    .card-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+      background: rgba(15,23,42,.04); color: var(--ink); margin-bottom: 20px; }
+    .card h2 { font-size: 17px; font-weight: 620; letter-spacing: -.03em; margin: 0 0 8px; color: var(--ink); }
+    .card p { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 16px; }
+    .card-link { color: var(--blue2); font-size: 14px; font-weight: 600; }
+    .section { max-width: 740px; margin: 0 auto 80px; }
+    h3 { font-size: 22px; font-weight: 620; letter-spacing: -.03em; margin: 48px 0 16px;
+      padding-top: 48px; border-top: 1px solid rgba(15,23,42,.06); color: var(--ink); }
+    h3:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+    h4 { font-size: 15px; font-weight: 650; margin: 0 0 6px; color: var(--ink); }
+    p { color: var(--muted); line-height: 1.7; margin: 0 0 14px; font-size: 16px; }
+    ul, ol { color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px; font-size: 16px; }
+    li { margin-bottom: 8px; }
+    code { font-family: var(--mono); background: rgba(15,23,42,.05); padding: 2px 7px;
+      border-radius: 6px; font-size: 13px; color: var(--ink); }
+    .code-block { background: #111827; color: #e2e8f0; border-radius: 20px;
+      padding: 18px 22px; font-family: var(--mono); font-size: 13px; line-height: 1.7;
+      margin: 16px 0; overflow-x: auto; }
+    .note { background: rgba(10,132,255,.04); border: 1px solid rgba(10,132,255,.10);
+      border-radius: 14px; padding: 14px 18px; font-size: 14px; color: #334155;
+      margin: 16px 0; line-height: 1.6; }
+    .step { display: flex; gap: 18px; margin-bottom: 28px; }
+    .step-num { width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(15,23,42,.05); color: var(--muted);
+      font-weight: 700; font-size: 13px; display: grid; place-items: center; flex-shrink: 0; margin-top: 2px; }
+    .faq-item { margin-bottom: 32px; }
+    .faq-q { font-weight: 650; font-size: 16px; color: var(--ink); margin-bottom: 8px; }
+    .faq-a { color: var(--muted); font-size: 15px; line-height: 1.7; margin: 0; }
+    footer { border-top: 1px solid rgba(15,23,42,.06); padding: 30px 0; color: var(--soft); font-size: 14px; margin-top: 40px; }
+    .foot-inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+    .foot-links { display: flex; gap: 18px; }
+    .foot-links a { text-decoration: none; color: var(--muted); }
+    @media (max-width: 920px) {
+      .nav-links a:not(.nav-cta) { display: none; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-<div class="grid-bg"></div>
-
-<nav>
-  <a class="nav-logo" href="index.html">
-    <img src="data:image/png;base64,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" alt="CoworkGuard"/>
-    <span class="nav-name">Cowork<em>Guard</em></span>
-  </a>
-  <a class="nav-back" href="index.html">&#8592; Home</a>
-</nav>
-
-<div class="wrap">
-  <div class="page-label">Support</div>
-  <h1>Getting <strong>started.</strong></h1>
-  <p class="sub">Two ways to install — menubar app (no terminal) or command line. Both take under five minutes.</p>
-
-  <!-- Quick links -->
-  <div class="quick-grid">
-    <a class="quick-card" href="#setup">
-      <div class="qc-icon">&#9881;</div>
-      <div class="qc-title">Menubar App</div>
-      <div class="qc-desc">Download, install, and start protecting your AI sessions with one click. No terminal.</div>
-      <div class="qc-link">View guide &#8594;</div>
-    </a>
-    <a class="quick-card" href="#faq">
-      <div class="qc-icon">&#9432;</div>
-      <div class="qc-title">FAQ</div>
-      <div class="qc-desc">Answers to common questions about how CoworkGuard works.</div>
-      <div class="qc-link">View FAQ &#8594;</div>
-    </a>
-    <a class="quick-card" href="#contact">
-      <div class="qc-icon">&#9993;</div>
-      <div class="qc-title">Report an Issue</div>
-      <div class="qc-desc">Found a bug or have a feature request? Open an issue on GitHub.</div>
-      <div class="qc-link">Get in touch &#8594;</div>
-    </a>
-  </div>
-
-  <!-- Setup -->
-  <h2 id="setup">Setup Guide</h2>
-  <p>CoworkGuard has two components — the Chrome extension (domain warnings and popup) and the local proxy stack (payload scanning and dashboard). The extension works immediately after install. The proxy requires a one-time setup.</p>
-
-  <h2 style="font-size:17px;margin:28px 0 14px">Prerequisites</h2>
-  <p>macOS 12 (Monterey) or later, Python 3.11+, and the following packages installed:</p><pre style="margin:10px 0">pip install -r requirements.txt</pre><p style="font-size:13px;color:var(--muted2)">This installs mitmproxy, flask, flask-cors, psutil, and watchdog. If you use the menubar app, the setup wizard handles the certificate — no terminal needed for that step.</p>
-
-  <!-- Option 1 — Menubar App -->
-  <h2 style="font-size:17px;margin:28px 0 14px">Option 1 — macOS Menubar App (recommended)</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-n">01</div>
-      <div class="step-body">
-        <div class="step-title">Download CoworkGuard</div>
-        <div class="step-desc"><a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases/download/v1.0.0/CoworkGuard_1.0.1_universal.dmg" class="contact-link" style="display:inline-flex;margin-top:8px">Download CoworkGuard</a></div>
+  <nav class="nav">
+    <div class="shell nav-inner">
+      <a class="brand" href="index.html">
+        <span class="mark"><svg viewBox="0 0 64 64" fill="none"><path d="M32 5 54 14v17c0 17-11.5 25-22 29C21.5 56 10 48 10 31V14L32 5Z" stroke="currentColor" stroke-width="4"/><path d="M32 18 43 23v12c0 8-5.5 13-11 15-5.5-2-11-7-11-15V23l11-5Z" fill="currentColor" opacity=".95"/><path d="M32 18v32c5.5-2 11-7 11-15V23l-11-5Z" fill="white" opacity=".45"/></svg></span>
+        <span>CoworkGuard</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html#timeline">Timeline</a>
+        <a href="index.html#dashboard">Dashboard</a>
+        <a href="shield.html">Shield</a>
+        <a href="support.html" style="color:var(--ink);font-weight:600;">Support</a>
+        <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a>
+        <a class="nav-cta" href="index.html#download">Download</a>
       </div>
     </div>
-    <div class="step">
-      <div class="step-n">02</div>
-      <div class="step-body">
-        <div class="step-title">Install the app</div>
-        <div class="step-desc">Open the .dmg file and drag CoworkGuard to your Applications folder. Then open it — a shield icon appears in your menubar.<br/><br/>
-        <strong>Note:</strong> CoworkGuard is code signed and notarised — it should open cleanly with no Gatekeeper warning. If you downloaded an older version and see a "damaged" warning, open Terminal and run:
-        <pre>xattr -cr /Applications/CoworkGuard.app</pre></div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">03</div>
-      <div class="step-body">
-        <div class="step-title">Complete setup</div>
-        <div class="step-desc">A setup wizard opens automatically on first launch. It generates and trusts the security certificate in one step — enter your Mac password once when prompted. This never needs to be done again.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">04</div>
-      <div class="step-body">
-        <div class="step-title">Start protection</div>
-        <div class="step-desc">Click the shield icon in your menubar → <strong>Start Protection</strong>. The dashboard opens automatically at <a href="http://localhost:7070">localhost:7070</a>. Click <strong>Stop Protection</strong> when you are done.</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">05</div>
-      <div class="step-body">
-        <div class="step-title">Install the Chrome extension</div>
-        <div class="step-desc">Install CoworkGuard from the <a href="https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg">Chrome Web Store</a>. The toolbar icon shows protection status and recent events immediately.</div>
-      </div>
-    </div>
-  </div>
+  </nav>
 
-  <!-- Option 2 — Terminal -->
-  <h2 style="font-size:17px;margin:40px 0 14px">Option 2 — Terminal installer</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-n">01</div>
-      <div class="step-body">
-        <div class="step-title">Run the installer</div>
-        <div class="step-desc">Open Terminal and run:
-        <pre>curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash</pre>
-        Installs dependencies, downloads CoworkGuard, and sets up the certificate. One-time only.</div>
+  <div class="shell">
+    <div class="hero">
+      <div class="kicker">Support</div>
+      <h1>Install CoworkGuard.</h1>
+      <p class="lead">Runtime visibility for AI tools in under five minutes.</p>
+      <div class="cards">
+        <a class="card" href="#menubar">
+          <div class="card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3L19 7V17L12 21L5 17V7L12 3Z"/></svg>
+          </div>
+          <h2>Menubar App</h2>
+          <p>Install and start protecting with one click. No terminal required.</p>
+          <span class="card-link">View guide</span>
+        </a>
+        <a class="card" href="#faq">
+          <div class="card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v1m0 7v-5m0 0a2 2 0 100-4 2 2 0 000 4z"/></svg>
+          </div>
+          <h2>FAQ</h2>
+          <p>Common questions about how CoworkGuard works, privacy, and compatibility.</p>
+          <span class="card-link">View FAQ</span>
+        </a>
+        <a class="card" href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/issues">
+          <div class="card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <h2>Report an Issue</h2>
+          <p>Found a bug or have a feature request? Open an issue on GitHub.</p>
+          <span class="card-link">Get in touch</span>
+        </a>
       </div>
     </div>
-    <div class="step">
-      <div class="step-n">02</div>
-      <div class="step-body">
-        <div class="step-title">Start and stop</div>
-        <div class="step-desc">
-        <pre>~/CoworkGuard/start.sh   # Start protection
-~/CoworkGuard/stop.sh    # Stop + restore internet</pre>
-        Always run stop.sh when done — if you forget and restart your Mac, CoworkGuard will alert you automatically.</div>
-      </div>
-    </div>
-  </div>
 
-  <!-- FAQ -->
-  <h2 id="faq">Frequently Asked Questions</h2>
-  <div class="faq">
-    <div class="faq-item">
-      <div class="faq-q">Does CoworkGuard send any data externally?</div>
-      <div class="faq-a">No. Everything runs on localhost. The proxy, scanner, dashboard server, and Chrome extension all communicate only with your own machine. Raw payload content is never stored — only SHA-256 hashes and redacted previews are written to disk.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Will the proxy break other websites?</div>
-      <div class="faq-a">CoworkGuard only intercepts and scans requests to the 10 monitored AI API endpoints — Anthropic, OpenAI, Gemini, Cursor, GitHub Copilot, Mistral, Perplexity, Cohere, Groq, and xAI. All other traffic passes through transparently, including your normal browsing, banking, email, and any other sites. If you experience issues with a specific site, you can temporarily disable the system proxy in Network settings or click Stop Protection in the menubar app.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">What happens when a request is blocked?</div>
-      <div class="faq-a">The proxy returns a <code>403</code> response with a JSON error explaining what was detected. Claude will show an error in the UI. The request is logged in your audit trail with the type of finding and a redacted preview — the raw content is never stored.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Can I add my own detection patterns?</div>
-      <div class="faq-a">Yes. Open the dashboard at <code>localhost:7070</code>, go to Settings, and add custom regex patterns under Custom Patterns. They are applied at Medium severity and take effect immediately without restarting the proxy.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Does it work without the proxy running?</div>
-      <div class="faq-a">Partially. The Chrome extension's domain guard and popup work independently — you will still get in-page warnings when navigating to sensitive domains while an AI session is active. The payload scanner and audit log require the proxy to be running.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Which macOS versions are supported?</div>
-      <div class="faq-a">CoworkGuard works on macOS 12 (Monterey) and later. The proxy requires Python 3.9+. The Chrome extension requires Chrome 116+. Windows support is planned — the Python proxy and scanner run cross-platform but the native menubar app is currently macOS only.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">What is the skill scanner?</div>
-      <div class="faq-a">The skill scanner runs automatically when you start protection. It watches your filesystem for new AI agent skill files — Cowork skills, OpenClaw skills, and MCP configs — and scans them for security risks before they execute. It detects obfuscated code, unauthorised network calls, credential harvesting, and excessive permission requests. Findings are logged to <code>~/.coworkguard/logs/skill_scan_YYYYMMDD.jsonl</code> and shown in the Skills tab of the dashboard. Use Quiet Mode in the menubar to suppress macOS notifications while still logging findings.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Is the source code available?</div>
-      <div class="faq-a">Yes — CoworkGuard is open source on <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a> under MIT with Commons Clause. You can audit every line of the scanner, proxy, and extension code.</div>
+    <div class="section">
+      <h3 id="menubar">Installing the macOS App</h3>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Download CoworkGuard</h4>
+          <p>Get the latest version from the <a href="index.html#download">download page</a>.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Install the app</h4>
+          <p>Open the .dmg file and drag CoworkGuard to your Applications folder. Open it — a shield icon appears in your menubar.</p>
+          <div class="note">On first launch after download, macOS may briefly close and reopen the app. This is a one-time Gatekeeper security check and is completely normal.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Complete setup</h4>
+          <p>A setup wizard opens on first launch. It generates and trusts the security certificate — enter your Mac password once when prompted.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Start protection</h4>
+          <p>Click the shield icon in your menubar → <strong>Start Protection</strong>. The dashboard opens at <code>localhost:7070</code>.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h4>Install the Chrome extension</h4>
+          <p>Install CoworkGuard from the <a href="https://chromewebstore.google.com/detail/coworkguard/doidechmkoeggififfckcghclbpjcmdg">Chrome Web Store</a> to enable AI session detection in your browser.</p>
+        </div>
+      </div>
+
+      <h3>Terminal install</h3>
+      <div class="code-block">curl -sSL https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/install.sh | bash</div>
+      <p>Then start and stop with:</p>
+      <div class="code-block">~/CoworkGuard/start.sh   # Start protection
+~/CoworkGuard/stop.sh    # Stop and restore internet</div>
+
+      <h3 id="faq">Frequently Asked Questions</h3>
+
+      <div class="faq-item">
+        <div class="faq-q">Does CoworkGuard send any data externally?</div>
+        <div class="faq-a">No. Everything runs on localhost. The proxy, scanner, dashboard, and Chrome extension communicate only with your own machine. Raw payload content is never stored — only SHA-256 hashes and redacted previews are written to disk.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Will the proxy break other websites?</div>
+        <div class="faq-a">No. CoworkGuard only intercepts requests to monitored AI API endpoints. All other traffic passes through untouched.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What do I do if protection doesn't start?</div>
+        <div class="faq-a">Check if another app is using port 8080 — Ollama or a local AI server often grabs it on startup. The dashboard's Protection Status panel shows a Fix it button when a port conflict is detected. You can also check manually with <code>lsof -i :8080</code> in Terminal.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Does it work with all AI tools?</div>
+        <div class="faq-a">CoworkGuard monitors 19 AI API providers and 29 local AI runtimes including Ollama, LM Studio, Claude Desktop, Cursor, and GPT4All. Browser AI sessions are tracked across 16 web apps via the Chrome extension.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What are the system requirements?</div>
+        <div class="faq-a">macOS 12 (Monterey) or later, Apple Silicon or Intel, Python 3.11 or newer. Dependencies are installed automatically by the setup wizard.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How do I report a bug or request a feature?</div>
+        <div class="faq-a">Open an issue on <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/issues">GitHub</a> or email <a href="mailto:hello@coworkguard.com">hello@coworkguard.com</a>.</div>
+      </div>
     </div>
   </div>
 
-  <!-- Contact -->
-  <div class="contact-card" id="contact">
-    <h2>Still need help?</h2>
-    <p>If you have found a bug, have a feature request, or need help with setup, please open an issue on GitHub. Include your macOS version, Python version, and a description of what you are seeing.</p>
-    <p>For security disclosures, please open a private GitHub issue rather than a public one.</p>
-    <a class="contact-link" href="https://github.com/Katherine-Holland/ClaudeCoworkGuard/issues/new">Open an issue on GitHub</a>
-  </div>
-</div>
-
-<footer>
-  <div class="footer-brand">
-    <img src="data:image/png;base64,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" alt="CoworkGuard"/>
-    <span>Cowork<em>Guard</em></span>
-  </div>
-  <div class="footer-links">
-    <a href="index.html">Home</a>
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a>
-  </div>
-  <span class="footer-copy">2026 CoworkGuard · MIT + Commons Clause</span>
-</footer>
-
+  <footer>
+    <div class="shell foot-inner">
+      <div>© CoworkGuard · Runtime visibility for AI tools</div>
+      <div class="foot-links">
+        <a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="support.html">Support</a>
+        <a href="shield.html">Shield</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
