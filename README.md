@@ -14,7 +14,7 @@ No cloud dependency. No accounts. Everything runs locally on your Mac.
 
 ---
 
-![CoworkGuard Dashboard — Overview](docs/assets/screenshot_overview.png)
+![CoworkGuard Dashboard — Overview](https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/docs/assets/screenshot_overview.png)
 
 ---
 
@@ -64,7 +64,7 @@ Connected externally
 ↓  Review recommended
 ```
 
-![Behavioural correlation timeline](docs/assets/screenshot_correlation.png)
+![Behavioural correlation timeline](https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/docs/assets/screenshot_correlation.png)
 
 ### Proxy scanner
 
@@ -74,7 +74,7 @@ Intercepts outbound AI API requests and scans for sensitive data before transmis
 
 Scans tool responses before they reach the model context. Blocks prompt injection attacks, credential leaks, unicode steganography, hidden instructions, and suspicious tool metadata changes.
 
-![Blocked request detail](docs/assets/screenshot_blocked.png)
+![Blocked request detail](https://raw.githubusercontent.com/Katherine-Holland/ClaudeCoworkGuard/main/docs/assets/screenshot_blocked.png)
 
 ### Model download detection
 
