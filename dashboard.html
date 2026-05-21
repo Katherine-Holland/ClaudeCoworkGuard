@@ -140,7 +140,7 @@
           </div>
         </div>
 <div class="cards3">
-            <div class="mini-card"><h3>Activity by AI App</h3><p>Past 7 days</p><div class="donut-wrap"><div class="donut"></div><div class="legend"><div><i style="background:#ff8a00"></i>Claude Desktop 45%</div><div><i style="background:#7c3aed"></i>Cursor IDE 25%</div><div><i style="background:#0a84ff"></i>VS Code 15%</div><div><i style="background:#cbd5e1"></i>Others 15%</div></div></div></div>
+            <div class="mini-card"><h3>Activity by AI App</h3><p>Past 7 days</p><div class="donut-wrap"><canvas id="donut-canvas" width="92" height="92"></canvas><div class="legend" id="donut-legend"><div style="color:#94a3b8;font-size:12px;">No data yet</div></div></div></div>
             <div class="mini-card"><h3>Top Destinations</h3><p>Past 7 days</p><div id="destinations"></div></div>
             <div class="mini-card"><h3>Risk Summary</h3><p>Past 7 days</p><div class="barline"><span>Prevented</span><div></div><strong id="rs-prevented">0</strong></div><div class="barline"><span>Needs Review</span><div></div><strong id="rs-review">0</strong></div><div class="barline"><span>Allowed</span><div></div><strong id="rs-allowed">0</strong></div><div class="barline"><span>Total Events</span><div></div><strong id="rs-total">0</strong></div></div>
           </div>
@@ -797,6 +797,51 @@ async function freePort(){
     }
   }catch(e){toast('Make sure CoworkGuard is running',true);}
 }
+
+function renderDonut(){
+  const COLORS=['#ff8a00','#7c3aed','#0a84ff','#22c55e','#ef4444','#06b6d4','#f59e0b','#cbd5e1'];
+  const sevenDaysAgo=Date.now()-7*24*60*60*1000;
+  const recent=allEvents.filter(e=>new Date(e.timestamp||0).getTime()>sevenDaysAgo);
+  if(!recent.length)return;
+  const counts={};
+  recent.forEach(e=>{
+    const name=e.ai_provider||e.actor_name||appName(e)||'Other';
+    counts[name]=(counts[name]||0)+1;
+  });
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  if(!total)return;
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const top=sorted.slice(0,3);
+  const othersCount=sorted.slice(3).reduce((s,[,n])=>s+n,0);
+  if(othersCount>0)top.push(['Others',othersCount]);
+  const canvas=document.getElementById('donut-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const cx=46,cy=46,r=38,inner=24;
+  ctx.clearRect(0,0,92,92);
+  let angle=-Math.PI/2;
+  top.forEach(([,count],i)=>{
+    const slice=(count/total)*2*Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,angle,angle+slice);
+    ctx.closePath();
+    ctx.fillStyle=COLORS[i]||'#cbd5e1';
+    ctx.fill();
+    angle+=slice;
+  });
+  ctx.beginPath();
+  ctx.arc(cx,cy,inner,0,2*Math.PI);
+  ctx.fillStyle='#fff';
+  ctx.fill();
+  const legend=document.getElementById('donut-legend');
+  if(!legend)return;
+  legend.innerHTML=top.map(([name,count],i)=>{
+    const pct=Math.round(count/total*100);
+    return '<div><i style="background:'+COLORS[i]+'"></i>'+esc(name.length>16?name.slice(0,16)+'…':name)+' '+pct+'%</div>';
+  }).join('');
+}
+
 function openInFinder(path){
   const folder=path.split('/').slice(0,-1).join('/');
   fetch(API+'/api/open-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:'file://'+folder})}).catch(()=>{});
@@ -1090,7 +1135,7 @@ async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/s
     const resolvedEntries=Object.values(byRid);
     const noRidEntries=raw.filter(e=>!e.request_id);
     allEvents=[...resolvedEntries,...noRidEntries]
-      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();renderCorrelations();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();_fetchFailCount=0;}catch(e){
+      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();renderCorrelations();renderDonut();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();_fetchFailCount=0;}catch(e){
   _fetchFailCount++;
   // Only show offline after 3 consecutive failures — avoids wiping the
   // display on a single slow response or transient hiccup.
