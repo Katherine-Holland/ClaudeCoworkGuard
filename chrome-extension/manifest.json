@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CoworkGuard",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Runtime visibility for AI tools. Detects AI sessions, model downloads, and sensitive data — works with the CoworkGuard macOS app.",
   "permissions": [
     "tabs",
