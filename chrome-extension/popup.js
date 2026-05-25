@@ -93,7 +93,7 @@ async function load() {
     const { claudeSessionActive, proxyActive, sessionStats: s } = resp;
 
     if (claudeSessionActive && proxyActive) {
-      pill.className = 'pill full';
+      pill.className = 'pill active';
       text.textContent = 'FULL PROTECTION';
       banner.style.display = 'none';
     } else if (claudeSessionActive && !proxyActive) {
