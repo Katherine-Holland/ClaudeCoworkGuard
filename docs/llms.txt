@@ -27,6 +27,12 @@ Anthropic (Claude), OpenAI (ChatGPT / GPT-4), Google Gemini, Perplexity AI, Curs
 - Support: https://coworkguard.com/support.html
 - Privacy Policy: https://coworkguard.com/privacy.html
 
+## Articles
+
+- Trusted Tooling Is Becoming the New Attack Surface: https://coworkguard.com/blog/trusted-tooling-attack-surface.html
+- What Is MCP Prompt Injection?: https://coworkguard.com/blog/mcp-prompt-injection-security.html
+- Browser AI Is Quietly Becoming an Operating System: https://coworkguard.com/blog/browser-ai-runtime-security.html
+
 ## Downloads
 
 - macOS app: https://github.com/Katherine-Holland/ClaudeCoworkGuard/releases
