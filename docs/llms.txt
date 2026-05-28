@@ -29,6 +29,8 @@ Anthropic (Claude), OpenAI (ChatGPT / GPT-4), Google Gemini, Perplexity AI, Curs
 
 ## Articles
 
+- What Is AI Runtime Security?: https://coworkguard.com/blog/airuntime.html
+- What Is MCP Security?: https://coworkguard.com/blog/mcpsecurity.html
 - Trusted Tooling Is Becoming the New Attack Surface: https://coworkguard.com/blog/trusted-tooling-attack-surface.html
 - What Is MCP Prompt Injection?: https://coworkguard.com/blog/mcp-prompt-injection-security.html
 - Browser AI Is Quietly Becoming an Operating System: https://coworkguard.com/blog/browser-ai-runtime-security.html

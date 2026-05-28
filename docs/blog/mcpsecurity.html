@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>What Is MCP Security? | CoworkGuard Blog</title>
+<meta name="description" content="A Q&A guide to MCP security, MCP prompt injection, hidden instructions, unicode attacks, and runtime scanning for AI tool responses."/>
+<link rel="canonical" href="https://www.coworkguard.com/blog/what-is-mcp-security.html"/>
+<meta property="og:type" content="article"/><meta property="og:title" content="What Is MCP Security?"/><meta property="og:description" content="A Q&A guide to MCP security, MCP prompt injection, hidden instructions, unicode attacks, and runtime scanning for AI tool responses."/>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,sans-serif;color:#0f172a;background:linear-gradient(180deg,#fff,#f8fafc 50%,#fff);-webkit-font-smoothing:antialiased}
+a{color:inherit}.shell{width:min(920px,calc(100% - 40px));margin:0 auto}
+.nav{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(15,23,42,.08);z-index:10}
+.nav-inner{height:72px;display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:750;font-size:20px;letter-spacing:-.04em}
+.mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#fff,#eaf2ff);box-shadow:inset 0 0 0 1px rgba(10,132,255,.18);color:#2563eb}
+.mark svg{width:24px;height:24px}.nav-links{display:flex;gap:18px;font-size:14px;color:#526176}.nav-links a{text-decoration:none}.nav-cta{background:#0f172a;color:#fff!important;padding:10px 16px;border-radius:999px;font-weight:650}
+.article{padding:82px 0 96px}.kicker{color:#2563eb;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px}
+h1{font-size:clamp(38px,5.2vw,64px);line-height:1.04;letter-spacing:-.055em;margin:0 0 22px;font-weight:690}
+.meta{color:#8b98aa;font-family:"SF Mono",Menlo,monospace;font-size:12px;margin-bottom:46px}.lead{font-size:clamp(19px,2.2vw,24px);line-height:1.48;color:#5f6b7a;letter-spacing:-.03em;margin:0 0 42px}
+.article-body{background:rgba(255,255,255,.78);border:1px solid rgba(15,23,42,.10);border-radius:32px;padding:clamp(28px,5vw,54px);box-shadow:0 24px 80px rgba(15,23,42,.08)}
+.article-body h2{font-size:clamp(24px,2.8vw,34px);line-height:1.08;letter-spacing:-.04em;margin:42px 0 14px}.article-body h2:first-child{margin-top:0}
+.article-body p{font-size:18px;line-height:1.72;color:#334155;margin:0 0 20px}
+.answer{margin:18px 0 34px;padding:22px;border-radius:22px;background:rgba(10,132,255,.07);border:1px solid rgba(10,132,255,.14)}
+.answer p:last-child{margin-bottom:0}.timeline{margin:28px 0;background:linear-gradient(160deg,#172033,#0f172a);color:white;border-radius:24px;padding:26px;font-family:"SF Mono",Menlo,monospace;font-size:15px;line-height:1.8}
+.cta{margin-top:42px;padding:30px;border-radius:26px;background:#0f172a;color:white}.cta p{color:rgba(255,255,255,.72)}.cta a{display:inline-flex;margin-top:10px;background:#0a84ff;color:white;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:650}
+footer{border-top:1px solid rgba(15,23,42,.10);padding:30px 0;color:#8b98aa;font-size:14px}.foot-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.foot-links{display:flex;gap:18px}.foot-links a{text-decoration:none;color:#5f6b7a}
+@media(max-width:720px){.nav-links a:not(.nav-cta){display:none}.article{padding-top:52px}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="shell nav-inner"><a class="brand" href="../index.html"><span class="mark"><svg viewBox="0 0 64 64" fill="none"><path d="M32 5 54 14v17c0 17-11.5 25-22 29C21.5 56 10 48 10 31V14L32 5Z" stroke="currentColor" stroke-width="4"/><path d="M32 18 43 23v12c0 8-5.5 13-11 15-5.5-2-11-7-11-15V23l11-5Z" fill="currentColor"/></svg></span><span>CoworkGuard</span></a><div class="nav-links"><a href="../index.html">Home</a><a href="../shield.html">Shield</a><a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a><a class="nav-cta" href="../index.html#download">Download</a></div></div></nav>
+<main class="shell article"><div class="kicker">CoworkGuard Q&A</div><h1>What Is MCP Security?</h1><div class="meta">Q&A guide · AI runtime security · CoworkGuard</div><p class="lead">MCP security focuses on protecting AI systems that use external tools, connectors, documents, and APIs that can inject untrusted content into model context.</p><article class="article-body">
+<h2>What is MCP security?</h2>
+<div class="answer"><p>MCP security is the practice of protecting AI systems that use Model Context Protocol tools and external connectors. It focuses on what tools can access, what they return to the model, and whether untrusted content enters the model context.</p></div>
+<h2>What is the Model Context Protocol?</h2>
+<div class="answer"><p>The Model Context Protocol is a way for AI systems to connect with tools, files, services, APIs, databases, and external systems. It can make AI agents more useful, but it also increases the amount of external content and tool output reaching the model.</p></div>
+<h2>What is MCP prompt injection?</h2>
+<div class="answer"><p>MCP prompt injection happens when malicious or hidden instructions are placed inside tool responses. The user may not see the instruction, but the model can still consume it as part of its context.</p></div>
+<h2>How can MCP prompt injection happen?</h2>
+<div class="answer"><p>An MCP tool may retrieve a webpage, document, API response, or file. If that content contains hidden instructions, metadata manipulation, invisible unicode, or obfuscated text, the model may be influenced by content the user never intended to trust.</p></div>
+<div class="timeline">AI agent asks MCP tool for data<br>↓<br>Tool retrieves external content<br>↓<br>Hidden instruction exists inside response<br>↓<br>Instruction reaches model context<br>↓<br>AI system may follow attacker-controlled content</div>
+<h2>What can hidden MCP instructions try to do?</h2>
+<div class="answer"><p>Hidden MCP instructions can attempt to override system instructions, request secrets, trigger tool calls, manipulate the agent, retrieve credentials, or encourage data exfiltration.</p></div>
+<h2>Why are unicode attacks relevant to MCP security?</h2>
+<div class="answer"><p>Unicode attacks can hide instructions in text that appears normal to the user. Invisible or unusual characters may be used to smuggle instructions into content that later reaches the model context.</p></div>
+<h2>How does CoworkGuard help with MCP security?</h2>
+<div class="answer"><p>CoworkGuard includes an MCP Trust Gateway. It scans tool responses before they reach the model context and looks for hidden instructions, unicode steganography, credential theft attempts, suspicious metadata changes, and obfuscated payloads.</p></div>
+<h2>What happens when CoworkGuard detects a suspicious MCP response?</h2>
+<div class="answer"><p>If CoworkGuard detects suspicious behaviour, it can block the MCP response locally before the model processes it. The user receives a plain English explanation of what was detected.</p></div>
+<div class="timeline">MCP tool response<br>↓<br>CoworkGuard Trust Gateway<br>↓<br>Hidden unicode instruction detected<br>↓<br>Credential theft attempt detected<br>↓<br>Response blocked before model ingestion</div>
+<h2>Does MCP security matter for developers?</h2>
+<div class="answer"><p>Yes. Developers often connect AI agents to repositories, terminals, cloud credentials, internal documentation, and local files. That makes MCP security important for protecting developer environments and AI workflows.</p></div>
+<div class="cta"><p>CoworkGuard scans MCP tool responses locally before they reach the model context.</p><a href="../index.html">Try CoworkGuard</a></div>
+</article></main>
+<footer><div class="shell foot-inner"><div>© CoworkGuard · Runtime visibility for AI tools</div><div class="foot-links"><a href="../index.html">Home</a><a href="../privacy.html">Privacy</a><a href="../support.html">Support</a></div></div></footer>
+</body></html>

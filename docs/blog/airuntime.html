@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>What Is AI Runtime Security? | CoworkGuard Blog</title>
+<meta name="description" content="A Q&A guide to AI runtime security, AI tool monitoring, and runtime observability for AI-powered developer environments."/>
+<link rel="canonical" href="https://www.coworkguard.com/blog/what-is-ai-runtime-security.html"/>
+<meta property="og:type" content="article"/><meta property="og:title" content="What Is AI Runtime Security?"/><meta property="og:description" content="A Q&A guide to AI runtime security, AI tool monitoring, and runtime observability for AI-powered developer environments."/>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Segoe UI,sans-serif;color:#0f172a;background:linear-gradient(180deg,#fff,#f8fafc 50%,#fff);-webkit-font-smoothing:antialiased}
+a{color:inherit}.shell{width:min(920px,calc(100% - 40px));margin:0 auto}
+.nav{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(15,23,42,.08);z-index:10}
+.nav-inner{height:72px;display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:750;font-size:20px;letter-spacing:-.04em}
+.mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#fff,#eaf2ff);box-shadow:inset 0 0 0 1px rgba(10,132,255,.18);color:#2563eb}
+.mark svg{width:24px;height:24px}.nav-links{display:flex;gap:18px;font-size:14px;color:#526176}.nav-links a{text-decoration:none}.nav-cta{background:#0f172a;color:#fff!important;padding:10px 16px;border-radius:999px;font-weight:650}
+.article{padding:82px 0 96px}.kicker{color:#2563eb;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px}
+h1{font-size:clamp(38px,5.2vw,64px);line-height:1.04;letter-spacing:-.055em;margin:0 0 22px;font-weight:690}
+.meta{color:#8b98aa;font-family:"SF Mono",Menlo,monospace;font-size:12px;margin-bottom:46px}.lead{font-size:clamp(19px,2.2vw,24px);line-height:1.48;color:#5f6b7a;letter-spacing:-.03em;margin:0 0 42px}
+.article-body{background:rgba(255,255,255,.78);border:1px solid rgba(15,23,42,.10);border-radius:32px;padding:clamp(28px,5vw,54px);box-shadow:0 24px 80px rgba(15,23,42,.08)}
+.article-body h2{font-size:clamp(24px,2.8vw,34px);line-height:1.08;letter-spacing:-.04em;margin:42px 0 14px}.article-body h2:first-child{margin-top:0}
+.article-body p{font-size:18px;line-height:1.72;color:#334155;margin:0 0 20px}
+.answer{margin:18px 0 34px;padding:22px;border-radius:22px;background:rgba(10,132,255,.07);border:1px solid rgba(10,132,255,.14)}
+.answer p:last-child{margin-bottom:0}.timeline{margin:28px 0;background:linear-gradient(160deg,#172033,#0f172a);color:white;border-radius:24px;padding:26px;font-family:"SF Mono",Menlo,monospace;font-size:15px;line-height:1.8}
+.cta{margin-top:42px;padding:30px;border-radius:26px;background:#0f172a;color:white}.cta p{color:rgba(255,255,255,.72)}.cta a{display:inline-flex;margin-top:10px;background:#0a84ff;color:white;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:650}
+footer{border-top:1px solid rgba(15,23,42,.10);padding:30px 0;color:#8b98aa;font-size:14px}.foot-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.foot-links{display:flex;gap:18px}.foot-links a{text-decoration:none;color:#5f6b7a}
+@media(max-width:720px){.nav-links a:not(.nav-cta){display:none}.article{padding-top:52px}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="shell nav-inner"><a class="brand" href="../index.html"><span class="mark"><svg viewBox="0 0 64 64" fill="none"><path d="M32 5 54 14v17c0 17-11.5 25-22 29C21.5 56 10 48 10 31V14L32 5Z" stroke="currentColor" stroke-width="4"/><path d="M32 18 43 23v12c0 8-5.5 13-11 15-5.5-2-11-7-11-15V23l11-5Z" fill="currentColor"/></svg></span><span>CoworkGuard</span></a><div class="nav-links"><a href="../index.html">Home</a><a href="../shield.html">Shield</a><a href="https://github.com/Katherine-Holland/ClaudeCoworkGuard">GitHub</a><a class="nav-cta" href="../index.html#download">Download</a></div></div></nav>
+<main class="shell article"><div class="kicker">CoworkGuard Q&A</div><h1>What Is AI Runtime Security?</h1><div class="meta">Q&A guide · AI runtime security · CoworkGuard</div><p class="lead">AI runtime security explains how to monitor what AI tools do while they are running, including file access, outbound requests, model downloads, and tool behaviour.</p><article class="article-body">
+<h2>What is AI runtime security?</h2>
+<div class="answer"><p>AI runtime security is the practice of monitoring what AI tools actually do while they are running on a machine. It focuses on behaviour such as file access, outbound connections, model downloads, tool calls, and credential exposure.</p></div>
+<h2>How is AI runtime security different from traditional cybersecurity?</h2>
+<div class="answer"><p>Traditional cybersecurity often focuses on malware, phishing, exploits, and perimeter defence. AI runtime security focuses on trusted AI tooling with deep local access. The question is not only whether something is malicious. The question is what the AI tool actually did.</p></div>
+<h2>Why do AI tools need runtime monitoring?</h2>
+<div class="answer"><p>Modern AI tools can read local files, access repositories, retrieve credentials, connect to APIs, download models, execute tools, interact with browsers, and run in the background. Much of this behaviour can appear legitimate to the operating system, even when it creates risk.</p></div>
+<h2>What is an example of AI runtime risk?</h2>
+<div class="answer"><p>A coding assistant or extension may read a sensitive file and then connect externally seconds later. That sequence matters more than either event on its own.</p></div>
+<div class="timeline">AI coding assistant<br>↓<br>Read .env file<br>↓<br>Accessed GitHub token<br>↓<br>Connected externally</div>
+<h2>Does AI runtime security replace antivirus?</h2>
+<div class="answer"><p>No. AI runtime security does not replace antivirus, endpoint protection, or proper security audits. It adds visibility into a new layer of behaviour created by AI tools, agents, extensions, and local runtimes.</p></div>
+<h2>How does CoworkGuard approach AI runtime security?</h2>
+<div class="answer"><p>CoworkGuard provides runtime observability for AI tooling on macOS. It monitors behavioural sequences locally and presents them in plain English through a local dashboard.</p></div>
+<h2>What does CoworkGuard monitor?</h2>
+<div class="answer"><p>CoworkGuard includes outbound AI request scanning, behavioural correlation timelines, hidden instruction detection, MCP response analysis, model download detection, browser AI session tracking, clipboard monitoring, and local dashboard visibility.</p></div>
+<h2>Does CoworkGuard send data to the cloud?</h2>
+<div class="answer"><p>No. CoworkGuard is local-first. The proxy runs locally, the dashboard runs locally, and audit logs stay on the Mac. The product is designed around visibility without telemetry or accounts.</p></div>
+<h2>Who is AI runtime security for?</h2>
+<div class="answer"><p>AI runtime security is useful for developers, founders, security-conscious Mac users, AI power users, and teams adopting coding agents, browser AI tools, MCP tools, or local LLM runtimes.</p></div>
+<div class="cta"><p>CoworkGuard shows you what your AI tools are doing on your Mac in plain English, in real time.</p><a href="../index.html">Try CoworkGuard</a></div>
+</article></main>
+<footer><div class="shell foot-inner"><div>© CoworkGuard · Runtime visibility for AI tools</div><div class="foot-links"><a href="../index.html">Home</a><a href="../privacy.html">Privacy</a><a href="../support.html">Support</a></div></div></footer>
+</body></html>
