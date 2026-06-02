@@ -518,6 +518,90 @@ def get_actor_by_pid(pid):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+
+# ─────────────────────────────────────────────
+# Pro — Developer Environment Protection
+# ─────────────────────────────────────────────
+
+@app.route("/api/dev-env-event", methods=["POST"])
+def dev_env_event():
+    """
+    Receive DEV_ENV_ACCESS events from process_scanner.py and file_watcher.py.
+    Stamps actor identity, writes to audit log, appears in dashboard.
+
+    Events fired when AI processes access:
+      - .env files, SSH keys, AWS credentials, GitHub tokens
+      - Kubernetes config, Docker credentials, cloud configs
+      - AI tool configs (Claude, Cursor, VS Code)
+      - MCP configurations, local vector stores
+    """
+    try:
+        data = request.get_json(force=True) or {}
+
+        if data.get("type") != "DEV_ENV_ACCESS":
+            return jsonify({"ok": False, "error": "expected type DEV_ENV_ACCESS"}), 400
+
+        # Build audit entry — calm, observational language
+        entry = {
+            "timestamp":      data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            "type":           "DEV_ENV_ACCESS",
+            "source":         data.get("source", "dev_env"),
+            "action":         "FLAGGED",
+            "blocked":        False,
+            "severity":       data.get("severity", "MEDIUM"),
+            "finding_count":  1,
+
+            # What was accessed
+            "path":           data.get("path", ""),
+            "url":            data.get("path_short", data.get("path", "")),
+            "event_subtype":  data.get("event_subtype", ""),
+            "label":          data.get("label", "Sensitive file accessed"),
+            "description":    data.get("description", ""),
+            "category":       data.get("category", ""),
+            "tags":           data.get("tags", []),
+            "change_type":    data.get("change_type", ""),
+
+            # Actor identity — may already be stamped by process_scanner
+            "actor_id":       data.get("actor_id", ""),
+            "bundle_id":      data.get("bundle_id", ""),
+            "pid":            data.get("pid"),
+            "display_name":   data.get("display_name", ""),
+            "actor_name":     data.get("display_name", data.get("actor_name", "")),
+            "session_id":     data.get("session_id", ""),
+            "confidence":     data.get("confidence", "none"),
+
+            # Findings for dashboard detail view
+            "findings": data.get("findings", [{
+                "type":     data.get("event_subtype", "DEV_ENV_ACCESS"),
+                "severity": data.get("severity", "MEDIUM"),
+                "preview":  data.get("path_short", ""),
+                "blocked":  False,
+                "label":    data.get("label", ""),
+            }]),
+        }
+
+        # Stamp actor identity if not already confirmed
+        if entry.get("confidence") != "strong" and _IDENTITY_AVAILABLE:
+            entry = stamp_event(entry)
+
+        # Write to audit log
+        log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+        with open(log_file, "a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+
+        app.logger.info(
+            "DEV_ENV_ACCESS [%s] %s — %s",
+            entry.get("actor_name", "?"),
+            entry.get("label", "?"),
+            entry.get("path", "?")[:60],
+        )
+
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        app.logger.error("dev_env_event error: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -716,7 +800,8 @@ def folder_check():
 # Simple in-memory rate limiter for /api/log-event
 _log_event_counts = {}  # {minute_str: count}
 
-ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING", "AI_SESSION_STARTED", "AI_SESSION_ENDED", "LOCAL_MODEL_DOWNLOADED", "LOCAL_MODEL_DOWNLOADING", "LOCAL_MODEL_UPDATED", "LOCAL_MODEL_REMOVED"}
+ALLOWED_EVENT_TYPES = {"WINDOW_AI_DETECTED", "SUSPICIOUS_API_WRAP", "DOMAIN_WARNING", "AI_SESSION_STARTED", "AI_SESSION_ENDED", "LOCAL_MODEL_DOWNLOADED",
+    "DEV_ENV_ACCESS", "LOCAL_MODEL_DOWNLOADING", "LOCAL_MODEL_UPDATED", "LOCAL_MODEL_REMOVED"}
 LOG_EVENT_MAX_PER_MINUTE = 100
 
 
