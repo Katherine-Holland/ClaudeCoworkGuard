@@ -178,6 +178,7 @@ def stamp_event(event: Dict, source_port: Optional[int] = None) -> Dict:
                 event["actor_id"]   = actor.get("actor_id", "")
                 event["bundle_id"]  = actor.get("bundle_id", "")
                 event["session_id"] = actor.get("session_id", "")
+                event["pid"]        = actor.get("pid")
                 event["confidence"] = "weak"
                 log.debug("Weak stamp (name match): %s", actor_name)
                 return event

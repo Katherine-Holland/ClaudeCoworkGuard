@@ -793,6 +793,17 @@ def log_event():
             entry["app_name"] = str(event["app_name"])[:64]
         if "app_id" in event:
             entry["app_id"] = str(event["app_id"])[:64]
+        if "actor_name" in event:
+            entry["actor_name"] = str(event["actor_name"])[:64]
+        if "ai_provider" in event:
+            entry["ai_provider"] = str(event["ai_provider"])[:64]
+        if "tab_id" in event:
+            entry["tab_id"] = str(event["tab_id"])[:64]
+        if "pid" in event:
+            try:
+                entry["pid"] = int(event["pid"])
+            except (ValueError, TypeError):
+                pass
 
         # Stamp actor identity before writing — enriches correlation quality
         if _IDENTITY_AVAILABLE:
