@@ -23,6 +23,14 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+# Core identity layer — actor stamping and session tracking
+try:
+    from core.identity.actor_stamper import stamp_event, update_registry, get_registry, pid_to_actor
+    from core.identity.session_tracker import build_actor_registry_payload
+    _IDENTITY_AVAILABLE = True
+except ImportError:
+    _IDENTITY_AVAILABLE = False
+
 try:
     import psutil
     HAS_PSUTIL = True
@@ -458,6 +466,58 @@ def kill_port():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+
+# ─────────────────────────────────────────────
+# Core Identity — Actor Registry
+# ─────────────────────────────────────────────
+
+@app.route("/api/actor-registry", methods=["POST"])
+def post_actor_registry():
+    """
+    Receive actor registry snapshot from actor_monitor / agent_guard.
+    Called on every scan cycle. Updates in-memory registry for event stamping.
+    """
+    if not _IDENTITY_AVAILABLE:
+        return jsonify({"ok": False, "error": "identity layer not available"}), 503
+    try:
+        data = request.get_json(force=True) or {}
+        actors = data.get("actors", [])
+        if not isinstance(actors, list):
+            return jsonify({"ok": False, "error": "actors must be a list"}), 400
+        update_registry(actors)
+        return jsonify({"ok": True, "count": len(actors)})
+    except Exception as e:
+        app.logger.error("post_actor_registry error: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/actor-registry", methods=["GET"])
+def get_actor_registry():
+    """Return current actor registry. Used by dashboard correlation engine."""
+    if not _IDENTITY_AVAILABLE:
+        return jsonify({"ok": True, "actors": [], "count": 0})
+    try:
+        registry = get_registry()
+        actors = list(registry.values())
+        return jsonify({"ok": True, "actors": actors, "count": len(actors)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/actor/<int:pid>", methods=["GET"])
+def get_actor_by_pid(pid):
+    """Return actor metadata for a specific PID. Used by dashboard event detail."""
+    if not _IDENTITY_AVAILABLE:
+        return jsonify({"ok": False, "error": "identity layer not available"}), 503
+    try:
+        actor = pid_to_actor(pid)
+        if not actor:
+            return jsonify({"ok": False, "error": f"No actor found for PID {pid}"}), 404
+        return jsonify({"ok": True, "actor": actor})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -733,6 +793,11 @@ def log_event():
             entry["app_name"] = str(event["app_name"])[:64]
         if "app_id" in event:
             entry["app_id"] = str(event["app_id"])[:64]
+
+        # Stamp actor identity before writing — enriches correlation quality
+        if _IDENTITY_AVAILABLE:
+            source_port = entry.pop("source_port", None)
+            entry = stamp_event(entry, source_port=source_port)
 
         # Write to daily audit log
         log_file = LOG_DIR / f"audit_{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"

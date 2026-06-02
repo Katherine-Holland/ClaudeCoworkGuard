@@ -194,6 +194,7 @@ def scan_running_actors(registry: ActorRegistry,
             entry = {
                 "actor_id":     actor.actor_id,
                 "display_name": actor.display_name,
+                "process_name": actor.display_name,  # stamper weak-match uses process_name
                 "pid":          pid,
                 "bundle_id":    bundle_id or "",
                 "permissions":  perms,
@@ -442,6 +443,34 @@ def _load_settings() -> dict:
     return {}
 
 
+
+def _push_actor_registry(actors: list) -> None:
+    """
+    Push current running actor list to server.py actor registry endpoint.
+    Called every scan cycle so server.py can stamp actor_id onto proxy events.
+    Enriches actors with session_ids before pushing.
+    Fails silently — registry push is best-effort, never blocks the scan loop.
+    """
+    try:
+        from core.identity.session_tracker import build_actor_registry_payload
+        enriched = build_actor_registry_payload(actors)
+    except ImportError:
+        enriched = actors  # core identity not available — push as-is
+
+    try:
+        import json as _json
+        payload = _json.dumps({"actors": enriched}).encode()
+        req = urllib.request.Request(
+            "http://localhost:7070/api/actor-registry",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=2)
+    except Exception:
+        pass  # server not running or busy — skip silently
+
+
 def main() -> None:
     if sys.platform != "darwin":
         log.error("agent_guard requires macOS")
@@ -498,6 +527,9 @@ def main() -> None:
 
             # Check sensitive app co-occurrence
             check_sensitive_cooccurrence(actors, registry, alerted, bundle_cache)
+
+            # Push actor registry to server — enables actor stamping on proxy events
+            _push_actor_registry(actors)
 
         except Exception as e:
             log.error("Agent Guard error: %s", e)
