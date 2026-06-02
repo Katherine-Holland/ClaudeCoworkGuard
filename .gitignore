@@ -1,6 +1,6 @@
 # CoworkGuard .gitignore
 
-# Build artifacts — never commit these
+# Build artifacts
 chrome-extension.zip
 *.zip
 *.tar.gz
@@ -20,16 +20,18 @@ build/
 
 # Test cache
 .pytest_cache/
-*.pytest_cache
 
 # Certificates — generated locally, never commit private keys
 *.key
 *.p12
 coworkguard-ca-key.pem
 
-# Local runtime files
+# Local runtime files — generated at runtime, machine-specific
 .coworkguard/
 *.log
+
+# CoworkGuard Pro licence — never commit a user's licence key
+pro/licence.json
 
 # macOS
 .DS_Store
@@ -47,7 +49,3 @@ coworkguard-ca-key.pem
 .env.local
 .venv/
 venv/
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
