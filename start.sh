@@ -67,6 +67,11 @@ echo $! > "$HOME/.coworkguard/model_monitor.pid"
 sleep 1
 echo -e "${GREEN}✓ Agent guard monitoring AI actors and local models${NC}"
 
+# ── Pro components (started automatically by server.py) ───────────────
+# process_scanner and file_watcher start via server.py on launch.
+# They activate only when a valid Pro licence is present.
+# Check status: curl -s http://localhost:7070/api/pro-status
+
 # ── Enable system proxy ───────────────────────────────────────────────
 echo -e "${CYAN}→ Enabling system proxy...${NC}"
 

@@ -26,7 +26,7 @@
   "bundle": {
     "active": true,
     "category": "Utility",
-    "copyright": "© 2026 Katherine Weston",
+    "copyright": "\u00a9 2026 Katherine Weston",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -62,7 +62,19 @@
       "../../actor_monitor/actor_registry.py": "actor_monitor/actor_registry.py",
       "../../actor_monitor/model_monitor.py": "actor_monitor/model_monitor.py",
       "../../actor_monitor/agent_guard.py": "actor_monitor/agent_guard.py",
-      "../../actor_monitor/network_correlator.py": "actor_monitor/network_correlator.py"
+      "../../actor_monitor/network_correlator.py": "actor_monitor/network_correlator.py",
+      "../../core/__init__.py": "core/__init__.py",
+      "../../core/identity/__init__.py": "core/identity/__init__.py",
+      "../../core/identity/actor_stamper.py": "core/identity/actor_stamper.py",
+      "../../core/identity/session_tracker.py": "core/identity/session_tracker.py",
+      "../../pro/__init__.py": "pro/__init__.py",
+      "../../pro/pro_startup.py": "pro/pro_startup.py",
+      "../../pro/dev_env/__init__.py": "pro/dev_env/__init__.py",
+      "../../pro/dev_env/path_classifier.py": "pro/dev_env/path_classifier.py",
+      "../../pro/dev_env/process_scanner.py": "pro/dev_env/process_scanner.py",
+      "../../pro/dev_env/file_watcher.py": "pro/dev_env/file_watcher.py",
+      "../../pro/licence/__init__.py": "pro/licence/__init__.py",
+      "../../pro/licence/checker.py": "pro/licence/checker.py"
     },
     "shortDescription": "Privacy protection for AI agents",
     "targets": "all"

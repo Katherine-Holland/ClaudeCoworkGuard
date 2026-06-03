@@ -41,6 +41,15 @@ except ImportError:
     def get_licence_info(): return {"tier":"free","email":None,"expires_at":None,"valid":False}
     def is_pro(): return False
 
+# Pro startup — process scanner and file watcher
+try:
+    from pro.pro_startup import start_pro_components, stop_pro_components
+    _PRO_STARTUP_AVAILABLE = True
+except ImportError:
+    _PRO_STARTUP_AVAILABLE = False
+    def start_pro_components(*a, **kw): return {}
+    def stop_pro_components(): pass
+
 try:
     import psutil
     HAS_PSUTIL = True
@@ -662,6 +671,26 @@ def activate_licence():
     except Exception as e:
         app.logger.error("activate_licence error: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/pro-status", methods=["GET"])
+def pro_status():
+    """Returns status of Pro background components."""
+    try:
+        from pro.dev_env.process_scanner import _running as scanner_running
+    except Exception:
+        scanner_running = False
+    try:
+        from pro.dev_env.file_watcher import is_running as watcher_running
+        watcher_ok = watcher_running()
+    except Exception:
+        watcher_ok = False
+    return jsonify({
+        "ok": True,
+        "tier": get_tier(),
+        "process_scanner": scanner_running,
+        "file_watcher": watcher_ok,
+    })
 
 @app.route("/api/status")
 def status():
@@ -1453,4 +1482,22 @@ if __name__ == "__main__":
     # reachable from other machines on the network. If running in a cloud
     # dev environment (e.g. Gitpod), the platform's port forwarding handles
     # external access without exposing the server directly.
+    # Start Pro background components if licence is active
+    if _PRO_STARTUP_AVAILABLE:
+        def _get_registry():
+            try:
+                from core.identity.actor_stamper import get_registry
+                return get_registry()
+            except Exception:
+                return {}
+        import threading
+        def _deferred_pro_start():
+            import time
+            time.sleep(3)  # wait for server to be fully up
+            pro_status = start_pro_components(_get_registry)
+            if pro_status.get("licence_tier") != "free":
+                print(f"  Pro components: scanner={pro_status.get('process_scanner')} watcher={pro_status.get('file_watcher')}")
+        threading.Thread(target=_deferred_pro_start, daemon=True,
+                        name="coworkguard-pro-init").start()
+
     app.run(host="127.0.0.1", port=7070, debug=False)

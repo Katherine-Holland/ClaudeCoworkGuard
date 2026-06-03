@@ -4,7 +4,11 @@ Phase 2: Sensitive file access detection, process scanning, file watching.
 """
 from .path_classifier import classify, is_sensitive, Classification, DevEnvEventType
 from .process_scanner import start_scanner, stop_scanner, scan_once
-from .file_watcher import start_watcher, stop_watcher
+try:
+    from .file_watcher import start_watcher, stop_watcher
+except Exception:
+    def start_watcher(): return False
+    def stop_watcher(): pass
 
 __all__ = [
     "classify",

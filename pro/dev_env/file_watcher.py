@@ -40,6 +40,9 @@ try:
     HAS_WATCHDOG = True
 except ImportError:
     HAS_WATCHDOG = False
+    Observer = None
+    FileSystemEventHandler = object  # placeholder so class definition doesn't fail
+    FileSystemEvent = None
     log.warning("watchdog not installed — file watcher unavailable. pip install watchdog")
 
 DEDUP_WINDOW = 30  # seconds — don't re-fire same path within this window
