@@ -88,6 +88,19 @@
   .corr-why{background:rgba(255,159,10,.04);border:1px solid rgba(255,159,10,.12);border-radius:8px;padding:10px 12px;font-size:12px;color:#344258;line-height:1.6;margin-bottom:10px}
   .corr-why strong{display:block;margin-bottom:4px;color:#b45309;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
   .corr-actions{display:flex;gap:8px}
+
+  .tier-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
+    border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;font-family:var(--mono,monospace); }
+  .tier-badge.free { background:rgba(148,163,184,.12);color:#64748b; }
+  .tier-badge.pro  { background:rgba(10,132,255,.12);color:#2563eb;border:1px solid rgba(10,132,255,.2); }
+  .tier-badge.shield { background:rgba(124,58,237,.12);color:#7c3aed;border:1px solid rgba(124,58,237,.2); }
+  .tier-badge.enterprise { background:rgba(15,23,42,.08);color:#0f172a; }
+  .pro-feature { display:none; }
+  .pro-feature.unlocked { display:block; }
+  .pro-gate { display:inline-flex;align-items:center;gap:6px;font-size:12px;
+    color:#94a3b8;padding:6px 0; }
+  .pro-gate a { color:#2563eb;text-decoration:none;font-weight:600; }
 </style>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer onerror="console.warn('[CoworkGuard] Phosphor icons unavailable — offline mode')"></script>
 </head>
@@ -105,7 +118,7 @@
       <button data-view="settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
     </nav>
     <div class="protected"><strong>You're protected</strong><p id="protection-copy">All systems normal</p><a class="small-link" href="#" data-view-link="settings">Protection details →</a></div>
-    <div class="footer"><span>v1.0.0</span><span class="online" id="proxy-mini">Checking</span></div>
+    <div class="footer"><span id="tier-badge" class="tier-badge free">Free</span><span>v1.0.0</span><span class="online" id="proxy-mini">Checking</span></div>
   </aside>
 
   <main class="main">
@@ -299,7 +312,44 @@
   <div class="top"><div><div class="headline"><h2>Settings</h2></div><p>Local policies and protection preferences.</p></div></div>
   <div class="settings-grid">
 
-    <div class="panel full-panel">
+    
+    <div class="panel full-panel" id="licence-panel">
+      <h3>CoworkGuard Plan</h3>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="settings-tier-badge" class="tier-badge free">Free</span>
+          <span id="settings-tier-desc" style="font-size:13px;color:var(--sub,#64748b);">
+            Upgrade to Pro for confirmed actor tracking and developer environment protection.
+          </span>
+        </div>
+        <div id="licence-form-wrap">
+          <p style="font-size:13px;color:var(--sub,#64748b);margin:0 0 10px;">
+            Have a licence key? Paste it below to activate Pro features.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <textarea id="licence-key-input" placeholder='Paste licence JSON here...'
+              style="width:100%;min-height:80px;font-family:var(--mono,monospace);font-size:11px;
+              border:1px solid var(--border,rgba(15,23,42,.1));border-radius:8px;padding:8px 10px;
+              resize:vertical;background:transparent;color:inherit;outline:none;"
+            ></textarea>
+          </div>
+          <button onclick="activateLicence()" style="margin-top:8px;padding:8px 16px;
+            background:#2563eb;color:white;border:none;border-radius:8px;font-size:13px;
+            font-weight:600;cursor:pointer;font-family:inherit;">
+            Activate Licence
+          </button>
+          <span id="licence-msg" style="font-size:12px;margin-left:10px;color:#64748b;"></span>
+        </div>
+        <div class="pro-feature" style="font-size:13px;">
+          <span style="color:#22c55e;font-weight:600;">✓ Pro active</span>
+          — confirmed actor tracking, developer environment protection enabled.
+          <a href="https://coworkguard.com/shield.html" target="_blank"
+            style="color:#2563eb;font-weight:600;margin-left:6px;">Explore Shield →</a>
+        </div>
+      </div>
+    </div>
+
+<div class="panel full-panel">
       <h3>Blocking Rules</h3>
       <div class="setting-row">
         <div><strong>Block passwords and personal data</strong><p>Stops requests containing Social Security Numbers, credit card numbers, passwords, and API keys from reaching AI services. Recommended: keep this on.</p></div>
@@ -1086,6 +1136,93 @@ function buildCorrelations(events){
   return [...seen.values()].sort((a,b)=>b.steps[0].ts-a.steps[0].ts).slice(0,3);
 }
 
+
+// ── Licence / tier gating ────────────────────────────────────────────────────
+
+let _currentTier = 'free';
+
+async function getLicenceTier(){
+  try{
+    const r = await fetch(API+'/api/licence');
+    const d = await r.json();
+    _currentTier = d.tier || 'free';
+  } catch(e){
+    _currentTier = 'free';
+  }
+  return _currentTier;
+}
+
+function applyTierGating(tier){
+  const isPro = tier === 'pro' || tier === 'shield' || tier === 'enterprise';
+  const label = tier.charAt(0).toUpperCase() + tier.slice(1);
+
+  // Update sidebar badge
+  const badge = document.getElementById('tier-badge');
+  if(badge){ badge.className = 'tier-badge ' + tier; badge.textContent = label; }
+
+  // Update settings badges
+  const sb = document.getElementById('settings-tier-badge');
+  if(sb){ sb.className='tier-badge '+tier; sb.textContent=label; }
+  const sd = document.getElementById('settings-tier-desc');
+  if(sd && isPro) sd.textContent = 'CoworkGuard '+label+' is active.';
+
+  // Show/hide Pro features
+  document.querySelectorAll('.pro-feature').forEach(el => {
+    el.classList.toggle('unlocked', isPro);
+  });
+
+  // Show/hide Pro gates (upgrade prompts)
+  document.querySelectorAll('.pro-gate').forEach(el => {
+    el.style.display = isPro ? 'none' : 'inline-flex';
+  });
+
+  // Correlation badges — update confidence language
+  // Free: "Possible sequence" stays as-is
+  // Pro: "Confirmed sequence" shown with full actor detail
+  if(isPro){
+    document.querySelectorAll('[data-confidence="strong"]').forEach(el => {
+      el.textContent = 'Confirmed sequence';
+    });
+  }
+}
+
+async function initLicence(){
+  const tier = await getLicenceTier();
+  applyTierGating(tier);
+}
+
+
+async function activateLicence(){
+  const input = document.getElementById('licence-key-input');
+  const msg   = document.getElementById('licence-msg');
+  if(!input || !input.value.trim()){
+    if(msg) msg.textContent = 'Please paste your licence JSON.';
+    return;
+  }
+  try{
+    const lic = JSON.parse(input.value.trim());
+    const r = await fetch(API+'/api/licence', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({licence: lic})
+    });
+    const d = await r.json();
+    if(d.ok){
+      if(msg){ msg.style.color='#22c55e'; msg.textContent = d.tier+' licence activated!'; }
+      _currentTier = d.tier;
+      applyTierGating(d.tier);
+      // Update settings badge too
+      const sb = document.getElementById('settings-tier-badge');
+      if(sb){ sb.className='tier-badge '+d.tier; sb.textContent=d.tier.charAt(0).toUpperCase()+d.tier.slice(1); }
+      const sd = document.getElementById('settings-tier-desc');
+      if(sd) sd.textContent = 'CoworkGuard '+d.tier.charAt(0).toUpperCase()+d.tier.slice(1)+' is active.';
+    } else {
+      if(msg){ msg.style.color='#ef4444'; msg.textContent = d.error || 'Activation failed.'; }
+    }
+  } catch(e){
+    if(msg){ msg.style.color='#ef4444'; msg.textContent = 'Invalid licence format — paste the full JSON.'; }
+  }
+}
 function enrichWithActorRegistry(){
   fetch(API+'/api/actor-registry').then(r=>r.json()).then(d=>{
     if(!d.ok||!d.actors) return;
@@ -1138,7 +1275,11 @@ function renderCorrelations(){
 }
 // ── End Correlation Engine ───────────────────────────────────────────────────
 
-async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;_fetchFailCount=0;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
+async function fetchAll(){
+  // Init licence tier on first load only
+  if(_currentTier === 'free' && typeof initLicence === 'function'){
+    initLicence().catch(()=>{});
+  }try{const [sr,lr]=await Promise.all([fetch(API+'/api/status'),fetch(API+'/api/logs?limit=200')]);const status=await sr.json();const logs=await lr.json();serverAvailable=true;_fetchFailCount=0;const raw=(logs.entries||[]).sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));
     // Dedupe by request_id:
     // 1. For each request_id, prefer ALLOWED/BLOCKED over PENDING
     // 2. Only keep one entry per request_id

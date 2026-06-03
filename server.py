@@ -31,6 +31,16 @@ try:
 except ImportError:
     _IDENTITY_AVAILABLE = False
 
+# Pro licence layer
+try:
+    from pro.licence.checker import get_tier, get_licence_info, is_pro
+    _LICENCE_AVAILABLE = True
+except ImportError:
+    _LICENCE_AVAILABLE = False
+    def get_tier(): return "free"
+    def get_licence_info(): return {"tier":"free","email":None,"expires_at":None,"valid":False}
+    def is_pro(): return False
+
 try:
     import psutil
     HAS_PSUTIL = True
@@ -600,6 +610,57 @@ def dev_env_event():
 
     except Exception as e:
         app.logger.error("dev_env_event error: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─────────────────────────────────────────────
+# Pro — Licence
+# ─────────────────────────────────────────────
+
+@app.route("/api/licence", methods=["GET"])
+def get_licence():
+    """
+    Returns current licence tier and info.
+    Used by dashboard to gate Pro UI elements.
+    Safe to expose — no signing secret returned.
+    """
+    try:
+        info = get_licence_info()
+        return jsonify({"ok": True, **info})
+    except Exception as e:
+        return jsonify({"ok": True, "tier": "free", "valid": False})
+
+
+@app.route("/api/licence", methods=["POST"])
+def activate_licence():
+    """
+    Activate a licence by writing it to ~/.coworkguard/licence.json.
+    Called when a user pastes their licence key into the dashboard.
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        licence_data = data.get("licence")
+        if not licence_data or not isinstance(licence_data, dict):
+            return jsonify({"ok": False, "error": "licence object required"}), 400
+
+        from pro.licence.checker import _verify_signature, _is_expired, LICENCE_FILE
+        required = {"tier", "key", "email", "issued_at", "expires_at", "signature"}
+        if not required.issubset(licence_data.keys()):
+            return jsonify({"ok": False, "error": "invalid licence format"}), 400
+        if not _verify_signature(licence_data):
+            return jsonify({"ok": False, "error": "invalid licence signature"}), 400
+        if _is_expired(licence_data["expires_at"]):
+            return jsonify({"ok": False, "error": "licence has expired"}), 400
+
+        LICENCE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        LICENCE_FILE.write_text(json.dumps(licence_data, indent=2))
+
+        app.logger.info("Licence activated: %s tier for %s",
+                        licence_data["tier"], licence_data["email"])
+        return jsonify({"ok": True, "tier": licence_data["tier"],
+                        "email": licence_data["email"]})
+    except Exception as e:
+        app.logger.error("activate_licence error: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/api/status")
