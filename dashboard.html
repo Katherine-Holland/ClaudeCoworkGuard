@@ -428,11 +428,12 @@ function kind(e){const a=(e.action||'').toUpperCase();const t=(e.type||'').toUpp
 // Real findings = findings that are not the synthetic self-referential CHROME_EVENT
 // entry that server.py injects. A finding of type 'CHROME_EVENT' carries no signal.
 const hasRealFindings=(e.findings||[]).some(f=>f.type&&f.type!=='CHROME_EVENT'&&f.type!=='chrome_event');
-if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='LOCAL_MODEL_DOWNLOADING')return 'review';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(hasBlocked)return 'blocked';// CHROME_EVENT with no real findings = proxy scanned and passed — show as info
+if(t==='AI_SESSION_STARTED'||t==='LOCAL_MODEL_DOWNLOADED'||t==='LOCAL_MODEL_REMOVED'||t==='LOCAL_MODEL_UPDATED')return 'info';if(t==='DEV_ENV_ACCESS')return 'review';
+if(t==='LOCAL_MODEL_DOWNLOADING')return 'review';if(t==='AI_SESSION_ENDED')return 'ended';if(a==='PENDING')return 'review';if(t.includes('NETWORK_AFTER')||sev==='CRITICAL'||t.includes('CRITICAL'))return 'critical';if(hasBlocked)return 'blocked';// CHROME_EVENT with no real findings = proxy scanned and passed — show as info
 if(t==='CHROME_EVENT'&&!hasRealFindings)return 'info';if(a==='FLAGGED'||a==='REVIEW'||t.includes('WARNING')||t.includes('FLAGGED')||sev==='HIGH'||sev==='MEDIUM')return 'review';return 'allowed'}
 function appName(e){return e.actor_name||e.actor||e.app||e.process||e.source_process||guessActor(e)||'CoworkGuard'}
 function guessActor(e){const s=JSON.stringify(e).toLowerCase();if(s.includes('claude'))return 'Claude Desktop';if(s.includes('cursor'))return 'Cursor IDE';if(s.includes('vscode')||s.includes('vs code'))return 'VS Code';if(s.includes('chrome'))return 'Chrome';return 'AI Tool'}
-function eventTitle(e){const t=e.type||e.action||'Event';const map={NETWORK_AFTER_SENSITIVE_ACCESS:'Network Correlation',AX_ACCESS_DETECTED:'AX Access',WINDOW_AI_DETECTED:'Local AI Used',SUSPICIOUS_API_WRAP:'Extension Hook',DOMAIN_WARNING:'Sensitive Website',CLIPBOARD_WARNING:'Clipboard Warning',FILE_WRITE_WARNING:'File Write',MCP_TOOL_INSTALLED:'MCP Tool Used',MCP_CONFIG_CHANGED:'MCP Config Changed'};return map[t]||t.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,m=>m.toUpperCase())}
+function eventTitle(e){const t=e.type||e.action||'Event';const map={DEV_ENV_ACCESS:'Developer File Access',NETWORK_AFTER_SENSITIVE_ACCESS:'Network Correlation',AX_ACCESS_DETECTED:'AX Access',WINDOW_AI_DETECTED:'Local AI Used',SUSPICIOUS_API_WRAP:'Extension Hook',DOMAIN_WARNING:'Sensitive Website',CLIPBOARD_WARNING:'Clipboard Warning',FILE_WRITE_WARNING:'File Write',MCP_TOOL_INSTALLED:'MCP Tool Used',MCP_CONFIG_CHANGED:'MCP Config Changed'};return map[t]||t.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,m=>m.toUpperCase())}
 function truncatePath(p,max=40){if(!p||p.length<=max)return p;const parts=p.split('/');const fname=parts[parts.length-1];if(fname.length>max)return '...'+fname.slice(-max);const dir=parts.slice(0,2).join('/');return dir+'/.../' +fname;}
 function eventSub(e){if(e.type==='NETWORK_AFTER_SENSITIVE_ACCESS')return 'Sensitive access followed by network';if(e.type==='AX_ACCESS_DETECTED')return 'App accessed';if(e.type==='WINDOW_AI_DETECTED')return 'Prompt API / local model';if(e.type==='SUSPICIOUS_API_WRAP')return 'Browser API modified';if(e.action==='PENDING')return 'Waiting for approval';return e.detail||e.message||e.path||'Connected to API'}
 function target(e){return e.destination||e.host||e.remote_host||e.target_app||e.target||e.domain||e.url?.replace(/^https?:\/\//,'').split('/')[0]||e.path||'—'}
@@ -440,6 +441,7 @@ function statusLabel(e){const k=kind(e);const t=(e.type||'');
 // Action always wins over type — check resolved state first
 if(k==='blocked')return 'Prevented';
 if(k==='allowed')return 'Allowed';
+if(t==='DEV_ENV_ACCESS')return 'Flagged';
 if(t==='AI_SESSION_STARTED')return 'Logged';
 if(t==='AI_SESSION_ENDED')return 'Ended';
 if(t==='LOCAL_MODEL_DOWNLOADING')return 'Downloading';
@@ -528,6 +530,7 @@ const EVENT_INFO={
   'DOMAIN_WARNING':{style:'review',summary:'You navigated to a sensitive page while an AI session was active. There is a risk the AI could access content from that page.',steps:['If you did not intend to open this page during an AI session, close it.','Consider stopping your AI session before visiting sensitive websites.']},
   'AX_ACCESS_DETECTED':{style:'review',summary:'An AI app has been granted permission to read and interact with other apps on your screen — including ones containing passwords, messages, or private data.',steps:['If you set this up intentionally, no action is needed.','If you did not, go to System Settings → Privacy & Security → Accessibility and remove the AI app from the list.','To open System Settings, click the Apple menu in the top-left corner of your screen.']},
   'NETWORK_AFTER_SENSITIVE_ACCESS':{style:'blocked',summary:'An AI app opened a sensitive app on your Mac and then connected to the internet shortly after. This could mean data was read and sent online.',steps:['Go to System Settings → Privacy & Security → Accessibility on your Mac.','Find the AI app shown below and remove it from the list.','If you use this AI app regularly, consider only running it when you do not have sensitive apps open.']},
+  'DEV_ENV_ACCESS':{style:'review',summary:'An AI tool accessed a sensitive file on your Mac — credentials, tokens, or configuration that could allow access to your accounts or infrastructure.',steps:['Check which AI tool is shown below and consider whether it should have access to this file.','If you did not expect this access, close the AI tool and review your recent activity.','Review your credentials for this service in case they were exposed.']},
   'LOCAL_MODEL_DOWNLOADING':{style:'review',summary:'An app on your Mac is currently downloading an AI model. Use the buttons below to stop it immediately or allow this one download to continue.',steps:['Click Stop Download to kill the process immediately.','Click Allow Once to let this download complete — you will be alerted again next time.','The partial file will remain on disk if you stop — you can delete it from AI Apps & Tools.'],downloading:true},
   'LOCAL_MODEL_REMOVED':{style:'info',summary:'A local AI model file was removed from your device.',steps:['No action needed — the model has been removed.','If you did not remove it yourself, check which AI app may have done so.']},
   'LOCAL_MODEL_UPDATED':{style:'info',summary:'A local AI model file was updated on your device.',steps:['No action needed if you expected this.','If you did not, check which AI app downloaded the update in AI Apps & Tools.']},
@@ -958,7 +961,7 @@ function dismissCorrelation(key){_dismissedCorrelations.add(key);renderCorrelati
 const SENSITIVE_EVENT_TYPES = new Set([
   'AX_ACCESS_DETECTED','NETWORK_AFTER_SENSITIVE_ACCESS','CLIPBOARD_WARNING',
   'FILE_WRITE_WARNING','LOCAL_MODEL_DOWNLOADED','LOCAL_MODEL_DOWNLOADING',
-  'AI_SESSION_STARTED','SKILL_SCAN',
+  'AI_SESSION_STARTED','SKILL_SCAN','DEV_ENV_ACCESS',
 ]);
 const STEP_LABELS = {
   AX_ACCESS_DETECTED:             { label:'Accessed another app on your Mac', dot:'ax' },
@@ -969,6 +972,7 @@ const STEP_LABELS = {
   NETWORK_AFTER_SENSITIVE_ACCESS: { label:'Connected outward after accessing private data', dot:'net' },
   API_REQUEST:                    { label:'Sent outbound AI request', dot:'net' },
   MCP_TOOL_RESPONSE:              { label:'AI tool returned a response', dot:'ax' },
+  DEV_ENV_ACCESS:                 { label:'Accessed sensitive developer file', dot:'file' },
   FILE_ACCESS:                    { label:'Accessed a file on your Mac', dot:'file' },
   AI_SESSION_STARTED:             { label:'AI session opened in browser', dot:'net' },
 };
@@ -1081,6 +1085,29 @@ function buildCorrelations(events){
   });
   return [...seen.values()].sort((a,b)=>b.steps[0].ts-a.steps[0].ts).slice(0,3);
 }
+
+function enrichWithActorRegistry(){
+  fetch(API+'/api/actor-registry').then(r=>r.json()).then(d=>{
+    if(!d.ok||!d.actors) return;
+    const byActorId={};const byPid={};
+    d.actors.forEach(a=>{
+      if(a.actor_id) byActorId[a.actor_id]=a;
+      if(a.pid) byPid[String(a.pid)]=a;
+    });
+    allEvents.forEach(e=>{
+      if(e.confidence==='strong') return;
+      const match=byActorId[e.actor_id]||(e.pid&&byPid[String(e.pid)]);
+      if(match){
+        if(match.actor_id) e.actor_id=match.actor_id;
+        if(match.session_id) e.session_id=match.session_id;
+        if(match.pid) e.pid=match.pid;
+        if(match.bundle_id) e.bundle_id=match.bundle_id;
+        if(!e.confidence||e.confidence==='none') e.confidence='weak';
+      }
+    });
+  }).catch(()=>{});
+}
+
 function renderCorrelations(){
   const section=document.getElementById('correlation-section');
   const container=document.getElementById('correlation-cards');
@@ -1135,7 +1162,7 @@ async function fetchAll(){try{const [sr,lr]=await Promise.all([fetch(API+'/api/s
     const resolvedEntries=Object.values(byRid);
     const noRidEntries=raw.filter(e=>!e.request_id);
     allEvents=[...resolvedEntries,...noRidEntries]
-      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);renderRecent();renderDestinations();renderCorrelations();renderDonut();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();_fetchFailCount=0;}catch(e){
+      .sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0));document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleTimeString();updateStats(logs,status);enrichWithActorRegistry();renderRecent();renderDestinations();renderCorrelations();renderDonut();if(document.getElementById('view-activity').classList.contains('active'))renderAllRows();if(document.getElementById('view-network').classList.contains('active'))renderNetwork();_fetchFailCount=0;}catch(e){
   _fetchFailCount++;
   // Only show offline after 3 consecutive failures — avoids wiping the
   // display on a single slow response or transient hiccup.
