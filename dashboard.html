@@ -491,7 +491,7 @@ function statusLabel(e){const k=kind(e);const t=(e.type||'');
 // Action always wins over type — check resolved state first
 if(k==='blocked')return 'Prevented';
 if(k==='allowed')return 'Allowed';
-if(t==='DEV_ENV_ACCESS')return 'Flagged';
+if(t==='DEV_ENV_ACCESS')return 'Needs Review';
 if(t==='AI_SESSION_STARTED')return 'Logged';
 if(t==='AI_SESSION_ENDED')return 'Ended';
 if(t==='LOCAL_MODEL_DOWNLOADING')return 'Downloading';
@@ -502,7 +502,7 @@ if(k==='info')return 'Info';
 return 'Allowed'}
 function iconClass(e){const n=appName(e).toLowerCase();if(n.includes('cursor'))return 'glyph cursor';if(n.includes('code'))return 'glyph cursor';return n.includes('claude')?'glyph':'glyph generic'}
 function rowHtml(e,dark=true){const ts=new Date(e.timestamp||Date.now());const time=ts.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const k=kind(e);return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span class="time">${esc(time)}</span><span class="appcell"><span class="${iconClass(e)}">✺</span><span>${esc(appName(e))}</span></span><span><span class="event-main">${esc(eventTitle(e))}</span><br><span class="event-sub">${esc(eventSub(e))}</span></span><span class="target">${esc(target(e))}</span><span><span class="tag ${k}">${esc(statusLabel(e))}</span></span><span>›</span></div>`}
-function lightRowHtml(e){const ts=new Date(e.timestamp||Date.now());return `<div class="row" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span>${esc(ts.toLocaleString())}</span><span><span class="tag ${kind(e)}">${esc(statusLabel(e))}</span></span><span>${esc(eventTitle(e))}</span><span>${esc(eventSub(e))} — ${esc(target(e))}</span></div>`}
+function lightRowHtml(e){const ts=new Date(e.timestamp||Date.now());return `<div class="row" data-ts="${(e.timestamp||'').replace(/'/g,'')}" onclick='selectEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'><span>${esc(ts.toLocaleString())}</span><span><span class="tag ${kind(e)}">${esc(statusLabel(e))}</span></span><span>${esc(eventTitle(e))}</span><span>${esc(eventSub(e))} — ${esc(target(e))}</span></div>`}
 function renderRecent(){const rows=allEvents.slice(0,20);document.getElementById('recent-rows').innerHTML=rows.length?rows.map(e=>rowHtml(e)).join(''):`<div class="empty">No activity yet — protection is active.</div>`;}
 let activityFilter='all';
 function setActivityFilter(f,btn){
@@ -1001,8 +1001,10 @@ document.getElementById('actor-grid').innerHTML=activeActors.length?activeActors
 }
 // Keys of correlation sequences the user has dismissed this session.
 // renderCorrelations checks this before rendering each card.
+// Pinned correlations persist until dismissed — survives the 60s detection window.
+const _pinnedCorrelations=new Map(); // key → sequence
 const _dismissedCorrelations = new Set();
-function dismissCorrelation(key){_dismissedCorrelations.add(key);renderCorrelations();}
+function dismissCorrelation(key){_dismissedCorrelations.add(key);_pinnedCorrelations.delete(key);renderCorrelations();}
 
 // ── Behavioural Correlation Engine ──────────────────────────────────────────
 // Looks for sequences: sensitive access → outbound connection within 60s
@@ -1122,8 +1124,8 @@ function buildCorrelations(events){
       sequences.push({actor,confidence:conf,timeDiff,hasSensitive:true,hasOutbound:true,
         key:sens.timestamp+out.timestamp,
         steps:[
-          {type:sens.type,ts:new Date(sens.timestamp||0).getTime(),url:sens.url||sens.path||'',findings:sens.findings||[],actor},
-          {type:out.type, ts:new Date(out.timestamp||0).getTime(), url:out.url||out.destination||'',findings:out.findings||[],actor},
+          {type:sens.type,ts:new Date(sens.timestamp||0).getTime(),rawTs:sens.timestamp||'',url:sens.url||sens.path||'',findings:sens.findings||[],actor},
+          {type:out.type, ts:new Date(out.timestamp||0).getTime(), rawTs:out.timestamp||'',url:out.url||out.destination||'',findings:out.findings||[],actor},
         ],
       });
     });
@@ -1133,7 +1135,14 @@ function buildCorrelations(events){
     const ex=seen.get(s.key);
     if(!ex||['strong','medium','weak'].indexOf(s.confidence)<['strong','medium','weak'].indexOf(ex.confidence))seen.set(s.key,s);
   });
-  return [...seen.values()].sort((a,b)=>b.steps[0].ts-a.steps[0].ts).slice(0,3);
+  // Pin newly found sequences so they survive beyond the 60s detection window.
+  // A card stays visible until the user explicitly dismisses it.
+  seen.forEach((s,k)=>{ if(!_dismissedCorrelations.has(k)) _pinnedCorrelations.set(k,s); });
+  // Merge pinned (older) with newly found (fresher), dedupe by key.
+  const merged=new Map(_pinnedCorrelations);
+  seen.forEach((s,k)=>merged.set(k,s));
+  merged.forEach((s,k)=>{ if(_dismissedCorrelations.has(k)) merged.delete(k); });
+  return [...merged.values()].sort((a,b)=>b.steps[0].ts-a.steps[0].ts).slice(0,5);
 }
 
 
@@ -1245,6 +1254,22 @@ function enrichWithActorRegistry(){
   }).catch(()=>{});
 }
 
+function reviewCorrelation(ts){
+  // Switch to Activity tab, then scroll to and open the event with this timestamp.
+  showView('activity');
+  setTimeout(()=>{
+    const row=document.querySelector('[data-ts="'+ts+'"]');
+    if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.click();}
+    else{
+      // Event may be filtered out — clear filter and retry
+      setActivityFilter('all',document.querySelector('.filter-pill'));
+      setTimeout(()=>{
+        const r2=document.querySelector('[data-ts="'+ts+'"]');
+        if(r2){r2.scrollIntoView({behavior:'smooth',block:'center'});r2.click();}
+      },200);
+    }
+  },150);
+}
 function renderCorrelations(){
   const section=document.getElementById('correlation-section');
   const container=document.getElementById('correlation-cards');
@@ -1270,7 +1295,7 @@ function renderCorrelations(){
       medium:'CoworkGuard detected sensitive activity and an outbound connection from what appears to be the same session. The link is likely but not confirmed.',
       weak:'CoworkGuard saw private-app access and AI network activity close together, but could not confirm they came from the same actor. This may be unrelated activity.',
     };
-    return `<div class="correlation-card ${borderClass}"><div class="corr-header"><span class="corr-title">Recent behaviour sequence</span><span class="corr-badge ${confInfo.badgeClass}">${confInfo.badge}</span></div><div class="corr-actor">${esc(seq.actor)}</div><div class="corr-timeline">${stepsHtml}</div><div class="corr-why"><strong>Why CoworkGuard flagged this</strong>${esc(whyTexts[seq.confidence]||whyTexts.weak)}</div><div class="corr-actions"><button class="btn primary" onclick="showView('activity')">Review Activity</button><button class="btn" onclick="dismissCorrelation('${esc(seq.key)}')">Dismiss</button></div></div>`;
+    return `<div class="correlation-card ${borderClass}"><div class="corr-header"><span class="corr-title">Recent behaviour sequence</span><span class="corr-badge ${confInfo.badgeClass}">${confInfo.badge}</span></div><div class="corr-actor">${esc(seq.actor)}</div><div class="corr-timeline">${stepsHtml}</div><div class="corr-why"><strong>Why CoworkGuard flagged this</strong>${esc(whyTexts[seq.confidence]||whyTexts.weak)}</div><div class="corr-actions"><button class="btn primary" onclick="reviewCorrelation('${esc(seq.steps[0]&&seq.steps[0].rawTs?seq.steps[0].rawTs:\'\'')}')">Review Activity</button><button class="btn" onclick="dismissCorrelation('${esc(seq.key)}')">Dismiss</button></div></div>`;
   }).join('');
 }
 // ── End Correlation Engine ───────────────────────────────────────────────────
