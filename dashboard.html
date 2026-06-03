@@ -715,7 +715,7 @@ function selectEvent(e,scroll=true){
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="blockRequest('${e.request_id}');closeEventModal()">Block Now</button>
     </div>`:`
     <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
-      ${(e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING'||e.type==='DEV_ENV_ACCESS')?`<button style="flex:1;padding:8px;border-radius:8px;font:600 12px var(--font);cursor:pointer;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#166534" onclick="dismissEvent('${e.timestamp}');closeEventModal()">Mark as Reviewed</button>`:''}
+      ${isReviewable?`<button style="flex:1;padding:8px;border-radius:8px;font:600 12px var(--font);cursor:pointer;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#166534" onclick="dismissEvent('${e.timestamp}');closeEventModal()">Mark as Reviewed</button>`:''}
       <button class="btn" onclick="exportSelected()" style="flex:1">Export</button>
       <button class="btn" onclick="closeEventModal()" style="flex:1">Close</button>
     </div>`;
