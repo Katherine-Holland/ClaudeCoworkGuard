@@ -652,7 +652,7 @@ def activate_licence():
         if not licence_data or not isinstance(licence_data, dict):
             return jsonify({"ok": False, "error": "licence object required"}), 400
 
-        from pro.licence.checker import _verify_signature, _is_expired, LICENCE_FILE
+        from pro.licence.checker import _verify_signature, _is_expired, LICENCE_FILE  # local ok — not stamper
         required = {"tier", "key", "email", "issued_at", "expires_at", "signature"}
         if not required.issubset(licence_data.keys()):
             return jsonify({"ok": False, "error": "invalid licence format"}), 400
@@ -1486,7 +1486,6 @@ if __name__ == "__main__":
     if _PRO_STARTUP_AVAILABLE:
         def _get_registry():
             try:
-                from core.identity.actor_stamper import get_registry
                 return get_registry()
             except Exception:
                 return {}
