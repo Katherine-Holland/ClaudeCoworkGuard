@@ -5,7 +5,7 @@
 # flask         — Local dashboard API server (server.py)
 # flask-cors    — CORS headers for localhost API
 # psutil        — Process detection (is Claude running?)
-# watchdog      — Filesystem watch mode for skill scanner (optional — falls back to polling)
+# watchdog      — Filesystem watch mode for skill scanner + Pro file watcher (sensitive path monitoring)
  
 mitmproxy>=10.0
 flask>=3.0

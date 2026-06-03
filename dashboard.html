@@ -685,7 +685,7 @@ function selectEvent(e,scroll=true){
     ${findings.length?`<div>${findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px"><span style="display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:${f.severity==='CRITICAL'?'rgba(239,68,68,.1)':f.severity==='HIGH'?'rgba(255,138,0,.1)':'rgba(0,0,0,.05)'};color:${f.severity==='CRITICAL'?'#c0392b':f.severity==='HIGH'?'#b45309':'#536176'};border:1px solid ${f.severity==='CRITICAL'?'rgba(239,68,68,.2)':f.severity==='HIGH'?'rgba(255,138,0,.2)':'var(--line)'}">${esc(f.severity)}</span><span style="font-weight:600;color:#1e293b;min-width:140px">${friendlyFinding(esc(f.type||''))}</span><span style="color:#536176;font-family:var(--mono);font-size:11px">${esc(f.preview||f.match_preview||'')}</span>${f.blocked&&a!=='PENDING'&&a!=='ALLOWED'&&a!=='CLEAN'?'<span style="font-size:10px;font-weight:700;color:#c0392b;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);padding:2px 8px;border-radius:6px;margin-left:auto">BLOCKED</span>':f.blocked&&(a==='PENDING')?'<span style="font-size:10px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);padding:2px 8px;border-radius:6px;margin-left:auto">DETECTED</span>':''}</div>`).join('')}</div>`:''}
   `;
 
-  const isReviewable=e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING';
+  const isReviewable=e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING'||e.type==='DEV_ENV_ACCESS';
   const isDownloading=e.type==='LOCAL_MODEL_DOWNLOADING';
   const hasOutcome=!!(e.outcome);  // set by server after user acts
   const actorId=e.actor_id||e.ai_provider||'';
@@ -715,7 +715,7 @@ function selectEvent(e,scroll=true){
       <button style="padding:10px;border-radius:8px;font:600 13px var(--font);cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#c0392b" onclick="blockRequest('${e.request_id}');closeEventModal()">Block Now</button>
     </div>`:`
     <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
-      ${(e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING')?`<button style="flex:1;padding:8px;border-radius:8px;font:600 12px var(--font);cursor:pointer;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#166534" onclick="dismissEvent('${e.timestamp}');closeEventModal()">Mark as Reviewed</button>`:''}
+      ${(e.type==='FILE_WRITE_WARNING'||e.type==='CLIPBOARD_WARNING'||e.type==='DEV_ENV_ACCESS')?`<button style="flex:1;padding:8px;border-radius:8px;font:600 12px var(--font);cursor:pointer;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:#166534" onclick="dismissEvent('${e.timestamp}');closeEventModal()">Mark as Reviewed</button>`:''}
       <button class="btn" onclick="exportSelected()" style="flex:1">Export</button>
       <button class="btn" onclick="closeEventModal()" style="flex:1">Close</button>
     </div>`;
