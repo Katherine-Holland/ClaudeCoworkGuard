@@ -191,12 +191,19 @@ def scan_running_actors(registry: ActorRegistry,
             # Determine risk level
             risk = _assess_risk(actor, perms)
 
+            # Build proper actor_id: bundle_id:pid:process_start_time
+            # This is the format actor_stamper.py expects for confirmed correlations
+            _bid = bundle_id or actor.bundle_ids[0] if actor.bundle_ids else actor.actor_id
+            _start = int(proc.info.get('create_time') or 0)
+            _full_actor_id = f"{_bid}:{pid}:{_start}"
+
             entry = {
-                "actor_id":     actor.actor_id,
+                "actor_id":     _full_actor_id,
                 "display_name": actor.display_name,
                 "process_name": actor.display_name,  # stamper weak-match uses process_name
                 "pid":          pid,
-                "bundle_id":    bundle_id or "",
+                "bundle_id":    _bid,
+                "process_start_time": _start,
                 "permissions":  perms,
                 "capabilities": actor.capabilities,
                 "risk":         risk,
