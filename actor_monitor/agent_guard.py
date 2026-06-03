@@ -32,6 +32,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -183,6 +184,15 @@ def scan_running_actors(registry: ActorRegistry,
             if not actor:
                 continue
 
+            # Fix 1: Validate bundle_id against actor's known bundle list.
+            # Electron apps (Cursor, Claude Desktop, ChatGPT) spawn XPC helper
+            # processes whose bundle_ids contaminate the cache. If the resolved
+            # bundle_id isn't in the actor's known list, discard it and fall back
+            # to the canonical bundle_id. This catches XPC helpers and any other
+            # helper process contamination across all 29 actors.
+            if bundle_id and actor.bundle_ids and bundle_id not in actor.bundle_ids:
+                bundle_id = None  # discard — helper bundle, not the main app
+
             # Get permissions from TCC
             perms = []
             if bundle_id:
@@ -192,8 +202,9 @@ def scan_running_actors(registry: ActorRegistry,
             risk = _assess_risk(actor, perms)
 
             # Build proper actor_id: bundle_id:pid:process_start_time
-            # This is the format actor_stamper.py expects for confirmed correlations
-            _bid = bundle_id or actor.bundle_ids[0] if actor.bundle_ids else actor.actor_id
+            # Fix 2: correct operator precedence — bundle_id fallback must wrap
+            # the ternary so None bundle_id always falls back to bundle_ids[0].
+            _bid = bundle_id or (actor.bundle_ids[0] if actor.bundle_ids else actor.actor_id)
             _start = int(proc.info.get('create_time') or 0)
             _full_actor_id = f"{_bid}:{pid}:{_start}"
 
@@ -218,10 +229,11 @@ def scan_running_actors(registry: ActorRegistry,
                 if not parent_actor_id:
                     continue  # skip — not running as MCP tool
 
-            # Dedupe — one entry per actor_id (keep highest risk)
-            if actor.actor_id in seen_actor_ids:
+            # Dedupe on full process identity — allows multiple instances of the
+            # same app (e.g. two Cursor windows) to appear as separate registry entries.
+            if _full_actor_id in seen_actor_ids:
                 continue
-            seen_actor_ids.add(actor.actor_id)
+            seen_actor_ids.add(_full_actor_id)
             running.append(entry)
 
         except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -274,7 +286,6 @@ def _notify(title: str, message: str) -> None:
 def _post_to_dashboard(payload: bytes) -> None:
     """Send event to dashboard server. Runs on a daemon thread — never blocks the poll loop."""
     try:
-        import urllib.request
         req = urllib.request.Request(
             "http://localhost:7070/api/log-event",
             data=payload,
