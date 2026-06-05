@@ -1,6 +1,6 @@
 {
-  "_version": "1.2.0",
-  "_last_updated": "2026-05-14",
+  "_version": "1.3.0",
+  "_last_updated": "2026-06-03",
   "_platform": "macos",
   "_comment": "Configuration only. No detection logic lives here. Edit to customise actors, policies, and notification text. Detection logic is in actor_registry.py and agent_guard.py.",
   "_description": "CoworkGuard AI Actor Registry. Defines known AI actors on macOS. Edit to add custom actors.",
@@ -1165,19 +1165,42 @@
     {
       "actor_id": "perplexity_app",
       "display_name": "Perplexity",
-      "bundle_ids": ["ai.perplexity.mac"],
-      "process_names": ["Perplexity"],
+      "bundle_ids": [
+        "ai.perplexity.mac"
+      ],
+      "process_names": [
+        "Perplexity"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Perplexity"],
+      "watch_paths": [
+        "~/Library/Application Support/Perplexity"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "web_search", "file_read"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "web_search",
+        "file_read"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "FILE_READ"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "FILE_READ": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Perplexity sent data to its cloud service.",
         "FILE_READ": "Perplexity read a file from your Mac."
@@ -1187,19 +1210,39 @@
     {
       "actor_id": "poe_app",
       "display_name": "Poe",
-      "bundle_ids": ["com.quora.poe"],
-      "process_names": ["Poe"],
+      "bundle_ids": [
+        "com.quora.poe"
+      ],
+      "process_names": [
+        "Poe"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Poe"],
+      "watch_paths": [
+        "~/Library/Application Support/Poe"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "multi_model_access"],
-      "risk_events": ["SENSITIVE_DATA_SENT"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "multi_model_access"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Poe sent data to its cloud service."
       },
@@ -1208,19 +1251,42 @@
     {
       "actor_id": "notion_app",
       "display_name": "Notion",
-      "bundle_ids": ["notion.id"],
-      "process_names": ["Notion"],
+      "bundle_ids": [
+        "notion.id"
+      ],
+      "process_names": [
+        "Notion"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Notion"],
+      "watch_paths": [
+        "~/Library/Application Support/Notion"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "file_read", "ai_writing"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "file_read",
+        "ai_writing"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "FILE_READ"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "FILE_READ": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Notion AI sent workspace content to its cloud service.",
         "FILE_READ": "Notion read a file from your Mac."
@@ -1230,41 +1296,92 @@
     {
       "actor_id": "grammarly",
       "display_name": "Grammarly",
-      "bundle_ids": ["com.grammarly.ProjectLlama"],
-      "process_names": ["Grammarly", "Grammarly Desktop"],
+      "bundle_ids": [
+        "com.grammarly.ProjectLlama"
+      ],
+      "process_names": [
+        "Grammarly",
+        "Grammarly Desktop"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Grammarly"],
+      "watch_paths": [
+        "~/Library/Application Support/Grammarly"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "clipboard_read", "accessibility_api", "ai_writing"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "CLIPBOARD_READ"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "CLIPBOARD_READ": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 60},
+      "capabilities": [
+        "network_access",
+        "clipboard_read",
+        "accessibility_api",
+        "ai_writing"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "CLIPBOARD_READ"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "CLIPBOARD_READ": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 60
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Grammarly sent text to its cloud service for analysis.",
-        "CLIPBOARD_READ": "Grammarly read your clipboard — it monitors text as you type via the Accessibility API."
+        "CLIPBOARD_READ": "Grammarly read your clipboard \u2014 it monitors text as you type via the Accessibility API."
       },
-      "notes": "AI writing assistant. Uses macOS Accessibility API to read text across all apps — high data exposure risk."
+      "notes": "AI writing assistant. Uses macOS Accessibility API to read text across all apps \u2014 high data exposure risk."
     },
     {
       "actor_id": "replit",
       "display_name": "Replit",
-      "bundle_ids": ["com.replit.app"],
-      "process_names": ["Replit"],
+      "bundle_ids": [
+        "com.replit.app"
+      ],
+      "process_names": [
+        "Replit"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Replit"],
+      "watch_paths": [
+        "~/Library/Application Support/Replit"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "file_read", "code_execution", "ai_coding"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ", "CODE_EXECUTED"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify", "CODE_EXECUTED": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "file_read",
+        "code_execution",
+        "ai_coding"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "FILE_READ",
+        "CODE_EXECUTED"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "FILE_READ": "notify",
+        "CODE_EXECUTED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Replit sent code or data to its cloud service.",
         "FILE_READ": "Replit read a file from your Mac.",
@@ -1275,22 +1392,46 @@
     {
       "actor_id": "superwhisper",
       "display_name": "Superwhisper",
-      "bundle_ids": ["com.superwhisper.app"],
-      "process_names": ["Superwhisper"],
+      "bundle_ids": [
+        "com.superwhisper.app"
+      ],
+      "process_names": [
+        "Superwhisper"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Superwhisper"],
+      "watch_paths": [
+        "~/Library/Application Support/Superwhisper"
+      ],
       "model_paths": [
         "~/Library/Application Support/Superwhisper/models/**/*.bin",
         "~/Library/Application Support/Superwhisper/models/**/*.gguf"
       ],
-      "capabilities": ["microphone_access", "local_model_inference", "clipboard_write", "network_access"],
-      "risk_events": ["AUDIO_RECORDED", "SENSITIVE_DATA_SENT"],
-      "default_policy": {"AUDIO_RECORDED": "notify", "SENSITIVE_DATA_SENT": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 60},
+      "capabilities": [
+        "microphone_access",
+        "local_model_inference",
+        "clipboard_write",
+        "network_access"
+      ],
+      "risk_events": [
+        "AUDIO_RECORDED",
+        "SENSITIVE_DATA_SENT"
+      ],
+      "default_policy": {
+        "AUDIO_RECORDED": "notify",
+        "SENSITIVE_DATA_SENT": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 60
+      },
       "explanations": {
         "AUDIO_RECORDED": "Superwhisper is recording audio for transcription.",
         "SENSITIVE_DATA_SENT": "Superwhisper sent audio or text to a cloud transcription service."
@@ -1300,19 +1441,43 @@
     {
       "actor_id": "copilot_app",
       "display_name": "Microsoft Copilot",
-      "bundle_ids": ["com.microsoft.Copilot"],
-      "process_names": ["Microsoft Copilot", "Copilot"],
+      "bundle_ids": [
+        "com.microsoft.Copilot"
+      ],
+      "process_names": [
+        "Microsoft Copilot",
+        "Copilot"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Microsoft Copilot"],
+      "watch_paths": [
+        "~/Library/Application Support/Microsoft Copilot"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "file_read", "ai_assistant"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "file_read",
+        "ai_assistant"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "FILE_READ"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "FILE_READ": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Microsoft Copilot sent data to Microsoft's cloud service.",
         "FILE_READ": "Microsoft Copilot read a file from your Mac."
@@ -1322,19 +1487,43 @@
     {
       "actor_id": "gemini_app",
       "display_name": "Gemini",
-      "bundle_ids": ["com.google.Gemini"],
-      "process_names": ["Gemini"],
+      "bundle_ids": [
+        "com.google.Gemini"
+      ],
+      "process_names": [
+        "Gemini"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/Gemini"],
+      "watch_paths": [
+        "~/Library/Application Support/Gemini"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "file_read", "ai_assistant", "google_workspace_access"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "file_read",
+        "ai_assistant",
+        "google_workspace_access"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "FILE_READ"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "FILE_READ": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "Gemini sent data to Google's cloud service.",
         "FILE_READ": "Gemini read a file from your Mac."
@@ -1344,25 +1533,115 @@
     {
       "actor_id": "chatgpt_app",
       "display_name": "ChatGPT",
-      "bundle_ids": ["com.openai.chat"],
-      "process_names": ["ChatGPT"],
+      "bundle_ids": [
+        "com.openai.chat"
+      ],
+      "process_names": [
+        "ChatGPT",
+        "ChatGPT Helper",
+        "com.openai.chat"
+      ],
       "enabled": true,
       "requires_parent_match": false,
       "parent_process": [],
       "known_parents": [],
-      "watch_paths": ["~/Library/Application Support/ChatGPT"],
+      "watch_paths": [
+        "~/Library/Application Support/ChatGPT",
+        "~/.openai"
+      ],
       "model_paths": [],
-      "capabilities": ["network_access", "file_read", "code_execution", "ai_assistant", "computer_use"],
-      "risk_events": ["SENSITIVE_DATA_SENT", "FILE_READ", "CODE_EXECUTED"],
-      "default_policy": {"SENSITIVE_DATA_SENT": "notify", "FILE_READ": "notify", "CODE_EXECUTED": "notify"},
-      "consent_required": {"visibility": false, "enforcement": false},
-      "false_positive_controls": {"allow_silence": true, "allow_always_allow": true, "cooldown_seconds": 300},
+      "capabilities": [
+        "network_access",
+        "file_read",
+        "code_execution",
+        "ai_assistant",
+        "computer_use"
+      ],
+      "risk_events": [
+        "SENSITIVE_DATA_SENT",
+        "FILE_READ",
+        "CODE_EXECUTED"
+      ],
+      "default_policy": {
+        "SENSITIVE_DATA_SENT": "notify",
+        "FILE_READ": "notify",
+        "CODE_EXECUTED": "notify"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": false
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 300
+      },
       "explanations": {
         "SENSITIVE_DATA_SENT": "ChatGPT sent data to OpenAI's cloud service.",
         "FILE_READ": "ChatGPT read a file from your Mac.",
         "CODE_EXECUTED": "ChatGPT executed code on your machine via the Advanced Data Analysis tool."
       },
       "notes": "OpenAI's ChatGPT desktop app. Supports file uploads, code execution, and operator-defined computer use."
+    },
+    {
+      "actor_id": "codex_cli",
+      "display_name": "OpenAI Codex CLI",
+      "bundle_ids": [],
+      "process_names": [
+        "codex",
+        "openai-codex"
+      ],
+      "enabled": true,
+      "requires_parent_match": false,
+      "parent_process": [],
+      "known_parents": [],
+      "watch_paths": [
+        "~/.codex",
+        "~/.openai"
+      ],
+      "model_paths": [],
+      "capabilities": [
+        "shell_execution",
+        "file_access",
+        "network_access",
+        "terminal_agent",
+        "mcp_tools"
+      ],
+      "risk_events": [
+        "SHELL_COMMAND_EXECUTED",
+        "NETWORK_AFTER_SENSITIVE_ACCESS",
+        "FILE_ACCESS_OUTSIDE_ALLOWED",
+        "AGENT_MODE_ACTIVATED",
+        "MCP_TOOL_INSTALLED"
+      ],
+      "default_policy": {
+        "SHELL_COMMAND_EXECUTED": "notify",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "critical",
+        "FILE_ACCESS_OUTSIDE_ALLOWED": "ask",
+        "AGENT_MODE_ACTIVATED": "notify",
+        "MCP_TOOL_INSTALLED": "ask"
+      },
+      "consent_required": {
+        "visibility": false,
+        "enforcement": true
+      },
+      "false_positive_controls": {
+        "allow_silence": true,
+        "allow_always_allow": true,
+        "cooldown_seconds": 60
+      },
+      "explanations": {
+        "SHELL_COMMAND_EXECUTED": "OpenAI Codex CLI executed a shell command on your machine. Codex is a terminal-based autonomous coding agent that can run commands, edit files, and call APIs.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Codex CLI accessed a sensitive file and then made an outbound connection shortly after.",
+        "FILE_ACCESS_OUTSIDE_ALLOWED": "Codex CLI attempted to access files outside your allowed folders.",
+        "AGENT_MODE_ACTIVATED": "Codex CLI entered autonomous agent mode and may execute multiple commands without further prompts.",
+        "MCP_TOOL_INSTALLED": "Codex CLI added a new MCP tool."
+      },
+      "detection_notes": {
+        "SHELL_COMMAND_EXECUTED": "Detected via process monitor watching for codex/openai-codex process spawning child shells.",
+        "NETWORK_AFTER_SENSITIVE_ACCESS": "Requires network_monitor (status: planned). Currently uses lsof polling."
+      },
+      "notes": "Terminal-based autonomous coding agent from OpenAI. Runs in sandboxed or full-auto mode. Can read files, execute commands, and call the OpenAI API. Config stored in ~/.codex/."
     }
   ],
   "sensitive_bundles": [

@@ -45,6 +45,9 @@ class DevEnvEventType:
     VECTOR_STORE_ACCESS     = "VECTOR_STORE_ACCESS"
     BROWSER_SESSION_ACCESS  = "BROWSER_SESSION_ACCESS"
     SENSITIVE_FILE_ACCESS   = "SENSITIVE_FILE_ACCESS"  # catch-all
+    PASSWORD_MANAGER_ACCESS = "PASSWORD_MANAGER_ACCESS"
+    TERRAFORM_ACCESS        = "TERRAFORM_ACCESS"
+    MCP_CONFIG_ACCESS       = "MCP_CONFIG_ACCESS"  # already exists — ensure variants covered
 
 
 # ─────────────────────────────────────────────
@@ -214,6 +217,19 @@ _RULES: list[tuple[str, Classification]] = [
         "An AI tool read your Docker config, which may contain registry credentials.",
         "credentials", tags=["docker", "registry"])),
 
+    # ── 1Password vault ──────────────────────────────────────────────────────
+    (r"Library/Group Containers/2BUA8C4S2C\.com\.1password",
+     Classification("PASSWORD_MANAGER_ACCESS", "CRITICAL",
+        "Accessed 1Password vault data",
+        "An AI tool accessed 1Password vault storage on your Mac.",
+        "credentials", tags=["1password", "vault", "passwords"])),
+
+    (r"/\.op/config$",
+     Classification("PASSWORD_MANAGER_ACCESS", "HIGH",
+        "Accessed 1Password CLI config",
+        "An AI tool read the 1Password CLI configuration.",
+        "credentials", tags=["1password", "cli"])),
+
     # ── Cloud / GCP / Azure ──────────────────────────────────────────────────
     (r"/\.config/gcloud/",
      Classification("CLOUD_CONFIG_ACCESS", "HIGH",
@@ -226,6 +242,31 @@ _RULES: list[tuple[str, Classification]] = [
         "Accessed Azure credentials",
         "An AI tool accessed your Azure CLI configuration.",
         "credentials", tags=["azure", "cloud"])),
+
+    # ── Terraform ────────────────────────────────────────────────────────────
+    (r"terraform\.tfvars$",
+     Classification("TERRAFORM_ACCESS", "CRITICAL",
+        "Accessed Terraform variables file",
+        "An AI tool read a Terraform .tfvars file which typically contains cloud credentials and secrets.",
+        "secrets", tags=["terraform", "cloud", "secrets"])),
+
+    (r"terraform\.tfstate$",
+     Classification("TERRAFORM_ACCESS", "HIGH",
+        "Accessed Terraform state file",
+        "An AI tool read a Terraform state file which may contain sensitive infrastructure details.",
+        "secrets", tags=["terraform", "infrastructure"])),
+
+    (r"\.tfvars$",
+     Classification("TERRAFORM_ACCESS", "CRITICAL",
+        "Accessed Terraform variables",
+        "An AI tool read a Terraform variables file containing infrastructure secrets.",
+        "secrets", confidence=0.9, tags=["terraform", "secrets"])),
+
+    (r"/\.terraform/",
+     Classification("TERRAFORM_ACCESS", "HIGH",
+        "Accessed Terraform directory",
+        "An AI tool accessed a Terraform working directory.",
+        "secrets", confidence=0.7, tags=["terraform"])),
 
     # ── AI tool configs ───────────────────────────────────────────────────────
     (r"/\.claude/settings\.json$",
@@ -245,6 +286,18 @@ _RULES: list[tuple[str, Classification]] = [
         "Accessed Claude application data",
         "An AI tool accessed Claude Desktop application data.",
         "ai_tool", confidence=0.7, tags=["claude"])),
+
+    (r"/\.cursor/mcp",
+     Classification("MCP_CONFIG_ACCESS", "HIGH",
+        "Accessed Cursor MCP config",
+        "An AI tool read Cursor IDE MCP server configuration.",
+        "ai_tool", tags=["mcp", "cursor"])),
+
+    (r"/\.claude/mcp",
+     Classification("MCP_CONFIG_ACCESS", "HIGH",
+        "Accessed Claude MCP config",
+        "An AI tool read Claude Desktop MCP server configuration.",
+        "ai_tool", tags=["mcp", "claude"])),
 
     (r"/\.cursor/",
      Classification("AI_CONFIG_ACCESS", "MEDIUM",
@@ -271,11 +324,35 @@ _RULES: list[tuple[str, Classification]] = [
         "An AI tool read an MCP server configuration file.",
         "ai_tool", tags=["mcp"])),
 
+    (r"mcp-config\.json$",
+     Classification("MCP_CONFIG_ACCESS", "HIGH",
+        "Accessed MCP config file",
+        "An AI tool read an MCP server configuration file.",
+        "ai_tool", tags=["mcp"])),
+
     (r"mcp[_\-]config",
      Classification("MCP_CONFIG_ACCESS", "MEDIUM",
         "Accessed MCP config file",
         "An AI tool accessed an MCP-related configuration.",
         "ai_tool", confidence=0.7, tags=["mcp"])),
+
+    (r"mcp\.yaml$|mcp\.yml$",
+     Classification("MCP_CONFIG_ACCESS", "HIGH",
+        "Accessed MCP YAML config",
+        "An AI tool read an MCP server configuration file.",
+        "ai_tool", tags=["mcp"])),
+
+    (r"\.cursor/mcp",
+     Classification("MCP_CONFIG_ACCESS", "HIGH",
+        "Accessed Cursor MCP config",
+        "An AI tool read Cursor IDE MCP server configuration.",
+        "ai_tool", tags=["mcp", "cursor"])),
+
+    (r"\.claude/mcp",
+     Classification("MCP_CONFIG_ACCESS", "HIGH",
+        "Accessed Claude MCP config",
+        "An AI tool read Claude Desktop MCP server configuration.",
+        "ai_tool", tags=["mcp", "claude"])),
 
     # ── Local vector stores / embeddings ─────────────────────────────────────
     (r"\.chroma/",
@@ -381,6 +458,7 @@ WATCH_PATHS = [
     "~/.cursor",
     "~/Library/Application Support/Claude",
     "~/Library/Application Support/Cursor",
+    "~/Library/Group Containers/2BUA8C4S2C.com.1password",
 ]
 
 ENV_FILE_PATTERNS = [
