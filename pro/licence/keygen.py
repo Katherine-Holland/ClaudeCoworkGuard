@@ -14,6 +14,11 @@ Output:
     OR prints the JSON to stdout for manual delivery
 
 Later: Stripe webhook calls generate_key() automatically on successful payment.
+
+Environment:
+    CWG_LICENCE_SECRET — signing secret (required in production)
+    Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+    Set in ~/.zshrc: export CWG_LICENCE_SECRET="your_secret_here"
 """
 
 from __future__ import annotations
@@ -22,13 +27,44 @@ import argparse
 import hashlib
 import hmac
 import json
+import os
 import secrets
 import string
+import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from pathlib import Path
 
-# Must match checker.py — keep in sync
-_SIGNING_SECRET = "coworkguard-licence-secret-2026"
+# Signing secret — loaded from environment variable
+# Never hardcode this value — keep it out of the repo
+def _load_secret() -> str:
+    """
+    Load the HMAC signing secret. Resolution order:
+      1. pro/licence/.secret file (bundled at build time, not in repo)
+      2. CWG_LICENCE_SECRET environment variable
+    Returns empty string if neither is available — caller must check.
+    """
+    secret_file = Path(__file__).parent / ".secret"
+    if secret_file.exists():
+        secret = secret_file.read_text().strip()
+        if secret:
+            return secret
+    return os.environ.get("CWG_LICENCE_SECRET", "").strip()
+
+_SIGNING_SECRET = _load_secret()
+
+if not _SIGNING_SECRET:
+    # Warn loudly if running without a real secret
+    # In development this is acceptable — in production it must be set
+    import warnings
+    warnings.warn(
+        "CWG_LICENCE_SECRET environment variable not set. "
+        "Keys generated will use an insecure default secret and will not "
+        "validate correctly in production. "
+        "Set CWG_LICENCE_SECRET in your environment before generating real keys.",
+        stacklevel=2,
+    )
+    _SIGNING_SECRET = "coworkguard-licence-secret-2026-dev-only"
 
 VALID_TIERS = {"pro", "shield", "enterprise"}
 
@@ -140,6 +176,12 @@ def main() -> None:
                         help="Write to a specific path instead")
 
     args = parser.parse_args()
+
+    # Warn if secret not set
+    if "CWG_LICENCE_SECRET" not in os.environ:
+        print("⚠️  WARNING: CWG_LICENCE_SECRET not set — using dev-only secret.")
+        print("   Keys generated here will NOT validate in production.")
+        print("   Set CWG_LICENCE_SECRET before generating real keys.\n")
 
     licence = generate_licence(
         email=args.email,

@@ -20,6 +20,10 @@ Tiers: "free" | "pro" | "shield" | "enterprise"
 Usage:
     from pro.licence.checker import get_tier, is_pro, is_shield
 
+Environment:
+    CWG_LICENCE_SECRET — must match the secret used in keygen.py
+    Set in ~/.zshrc: export CWG_LICENCE_SECRET="your_secret_here"
+
 Notes:
     - Returns "free" on any error — never blocks the product
     - Manual key generation for early users (keygen.py)
@@ -32,6 +36,7 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -40,9 +45,38 @@ log = logging.getLogger("coworkguard.licence")
 
 LICENCE_FILE = Path.home() / ".coworkguard" / "licence.json"
 
-# Signing secret — change before production, keep out of repo
-# In production this should come from an environment variable
-_SIGNING_SECRET = "coworkguard-licence-secret-2026"
+# Signing secret — loaded from environment variable
+# Must match the secret used when the key was generated (keygen.py)
+# Never hardcode this value
+def _load_secret() -> str:
+    """
+    Load the HMAC signing secret. Resolution order:
+      1. pro/licence/.secret file (bundled at build time, not in repo)
+      2. CWG_LICENCE_SECRET environment variable
+    Raises RuntimeError if neither is available — prevents silent fallback
+    to a dev secret that would make all keys trivially forgeable.
+    """
+    # Look for .secret relative to this file (works both in repo and app bundle)
+    secret_file = Path(__file__).parent / ".secret"
+    if secret_file.exists():
+        secret = secret_file.read_text().strip()
+        if secret:
+            return secret
+
+    # Env var fallback (CI, shell-launched server)
+    secret = os.environ.get("CWG_LICENCE_SECRET", "").strip()
+    if secret:
+        return secret
+
+    raise RuntimeError(
+        "CWG_LICENCE_SECRET not set and pro/licence/.secret not found. "
+        "Cannot validate licences without a signing secret."
+    )
+
+try:
+    _SIGNING_SECRET = _load_secret()
+except RuntimeError:
+    _SIGNING_SECRET = ""  # validation will always fail — no silent dev fallback
 
 
 # ─────────────────────────────────────────────

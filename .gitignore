@@ -33,6 +33,9 @@ coworkguard-ca-key.pem
 # CoworkGuard Pro licence — never commit a user's licence key
 pro/licence.json
 
+# Pro signing secret — never commit
+pro/licence/.secret
+
 # macOS
 .DS_Store
 .AppleDouble

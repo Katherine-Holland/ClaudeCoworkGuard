@@ -74,7 +74,8 @@
       "../../pro/dev_env/process_scanner.py": "pro/dev_env/process_scanner.py",
       "../../pro/dev_env/file_watcher.py": "pro/dev_env/file_watcher.py",
       "../../pro/licence/__init__.py": "pro/licence/__init__.py",
-      "../../pro/licence/checker.py": "pro/licence/checker.py"
+      "../../pro/licence/checker.py": "pro/licence/checker.py",
+      "../../pro/licence/.secret": "pro/licence/.secret"
     },
     "shortDescription": "Privacy protection for AI agents",
     "targets": "all"
