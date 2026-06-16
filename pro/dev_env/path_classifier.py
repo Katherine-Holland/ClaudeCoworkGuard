@@ -47,7 +47,6 @@ class DevEnvEventType:
     SENSITIVE_FILE_ACCESS   = "SENSITIVE_FILE_ACCESS"  # catch-all
     PASSWORD_MANAGER_ACCESS = "PASSWORD_MANAGER_ACCESS"
     TERRAFORM_ACCESS        = "TERRAFORM_ACCESS"
-    MCP_CONFIG_ACCESS       = "MCP_CONFIG_ACCESS"  # already exists — ensure variants covered
 
 
 # ─────────────────────────────────────────────
@@ -299,6 +298,12 @@ _RULES: list[tuple[str, Classification]] = [
         "An AI tool read Claude Desktop MCP server configuration.",
         "ai_tool", tags=["mcp", "claude"])),
 
+    (r"/\.cursor/credentials",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed Cursor credentials",
+        "An AI tool read Cursor IDE stored credentials.",
+        "credentials", tags=["cursor", "credentials"])),
+
     (r"/\.cursor/",
      Classification("AI_CONFIG_ACCESS", "MEDIUM",
         "Accessed Cursor config",
@@ -367,18 +372,93 @@ _RULES: list[tuple[str, Classification]] = [
         "An AI tool accessed a local FAISS vector index.",
         "ai_tool", tags=["vectordb", "faiss"])),
 
-    # ── Browser session storage ───────────────────────────────────────────────
-    (r"Library/Application Support/Google/Chrome/Default/",
-     Classification("BROWSER_SESSION_ACCESS", "MEDIUM",
-        "Accessed Chrome profile data",
-        "An AI tool accessed Chrome browser profile data.",
-        "browser", confidence=0.7, tags=["chrome", "browser"])),
+    # ── API key files — increasingly stored outside .env ────────────────────
+    # Developers store keys in SDK config files, not just .env
+    (r"/\.envrc$",
+     Classification("ENV_FILE_ACCESS", "HIGH",
+        "Accessed .envrc file",
+        "An AI tool read a direnv .envrc file which may contain API keys and secrets.",
+        "secrets", tags=["env", "direnv", "secrets"])),
 
-    (r"Library/Application Support/BraveSoftware/",
+    (r"/openai\.json$",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed OpenAI credentials file",
+        "An AI tool read a file named openai.json which may contain API keys.",
+        "credentials", confidence=0.8, tags=["openai", "api-key"])),
+
+    (r"/anthropic\.json$",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed Anthropic credentials file",
+        "An AI tool read a file named anthropic.json which may contain API keys.",
+        "credentials", confidence=0.8, tags=["anthropic", "api-key"])),
+
+    (r"/claude\.json$",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed Claude credentials file",
+        "An AI tool read a file named claude.json which may contain API keys.",
+        "credentials", confidence=0.8, tags=["claude", "anthropic", "api-key"])),
+
+    (r"/\.config/openai/",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed OpenAI config directory",
+        "An AI tool accessed OpenAI CLI configuration which may contain API keys.",
+        "credentials", tags=["openai", "api-key"])),
+
+    (r"/\.config/anthropic/",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed Anthropic config directory",
+        "An AI tool accessed Anthropic CLI configuration which may contain API keys.",
+        "credentials", tags=["anthropic", "api-key"])),
+
+    (r"/Library/Application Support/Cursor/User/globalStorage/.*\.json$",
+     Classification("TOKEN_FILE_ACCESS", "HIGH",
+        "Accessed Cursor global storage",
+        "An AI tool read Cursor IDE global storage which may contain API keys or session tokens.",
+        "credentials", confidence=0.7, tags=["cursor", "api-key"])),
+
+    (r"/\.config/claude/",
+     Classification("TOKEN_FILE_ACCESS", "CRITICAL",
+        "Accessed Claude CLI config",
+        "An AI tool accessed Claude CLI configuration which may contain API keys.",
+        "credentials", tags=["claude", "anthropic", "api-key"])),
+
+    # ── Browser session storage — specific sensitive files only ─────────────
+    # Deliberately narrow — internal LevelDB/cache files excluded by _is_noise()
+    (r"Chrome/Default/Login Data$",
+     Classification("BROWSER_SESSION_ACCESS", "HIGH",
+        "Accessed Chrome saved passwords",
+        "An AI tool read Chrome's saved password database. On macOS, Chrome encrypts credentials using Keychain.",
+        "browser", tags=["chrome", "passwords"])),
+
+    (r"Chrome/Default/Cookies$",
+     Classification("BROWSER_SESSION_ACCESS", "HIGH",
+        "Accessed Chrome cookies",
+        "An AI tool read Chrome's cookie database, which may contain session tokens.",
+        "browser", tags=["chrome", "cookies"])),
+
+    (r"Chrome/Default/History$",
      Classification("BROWSER_SESSION_ACCESS", "MEDIUM",
-        "Accessed Brave browser data",
-        "An AI tool accessed Brave browser profile data.",
-        "browser", confidence=0.7, tags=["brave", "browser"])),
+        "Accessed Chrome browsing history",
+        "An AI tool read Chrome's browsing history.",
+        "browser", confidence=0.8, tags=["chrome", "history"])),
+
+    (r"Chrome/Default/Web Data$",
+     Classification("BROWSER_SESSION_ACCESS", "HIGH",
+        "Accessed Chrome web data",
+        "An AI tool read Chrome's web data database, which may contain saved form data.",
+        "browser", tags=["chrome", "formdata"])),
+
+    (r"Brave-Browser/Default/Login Data$",
+     Classification("BROWSER_SESSION_ACCESS", "HIGH",
+        "Accessed Brave saved passwords",
+        "An AI tool read Brave's saved password database. On macOS, Brave encrypts credentials using Keychain.",
+        "browser", tags=["brave", "passwords"])),
+
+    (r"Brave-Browser/Default/Cookies$",
+     Classification("BROWSER_SESSION_ACCESS", "HIGH",
+        "Accessed Brave cookies",
+        "An AI tool read Brave's cookie database.",
+        "browser", tags=["brave", "cookies"])),
 
     # ── Repo files ────────────────────────────────────────────────────────────
     (r"/\.git/config$",
@@ -405,12 +485,75 @@ _COMPILED_RULES: list[tuple[re.Pattern, Classification]] = [
 # Public API
 # ─────────────────────────────────────────────
 
+
+# ─────────────────────────────────────────────
+# Noise exclusion — internal database and temp files
+# These are browser/system internals — never sensitive
+# ─────────────────────────────────────────────
+
+# File extensions that are always internal engine files — never flag these
+_NOISE_EXTENSIONS = {
+    '.ldb',      # LevelDB data files (Chrome/Brave internal storage)
+    '.log',      # LevelDB log files
+    '.sst',      # RocksDB/LevelDB SSTable files
+    '.tmp',      # Temporary files
+    '.lock',     # Lock files
+    '.db-shm',   # SQLite shared memory
+    '.db-wal',   # SQLite write-ahead log
+}
+
+# Path fragments that indicate internal browser/system storage
+_NOISE_PATH_FRAGMENTS = [
+    '/Local Storage/leveldb/',
+    '/Session Storage/',
+    '/IndexedDB/',
+    '/Cache/',
+    '/Code Cache/',
+    '/GPUCache/',
+    '/blob_storage/',
+    '/databases/Databases.db',
+    'MANIFEST-',
+    'LOG.old',
+]
+
+def _is_noise(path: str) -> bool:
+    """
+    Returns True if the path is an internal system/browser file that should
+    never be flagged regardless of which directory it lives in.
+    Prevents LevelDB, SQLite internals, and cache files from generating noise.
+    """
+    # Check file extension
+    suffix = Path(path).suffix.lower()
+    if suffix in _NOISE_EXTENSIONS:
+        return True
+
+    # Check for known noisy path fragments
+    for fragment in _NOISE_PATH_FRAGMENTS:
+        if fragment in path:
+            return True
+
+    # MANIFEST-NNNNNN files (LevelDB manifest)
+    name = Path(path).name
+    if re.match(r'^MANIFEST-\d+$', name):
+        return True
+
+    # Pure numeric filenames with .ldb/.log (LevelDB segment files)
+    if re.match(r'^\d+\.(ldb|log|sst)$', name):
+        return True
+
+    return False
+
 def classify(path: str) -> Optional[Classification]:
     """
     Classify a file path and return a Classification.
     Returns None if the path is not considered sensitive.
     First match wins — rules are ordered by specificity.
+    Noise files (LevelDB, SQLite internals, cache) are excluded before matching.
     """
+    # Exclude internal database and temp files first — prevents Chrome/browser noise
+    if _is_noise(path):
+        return None
+
     for pattern, clf in _COMPILED_RULES:
         if pattern.search(path):
             return clf
@@ -459,6 +602,8 @@ WATCH_PATHS = [
     "~/Library/Application Support/Claude",
     "~/Library/Application Support/Cursor",
     "~/Library/Group Containers/2BUA8C4S2C.com.1password",
+    # Note: Chrome/Brave directories intentionally excluded from WATCH_PATHS
+    # to prevent LevelDB/cache noise. Specific sensitive files caught by classify().
 ]
 
 ENV_FILE_PATTERNS = [
@@ -468,4 +613,5 @@ ENV_FILE_PATTERNS = [
     ".env.staging",
     ".env.development",
     ".env.test",
+    ".envrc",
 ]
