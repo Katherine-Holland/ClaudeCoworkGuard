@@ -54,17 +54,10 @@ def _load_secret() -> str:
 _SIGNING_SECRET = _load_secret()
 
 if not _SIGNING_SECRET:
-    # Warn loudly if running without a real secret
-    # In development this is acceptable — in production it must be set
-    import warnings
-    warnings.warn(
-        "CWG_LICENCE_SECRET environment variable not set. "
-        "Keys generated will use an insecure default secret and will not "
-        "validate correctly in production. "
-        "Set CWG_LICENCE_SECRET in your environment before generating real keys.",
-        stacklevel=2,
+    raise RuntimeError(
+        "CWG_LICENCE_SECRET not set and pro/licence/.secret not found. "
+        "Cannot generate licences without a signing secret."
     )
-    _SIGNING_SECRET = "coworkguard-licence-secret-2026-dev-only"
 
 VALID_TIERS = {"pro", "shield", "enterprise"}
 
