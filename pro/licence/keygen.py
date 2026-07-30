@@ -33,7 +33,6 @@ import string
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from pathlib import Path
 
 # Signing secret — loaded from environment variable
 # Never hardcode this value — keep it out of the repo
@@ -169,12 +168,6 @@ def main() -> None:
                         help="Write to a specific path instead")
 
     args = parser.parse_args()
-
-    # Warn if secret not set
-    if "CWG_LICENCE_SECRET" not in os.environ:
-        print("⚠️  WARNING: CWG_LICENCE_SECRET not set — using dev-only secret.")
-        print("   Keys generated here will NOT validate in production.")
-        print("   Set CWG_LICENCE_SECRET before generating real keys.\n")
 
     licence = generate_licence(
         email=args.email,
