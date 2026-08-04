@@ -71,11 +71,40 @@ except Exception:
     HAS_REGISTRY = False
 
 app = Flask(__name__)
-# The server binds to 127.0.0.1 only so it is unreachable from other
-# machines. Allow all origins so Tauri's WKWebView can reach it
-# regardless of which internal origin scheme the webview uses
-# (tauri://localhost, https://tauri.localhost, null, or none).
-CORS(app, origins="*")
+
+# The server binds to 127.0.0.1 only, but that alone is not a security
+# boundary: DNS rebinding lets any website resolve a hostname to
+# 127.0.0.1 and then send a browser request carrying its own Origin
+# header. A wildcard CORS policy does not stop the server from
+# *processing* that request — it only affects whether the attacker's
+# JS can *read* the response. The real fix is to reject the request
+# server-side before it's handled.
+#
+# Tauri's WKWebView origin is inconsistent across platforms/versions
+# (tauri://localhost, https://tauri.localhost, null, or no Origin
+# header at all), so we allowlist those explicitly rather than using
+# origins="*".
+_ALLOWED_ORIGINS = {
+    "tauri://localhost",
+    "https://tauri.localhost",
+    "null",
+}
+
+CORS(app, origins=list(_ALLOWED_ORIGINS))
+
+
+@app.before_request
+def _reject_untrusted_origin():
+    """
+    Defence-in-depth against DNS rebinding: reject any request that
+    carries an Origin header not in our allowlist. Requests with NO
+    Origin header (direct navigation, curl, some Tauri webview calls)
+    are allowed through — the attack this blocks specifically relies
+    on cross-origin fetch()/XHR calls, which always send one.
+    """
+    origin = request.headers.get("Origin")
+    if origin is not None and origin not in _ALLOWED_ORIGINS:
+        return jsonify({"error": "origin not allowed"}), 403
 
 LOG_DIR = Path.home() / ".coworkguard" / "logs"
 SETTINGS = Path.home() / ".coworkguard" / "settings.json"
